@@ -93,7 +93,9 @@ export function GameOverScreen({
       )}
       {submitStatus === 'saved' && newRank !== null && (
         <p className="screen__status screen__status--highlight">
-          Tu posicion global: #{newRank}
+          {leaderboard && leaderboard.totalPlayers > 0
+            ? `Eres el #${newRank} de ${leaderboard.totalPlayers} jugadores`
+            : `Tu posicion global: #${newRank}`}
         </p>
       )}
       {submitStatus === 'error' && (
@@ -132,6 +134,7 @@ export function GameOverScreen({
             top10={leaderboard?.top10 ?? []}
             playerRank={leaderboard?.playerRank ?? newRank}
             playerName={playerName.trim()}
+            totalPlayers={leaderboard?.totalPlayers ?? 0}
             loading={submitStatus === 'saving'}
             compact
           />

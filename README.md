@@ -24,8 +24,10 @@ Las palabras no llevan tildes: escribe `tecnologia`, no `tecnología`.
 
 ### Estructura en Redis
 
-- `keyrunner:leaderboard:best` — sorted set con la **mejor puntuación** de cada jugador (ranking global).
+- `keyrunner:leaderboard:best` — sorted set con la **mejor puntuación de cada jugador** (sin límite de jugadores; el ranking global crece con todos los que jueguen).
 - `keyrunner:player:{nombre}` — metadatos (WPM, palabras, tiempo, fecha).
+
+La UI muestra el **top 10**, pero la posición de cualquier jugador (p. ej. #83 de 1.247) se calcula sobre el ranking completo.
 
 El frontend **no** escribe directo en Redis. Siempre pasa por:
 

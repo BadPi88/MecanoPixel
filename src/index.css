@@ -179,8 +179,15 @@ body {
 .leaderboard__title {
   font-size: 9px;
   color: var(--color-warn);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   text-align: center;
+}
+
+.leaderboard__total {
+  font-size: 6px;
+  color: var(--color-panel-border);
+  text-align: center;
+  margin-bottom: 12px;
 }
 
 .leaderboard__status,

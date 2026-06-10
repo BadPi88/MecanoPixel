@@ -8,6 +8,7 @@ import {
 } from './lib/redis';
 
 const PLAYER_META_PREFIX = 'keyrunner:player:';
+/** Una entrada por jugador (mejor score). Sin limite de tamano del ranking. */
 const MAX_SCORE = 1_000_000;
 const MAX_ELAPSED_MS = 3_600_000;
 

@@ -8,6 +8,8 @@ import {
 } from './lib/redis';
 
 const PLAYER_META_PREFIX = 'keyrunner:player:';
+/** Top 10 para la UI; el ranking completo vive en Redis sin limite de jugadores. */
+const TOP_N = 10;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -32,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : null;
 
   try {
-    const rawTop = await redis.zrange(LEADERBOARD_KEY, 0, 9, {
+    const rawTop = await redis.zrange(LEADERBOARD_KEY, 0, TOP_N - 1, {
       rev: true,
       withScores: true,
     });

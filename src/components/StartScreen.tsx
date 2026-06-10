@@ -105,6 +105,7 @@ export function StartScreen({
             top10={leaderboard?.top10 ?? []}
             playerRank={leaderboard?.playerRank ?? null}
             playerName={playerName.trim()}
+            totalPlayers={leaderboard?.totalPlayers ?? 0}
             loading={loadingLb}
           />
         </div>

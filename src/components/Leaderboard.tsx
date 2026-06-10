@@ -4,14 +4,23 @@ interface LeaderboardProps {
   top10: LeaderboardEntry[];
   playerRank: number | null;
   playerName: string;
+  totalPlayers?: number;
   loading?: boolean;
   compact?: boolean;
+}
+
+function formatGlobalRank(rank: number, totalPlayers: number): string {
+  if (totalPlayers > 0) {
+    return `Eres el #${rank} de ${totalPlayers} jugadores`;
+  }
+  return `Tu posicion: #${rank}`;
 }
 
 export function Leaderboard({
   top10,
   playerRank,
   playerName,
+  totalPlayers = 0,
   loading = false,
   compact = false,
 }: LeaderboardProps) {
@@ -23,9 +32,19 @@ export function Leaderboard({
     );
   }
 
+  const inTop10 =
+    playerRank !== null &&
+    playerRank <= 10 &&
+    top10.some(
+      (e) => e.playerName.toLowerCase() === playerName.toLowerCase(),
+    );
+
   return (
     <div className={`leaderboard ${compact ? 'leaderboard--compact' : ''}`}>
       <h2 className="leaderboard__title">TOP 10 GLOBAL</h2>
+      {totalPlayers > 0 && (
+        <p className="leaderboard__total">{totalPlayers} jugadores en total</p>
+      )}
 
       {top10.length === 0 ? (
         <p className="leaderboard__empty">Aun no hay puntuaciones. ¡Se el primero!</p>
@@ -49,9 +68,15 @@ export function Leaderboard({
         </ol>
       )}
 
-      {playerName && playerRank !== null && (
+      {playerName && playerRank !== null && !inTop10 && (
         <p className="leaderboard__your-rank">
-          Tu posicion: <strong>#{playerRank}</strong> ({playerName})
+          {formatGlobalRank(playerRank, totalPlayers)}
+        </p>
+      )}
+
+      {playerName && playerRank !== null && inTop10 && totalPlayers > 10 && (
+        <p className="leaderboard__your-rank">
+          {formatGlobalRank(playerRank, totalPlayers)}
         </p>
       )}
 
