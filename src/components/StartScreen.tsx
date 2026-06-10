@@ -89,7 +89,7 @@ export function StartScreen({
             <ul className="screen__instructions">
               <li>Escribe las palabras antes de que toquen el suelo</li>
               <li>Pulsa ESPACIO o ENTER para confirmar</li>
-              <li>La velocidad sube cada 20 segundos</li>
+              <li>La velocidad sube cada 20 s — perk cada 3 subidas</li>
               <li>Sin tildes: escribe tecnologia, no tecnología</li>
               <li>ESC para pausar</li>
             </ul>

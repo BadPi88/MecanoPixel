@@ -1,4 +1,11 @@
-export type GameStatus = 'idle' | 'playing' | 'paused' | 'gameOver';
+import type { ActivePerk, PerkId } from './perks';
+
+export type GameStatus =
+  | 'idle'
+  | 'playing'
+  | 'paused'
+  | 'perkPick'
+  | 'gameOver';
 
 export interface FallingWord {
   id: string;
@@ -26,9 +33,16 @@ export interface GameState {
   startTime: number | null;
   elapsedMs: number;
   showSpeedNotice: boolean;
+  rampBlockedNotice: boolean;
   maxWordsPerSecond: number;
   lastTier: number;
   poppingWordId: string | null;
+  activePerks: ActivePerk[];
+  pendingPerkChoice: PerkId[] | null;
+  difficultyTierOffset: number;
+  frozenUntilMs: number;
+  /** Subidas de ritmo desde el ultimo perk (o desde el inicio). */
+  rampCount: number;
 }
 
 export type GameAction =
@@ -43,6 +57,8 @@ export type GameAction =
   | { type: 'SUBMIT' }
   | { type: 'WORD_HIT_GROUND'; payload: string }
   | { type: 'SPEED_RAMP'; payload: { fallSpeed: number } }
+  | { type: 'BROKEN_CLOCK_SKIP' }
+  | { type: 'SELECT_PERK'; payload: PerkId }
   | { type: 'CLEAR_POP' }
   | { type: 'HIDE_SPEED_NOTICE' };
 
@@ -60,7 +76,13 @@ export const initialGameState: GameState = {
   startTime: null,
   elapsedMs: 0,
   showSpeedNotice: false,
+  rampBlockedNotice: false,
   maxWordsPerSecond: 0,
   lastTier: 0,
   poppingWordId: null,
+  activePerks: [],
+  pendingPerkChoice: null,
+  difficultyTierOffset: 0,
+  frozenUntilMs: 0,
+  rampCount: 0,
 };

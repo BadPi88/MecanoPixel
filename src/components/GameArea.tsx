@@ -7,6 +7,7 @@ interface GameAreaProps {
   words: FallingWordType[];
   input: string;
   poppingWordId: string | null;
+  radarTargetId: string | null;
   onPopEnd: () => void;
 }
 
@@ -15,6 +16,7 @@ export function GameArea({
   words,
   input,
   poppingWordId,
+  radarTargetId,
   onPopEnd,
 }: GameAreaProps) {
   const groundHeight = areaRef.current?.clientHeight ?? 500;
@@ -31,6 +33,7 @@ export function GameArea({
             word={word}
             groundHeight={groundHeight}
             isPartialMatch={isPartialMatch}
+            isRadarTarget={word.id === radarTargetId}
             isPopping={poppingWordId === word.id}
             onPopEnd={onPopEnd}
           />

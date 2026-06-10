@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { Dispatch } from 'react';
 import { getRandomWord } from '../data/dictionary';
-import { getDifficultyTier } from '../utils/difficulty';
 import type { GameAction, GameState } from '../types/game';
+import { getDifficultyTier } from '../utils/difficulty';
+import { getEffectiveDifficulty, hasPerkWithCharge } from '../utils/perkModifiers';
 import { createWordId } from './useGameState';
 
 const WORD_HEIGHT = 36;
@@ -49,7 +50,7 @@ export function useGameLoop(
   const spawnIntervalRef = useRef(2500);
 
   useEffect(() => {
-    if (state.status !== 'playing') {
+    if (state.status !== 'playing' && state.status !== 'perkPick') {
       return;
     }
 
@@ -64,30 +65,58 @@ export function useGameLoop(
       const deltaMs = timestamp - lastFrame;
       lastFrame = timestamp;
 
-      const elapsed = stateRef.current.elapsedMs + deltaMs;
-      const tier = getDifficultyTier(elapsed);
-
-      if (tier.tier > lastTierRef.current) {
-        lastTierRef.current = tier.tier;
-        spawnIntervalRef.current = tier.spawnInterval;
-        dispatch({ type: 'SPEED_RAMP', payload: { fallSpeed: tier.fallSpeed } });
+      const current = stateRef.current;
+      if (current.status !== 'playing') {
+        animationId = requestAnimationFrame(tick);
+        return;
       }
+
+      const elapsed = current.elapsedMs + deltaMs;
+      const rawTier = getDifficultyTier(elapsed, 0).tier;
+
+      if (rawTier > lastTierRef.current) {
+        lastTierRef.current = rawTier;
+        if (hasPerkWithCharge(current.activePerks, 'broken_clock')) {
+          dispatch({ type: 'BROKEN_CLOCK_SKIP' });
+        } else {
+          const effective = getEffectiveDifficulty(
+            current.elapsedMs,
+            current.difficultyTierOffset,
+            current.activePerks,
+            current.frozenUntilMs,
+          );
+          spawnIntervalRef.current = effective.spawnInterval;
+          dispatch({
+            type: 'SPEED_RAMP',
+            payload: { fallSpeed: effective.fallSpeed },
+          });
+        }
+      }
+
+      const effective = getEffectiveDifficulty(
+        elapsed,
+        current.difficultyTierOffset,
+        current.activePerks,
+        current.frozenUntilMs,
+      );
 
       dispatch({
         type: 'TICK',
-        payload: { deltaMs, fallSpeed: tier.fallSpeed },
+        payload: { deltaMs, fallSpeed: effective.fallSpeed },
       });
 
-      const areaHeight =
-        gameAreaRef.current?.clientHeight ?? window.innerHeight - 48;
+      if (!effective.modifiers.frozen) {
+        const areaHeight =
+          gameAreaRef.current?.clientHeight ?? window.innerHeight - 48;
 
-      stateRef.current.words.forEach((word) => {
-        if (word.id === stateRef.current.poppingWordId) return;
-        const nextY = word.y + tier.fallSpeed * (deltaMs / 1000);
-        if (nextY >= areaHeight - WORD_HEIGHT) {
-          dispatch({ type: 'WORD_HIT_GROUND', payload: word.id });
-        }
-      });
+        current.words.forEach((word) => {
+          if (word.id === current.poppingWordId) return;
+          const nextY = word.y + effective.fallSpeed * (deltaMs / 1000);
+          if (nextY >= areaHeight - WORD_HEIGHT) {
+            dispatch({ type: 'WORD_HIT_GROUND', payload: word.id });
+          }
+        });
+      }
 
       animationId = requestAnimationFrame(tick);
     };
@@ -105,13 +134,23 @@ export function useGameLoop(
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const scheduleSpawn = () => {
-      const elapsed = stateRef.current.elapsedMs;
-      const tier = getDifficultyTier(elapsed);
-      spawnIntervalRef.current = tier.spawnInterval;
+      const current = stateRef.current;
+      if (current.status !== 'playing') return;
+
+      const effective = getEffectiveDifficulty(
+        current.elapsedMs,
+        current.difficultyTierOffset,
+        current.activePerks,
+        current.frozenUntilMs,
+      );
+      spawnIntervalRef.current = effective.spawnInterval;
 
       const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
-      const text = getRandomWord(elapsed);
-      const x = findSpawnX(areaWidth, text, stateRef.current.words);
+      const text = getRandomWord(
+        current.elapsedMs,
+        current.difficultyTierOffset,
+      );
+      const x = findSpawnX(areaWidth, text, current.words);
 
       dispatch({
         type: 'SPAWN_WORD',

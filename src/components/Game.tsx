@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
+import type { PerkId } from '../types/perks';
+import { findLowestWord, getEffectiveDifficulty } from '../utils/perkModifiers';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameState } from '../hooks/useGameState';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -6,6 +8,7 @@ import { loadPlayerName, savePlayerName } from '../services/leaderboard';
 import { GameArea } from './GameArea';
 import { GameOverScreen } from './GameOverScreen';
 import { HUD } from './HUD';
+import { PerkPicker } from './PerkPicker';
 import { StartScreen } from './StartScreen';
 
 export function Game() {
@@ -30,6 +33,30 @@ export function Game() {
     dispatch({ type: 'START' });
   }, [dispatch, playerName]);
 
+  const handlePerkSelect = useCallback(
+    (id: PerkId) => {
+      dispatch({ type: 'SELECT_PERK', payload: id });
+    },
+    [dispatch],
+  );
+
+  const effective = getEffectiveDifficulty(
+    state.elapsedMs,
+    state.difficultyTierOffset,
+    state.activePerks,
+    state.frozenUntilMs,
+  );
+
+  const radarTargetId =
+    effective.modifiers.radarActive && state.words.length > 0
+      ? findLowestWord(state.words)?.id ?? null
+      : null;
+
+  const inGame =
+    state.status === 'playing' ||
+    state.status === 'paused' ||
+    state.status === 'perkPick';
+
   return (
     <div className="game">
       {state.status === 'idle' && (
@@ -40,7 +67,7 @@ export function Game() {
         />
       )}
 
-      {(state.status === 'playing' || state.status === 'paused') && (
+      {inGame && (
         <>
           <HUD
             playerName={playerName.trim()}
@@ -51,15 +78,27 @@ export function Game() {
             elapsedMs={state.elapsedMs}
             input={state.input}
             showSpeedNotice={state.showSpeedNotice}
+            rampBlockedNotice={state.rampBlockedNotice}
+            difficultyTierOffset={state.difficultyTierOffset}
+            activePerks={state.activePerks}
+            frozenUntilMs={state.frozenUntilMs}
             isPaused={state.status === 'paused'}
+            isPerkPick={state.status === 'perkPick'}
           />
           <GameArea
             areaRef={gameAreaRef}
             words={state.words}
             input={state.input}
             poppingWordId={state.poppingWordId}
+            radarTargetId={radarTargetId}
             onPopEnd={handlePopEnd}
           />
+          {state.status === 'perkPick' && state.pendingPerkChoice && (
+            <PerkPicker
+              choices={state.pendingPerkChoice}
+              onSelect={handlePerkSelect}
+            />
+          )}
         </>
       )}
 

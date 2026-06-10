@@ -5,6 +5,7 @@ interface FallingWordProps {
   word: FallingWordType;
   groundHeight: number;
   isPartialMatch: boolean;
+  isRadarTarget?: boolean;
   isPopping: boolean;
   onPopEnd: () => void;
 }
@@ -20,6 +21,7 @@ export function FallingWord({
   word,
   groundHeight,
   isPartialMatch,
+  isRadarTarget = false,
   isPopping,
   onPopEnd,
 }: FallingWordProps) {
@@ -37,6 +39,7 @@ export function FallingWord({
         'falling-word',
         `falling-word--${danger}`,
         isPartialMatch ? 'falling-word--match' : '',
+        isRadarTarget ? 'falling-word--radar' : '',
         isPopping ? 'falling-word--pop' : '',
       ]
         .filter(Boolean)

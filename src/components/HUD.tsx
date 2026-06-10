@@ -1,5 +1,8 @@
-import { formatWordsPerSecond, wordsPerSecondFromElapsed } from '../utils/intensity';
+import type { ActivePerk } from '../types/perks';
+import { getEffectiveDifficulty } from '../utils/perkModifiers';
+import { formatWordsPerSecond } from '../utils/intensity';
 import { calculateWpm, formatTime } from '../utils/wpm';
+import { PerkBar } from './PerkBar';
 
 interface HUDProps {
   playerName?: string;
@@ -10,7 +13,12 @@ interface HUDProps {
   elapsedMs: number;
   input: string;
   showSpeedNotice: boolean;
+  rampBlockedNotice: boolean;
+  difficultyTierOffset: number;
+  activePerks: ActivePerk[];
+  frozenUntilMs: number;
   isPaused: boolean;
+  isPerkPick?: boolean;
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -54,12 +62,26 @@ export function HUD({
   elapsedMs,
   input,
   showSpeedNotice,
+  rampBlockedNotice,
+  difficultyTierOffset,
+  activePerks,
+  frozenUntilMs,
   isPaused,
+  isPerkPick = false,
 }: HUDProps) {
   const wpm = calculateWpm(correctChars, elapsedMs);
-  const currentWps = wordsPerSecondFromElapsed(elapsedMs);
+  const effective = getEffectiveDifficulty(
+    elapsedMs,
+    difficultyTierOffset,
+    activePerks,
+    frozenUntilMs,
+  );
+  const currentWps = formatWordsPerSecond(
+    1000 / effective.spawnInterval,
+  );
   const maxComboBlocks = 10;
   const comboBlocks = Math.min(combo, maxComboBlocks);
+  const maxHearts = 5;
 
   return (
     <header className="hud">
@@ -84,11 +106,13 @@ export function HUD({
             <span className="hud__value">{formatTime(elapsedMs)}</span>
           </div>
           <div className="hud__lives" aria-label={`${lives} vidas`}>
-            {Array.from({ length: 3 }, (_, i) => (
+            {Array.from({ length: maxHearts }, (_, i) => (
               <HeartIcon key={i} filled={i < lives} />
             ))}
           </div>
         </div>
+
+        <PerkBar activePerks={activePerks} elapsedMs={elapsedMs} />
 
         <div className="hud__row hud__row--bottom">
           <div className="hud__input">
@@ -110,13 +134,15 @@ export function HUD({
         </div>
       </div>
 
-      {showSpeedNotice && (
+      {showSpeedNotice && !isPerkPick && (
         <div className="hud__speed-notice" role="status">
-          ¡MAS RAPIDO! {formatWordsPerSecond(currentWps)}
+          {rampBlockedNotice
+            ? 'RELOJ ROTO — ritmo bloqueado'
+            : `¡MAS RAPIDO! ${currentWps}`}
         </div>
       )}
 
-      {isPaused && (
+      {isPaused && !isPerkPick && (
         <div className="hud__pause-overlay">
           <span>PAUSA</span>
         </div>

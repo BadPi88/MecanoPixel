@@ -233,8 +233,8 @@ function normalizeWord(word: string): string {
     .replace(/[^a-z]/g, '');
 }
 
-export function getRandomWord(elapsedMs: number): string {
-  const { wordLengthRange } = getDifficultyTier(elapsedMs);
+export function getRandomWord(elapsedMs: number, tierOffset = 0): string {
+  const { wordLengthRange } = getDifficultyTier(elapsedMs, tierOffset);
   const [minLen, maxLen] = wordLengthRange;
 
   const candidates = normalizedWords.filter(

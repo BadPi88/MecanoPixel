@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { Dispatch } from 'react';
 import type { GameAction, GameState } from '../types/game';
+import type { PerkId } from '../types/perks';
 
 export function useKeyboard(
   state: GameState,
@@ -9,6 +10,18 @@ export function useKeyboard(
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+      if (state.status === 'perkPick' && state.pendingPerkChoice) {
+        const index = Number(event.key) - 1;
+        if (index >= 0 && index < state.pendingPerkChoice.length) {
+          event.preventDefault();
+          dispatch({
+            type: 'SELECT_PERK',
+            payload: state.pendingPerkChoice[index] as PerkId,
+          });
+        }
+        return;
+      }
 
       if (event.key === 'Escape') {
         if (state.status === 'playing' || state.status === 'paused') {
@@ -46,5 +59,5 @@ export function useKeyboard(
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [state.status, dispatch]);
+  }, [state.status, state.pendingPerkChoice, dispatch]);
 }

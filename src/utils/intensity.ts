@@ -5,9 +5,13 @@ export function wordsPerSecondFromSpawnInterval(spawnIntervalMs: number): number
   return 1000 / spawnIntervalMs;
 }
 
-export function wordsPerSecondFromElapsed(elapsedMs: number): number {
-  const { spawnInterval } = getDifficultyTier(elapsedMs);
-  return wordsPerSecondFromSpawnInterval(spawnInterval);
+export function wordsPerSecondFromElapsed(
+  elapsedMs: number,
+  tierOffset = 0,
+  spawnIntervalMult = 1,
+): number {
+  const { spawnInterval } = getDifficultyTier(elapsedMs, tierOffset);
+  return wordsPerSecondFromSpawnInterval(spawnInterval * spawnIntervalMult);
 }
 
 /** Texto legible para cualquier jugador, p. ej. "1.4 pal/s". */

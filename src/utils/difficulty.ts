@@ -8,8 +8,12 @@ export const BASE_SPAWN_INTERVAL = 2500;
 export const SPAWN_DECREMENT = 180;
 export const MIN_SPAWN_INTERVAL = 700;
 
-export function getDifficultyTier(elapsedMs: number): DifficultyTier {
-  const tier = Math.floor(elapsedMs / SPEED_RAMP_INTERVAL_MS);
+export function getDifficultyTier(
+  elapsedMs: number,
+  tierOffset = 0,
+): DifficultyTier {
+  const rawTier = Math.floor(elapsedMs / SPEED_RAMP_INTERVAL_MS);
+  const tier = Math.max(0, rawTier - tierOffset);
 
   const fallSpeed = Math.min(
     BASE_FALL_SPEED + tier * SPEED_INCREMENT,
