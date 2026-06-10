@@ -31,7 +31,7 @@ export function useKeyboard(
         return;
       }
 
-      if (state.status !== 'playing') return;
+      if (state.status !== 'playing' && state.status !== 'boss') return;
 
       if (event.key === 'Backspace') {
         event.preventDefault();

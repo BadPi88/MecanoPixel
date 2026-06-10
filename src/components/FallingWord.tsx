@@ -33,11 +33,15 @@ export function FallingWord({
     return () => clearTimeout(timer);
   }, [isPopping, onPopEnd]);
 
+  const kindClass =
+    word.kind !== 'normal' ? `falling-word--kind-${word.kind}` : '';
+
   return (
     <div
       className={[
         'falling-word',
         `falling-word--${danger}`,
+        kindClass,
         isPartialMatch ? 'falling-word--match' : '',
         isRadarTarget ? 'falling-word--radar' : '',
         isPopping ? 'falling-word--pop' : '',

@@ -1,10 +1,16 @@
+import type { EventDefinition } from '../data/events';
 import type { ActivePerk, PerkId } from './perks';
+import type { DeathCause, RunnerId, WordKind } from './run';
 
 export type GameStatus =
   | 'idle'
+  | 'runnerPick'
   | 'playing'
   | 'paused'
   | 'perkPick'
+  | 'shop'
+  | 'event'
+  | 'boss'
   | 'gameOver';
 
 export interface FallingWord {
@@ -12,6 +18,7 @@ export interface FallingWord {
   text: string;
   x: number;
   y: number;
+  kind: WordKind;
 }
 
 export interface DifficultyTier {
@@ -41,14 +48,25 @@ export interface GameState {
   pendingPerkChoice: PerkId[] | null;
   difficultyTierOffset: number;
   frozenUntilMs: number;
-  /** Subidas de ritmo desde el ultimo perk (o desde el inicio). */
   rampCount: number;
+  floor: number;
+  runnerId: RunnerId | null;
+  runCoins: number;
+  rampsThisFloor: number;
+  noTrapsNextFloor: boolean;
+  trapIgnoreRemaining: number;
+  pendingEvent: EventDefinition | null;
+  bossWord: FallingWord | null;
+  deathCause: DeathCause;
+  perksHistory: PerkId[];
+  lastPurgeFreeAtMs: number;
 }
 
 export type GameAction =
-  | { type: 'START' }
+  | { type: 'BEGIN_RUN' }
   | { type: 'GO_HOME' }
   | { type: 'RETRY' }
+  | { type: 'SELECT_RUNNER'; payload: RunnerId }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'TICK'; payload: { deltaMs: number; fallSpeed: number } }
   | { type: 'SPAWN_WORD'; payload: FallingWord }
@@ -59,6 +77,11 @@ export type GameAction =
   | { type: 'SPEED_RAMP'; payload: { fallSpeed: number } }
   | { type: 'BROKEN_CLOCK_SKIP' }
   | { type: 'SELECT_PERK'; payload: PerkId }
+  | { type: 'SHOP_BUY'; payload: import('./run').ShopItemId }
+  | { type: 'SHOP_LEAVE' }
+  | { type: 'EVENT_CHOICE'; payload: 'A' | 'B' }
+  | { type: 'BOSS_TICK'; payload: { deltaMs: number } }
+  | { type: 'BOSS_FAIL' }
   | { type: 'CLEAR_POP' }
   | { type: 'HIDE_SPEED_NOTICE' };
 
@@ -85,4 +108,15 @@ export const initialGameState: GameState = {
   difficultyTierOffset: 0,
   frozenUntilMs: 0,
   rampCount: 0,
+  floor: 1,
+  runnerId: null,
+  runCoins: 0,
+  rampsThisFloor: 0,
+  noTrapsNextFloor: false,
+  trapIgnoreRemaining: 0,
+  pendingEvent: null,
+  bossWord: null,
+  deathCause: null,
+  perksHistory: [],
+  lastPurgeFreeAtMs: 0,
 };

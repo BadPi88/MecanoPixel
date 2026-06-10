@@ -735,6 +735,257 @@ body {
   }
 }
 
+/* Roguelike hub & screens */
+.hub-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.hub-tabs__tab {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  padding: 10px 16px;
+  background: var(--color-panel);
+  border: 3px solid var(--color-panel-border);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.hub-tabs__tab--active {
+  background: var(--color-highlight);
+  color: #000;
+  border-color: #000;
+}
+
+.screen__column--wide {
+  max-width: 520px;
+  width: 100%;
+}
+
+.game__playfield {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.game__playfield .game-area {
+  flex: 1;
+}
+
+.runner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  max-width: 720px;
+  width: 100%;
+}
+
+.runner-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  color: var(--color-text);
+}
+
+.runner-card--locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.runner-card__name {
+  font-size: 12px;
+  color: var(--color-highlight);
+}
+
+.runner-card__desc {
+  font-size: 8px;
+  line-height: 1.6;
+}
+
+.runner-card__lock {
+  font-size: 8px;
+  color: var(--color-warn);
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 560px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  color: var(--color-text);
+}
+
+.shop-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.shop-item__name {
+  font-size: 10px;
+  color: var(--color-safe);
+}
+
+.shop-item__desc {
+  font-size: 8px;
+}
+
+.shop-item__price {
+  font-size: 8px;
+  color: var(--color-warn);
+}
+
+.event-panel {
+  max-width: 480px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.event-panel__title {
+  font-size: 12px;
+  color: var(--color-warn);
+}
+
+.event-panel__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.boss-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.boss-header {
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.boss-header__title {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.boss-header__hint {
+  font-size: 8px;
+  margin-top: 6px;
+  color: var(--color-warn);
+}
+
+.boss-area {
+  position: absolute;
+  inset: 0;
+  top: 48px;
+}
+
+.meta-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+}
+
+.meta-shop__header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+}
+
+.meta-shop__coins {
+  color: var(--color-warn);
+}
+
+.meta-shop__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meta-shop__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.meta-shop__item-name {
+  font-size: 10px;
+  color: var(--color-highlight);
+  display: block;
+}
+
+.meta-shop__item-desc {
+  font-size: 8px;
+  display: block;
+  margin-top: 4px;
+}
+
+.meta-shop__owned {
+  font-size: 8px;
+  color: var(--color-safe);
+}
+
+.meta-shop__stats {
+  font-size: 8px;
+  padding: 12px;
+  display: flex;
+  gap: 16px;
+}
+
+.leaderboard__floor {
+  font-size: 7px;
+  color: var(--color-warn);
+}
+
+.screen__stat-value--gold {
+  color: var(--color-warn);
+}
+
+.falling-word--kind-trap {
+  background: #5a2a7a;
+  border-color: #c080ff;
+  color: #f0d0ff;
+}
+
+.falling-word--kind-bomb {
+  background: #7a4a1a;
+  border-color: #ff9040;
+  color: #ffe0c0;
+}
+
+.falling-word--kind-bonus {
+  background: #7a6a10;
+  border-color: #ffd040;
+  color: #fff8c0;
+}
+
 @media (max-width: 640px) {
   .screen__layout {
     grid-template-columns: 1fr;

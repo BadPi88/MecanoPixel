@@ -60,7 +60,15 @@ export function Leaderboard({
                 className={`leaderboard__row ${isYou ? 'leaderboard__row--you' : ''}`}
               >
                 <span className="leaderboard__rank">{index + 1}</span>
-                <span className="leaderboard__name">{entry.playerName}</span>
+                <span className="leaderboard__name">
+                  {entry.playerName}
+                  {entry.floorReached != null && entry.floorReached > 0 && (
+                    <span className="leaderboard__floor">
+                      {' '}
+                      P{entry.floorReached}
+                    </span>
+                  )}
+                </span>
                 <span className="leaderboard__score">{entry.score}</span>
               </li>
             );

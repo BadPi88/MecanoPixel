@@ -1,14 +1,20 @@
 import { useEffect, useRef } from 'react';
 import type { Dispatch } from 'react';
-import { getRandomWord } from '../data/dictionary';
 import type { GameAction, GameState } from '../types/game';
 import { getDifficultyTier } from '../utils/difficulty';
 import { getEffectiveDifficulty, hasPerkWithCharge } from '../utils/perkModifiers';
+import { getFloorTierOffset } from '../utils/runTransitions';
+import {
+  getSpawnRatesForFloor,
+  getWordTextForKind,
+  rollWordKind,
+} from '../utils/wordSpawn';
 import { createWordId } from './useGameState';
 
 const WORD_HEIGHT = 36;
 const MIN_X_PADDING = 16;
 const MIN_WORD_GAP = 80;
+const BOSS_WORD_HEIGHT = 40;
 
 function randomX(areaWidth: number, wordWidth: number): number {
   const maxX = Math.max(MIN_X_PADDING, areaWidth - wordWidth - MIN_X_PADDING);
@@ -72,7 +78,8 @@ export function useGameLoop(
       }
 
       const elapsed = current.elapsedMs + deltaMs;
-      const rawTier = getDifficultyTier(elapsed, 0).tier;
+      const tierOffset = getFloorTierOffset(current);
+      const rawTier = getDifficultyTier(elapsed, tierOffset).tier;
 
       if (rawTier > lastTierRef.current) {
         lastTierRef.current = rawTier;
@@ -81,9 +88,10 @@ export function useGameLoop(
         } else {
           const effective = getEffectiveDifficulty(
             current.elapsedMs,
-            current.difficultyTierOffset,
+            tierOffset,
             current.activePerks,
             current.frozenUntilMs,
+            current.runnerId,
           );
           spawnIntervalRef.current = effective.spawnInterval;
           dispatch({
@@ -95,9 +103,10 @@ export function useGameLoop(
 
       const effective = getEffectiveDifficulty(
         elapsed,
-        current.difficultyTierOffset,
+        tierOffset,
         current.activePerks,
         current.frozenUntilMs,
+        current.runnerId,
       );
 
       dispatch({
@@ -127,6 +136,40 @@ export function useGameLoop(
   }, [state.status, dispatch, gameAreaRef]);
 
   useEffect(() => {
+    if (state.status !== 'boss') return;
+
+    let animationId = 0;
+    let lastFrame = 0;
+
+    const tick = (timestamp: number) => {
+      if (lastFrame === 0) lastFrame = timestamp;
+      const deltaMs = timestamp - lastFrame;
+      lastFrame = timestamp;
+
+      const current = stateRef.current;
+      if (current.status !== 'boss' || !current.bossWord) {
+        animationId = requestAnimationFrame(tick);
+        return;
+      }
+
+      dispatch({ type: 'BOSS_TICK', payload: { deltaMs } });
+
+      const areaHeight =
+        gameAreaRef.current?.clientHeight ?? window.innerHeight - 48;
+      const nextY = current.bossWord.y + 25 * (deltaMs / 1000);
+      if (nextY >= areaHeight - BOSS_WORD_HEIGHT) {
+        dispatch({ type: 'BOSS_FAIL' });
+        return;
+      }
+
+      animationId = requestAnimationFrame(tick);
+    };
+
+    animationId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationId);
+  }, [state.status, dispatch, gameAreaRef]);
+
+  useEffect(() => {
     if (state.status !== 'playing') {
       return;
     }
@@ -137,19 +180,23 @@ export function useGameLoop(
       const current = stateRef.current;
       if (current.status !== 'playing') return;
 
+      const tierOffset = getFloorTierOffset(current);
       const effective = getEffectiveDifficulty(
         current.elapsedMs,
-        current.difficultyTierOffset,
+        tierOffset,
         current.activePerks,
         current.frozenUntilMs,
+        current.runnerId,
       );
       spawnIntervalRef.current = effective.spawnInterval;
 
-      const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
-      const text = getRandomWord(
-        current.elapsedMs,
-        current.difficultyTierOffset,
+      const rates = getSpawnRatesForFloor(
+        current.floor,
+        current.noTrapsNextFloor,
       );
+      const kind = rollWordKind(rates);
+      const text = getWordTextForKind(kind, current.elapsedMs, tierOffset);
+      const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
       const x = findSpawnX(areaWidth, text, current.words);
 
       dispatch({
@@ -159,6 +206,7 @@ export function useGameLoop(
           text,
           x,
           y: -WORD_HEIGHT,
+          kind,
         },
       });
 

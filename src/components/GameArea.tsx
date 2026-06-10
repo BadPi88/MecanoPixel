@@ -26,7 +26,9 @@ export function GameArea({
     <div className="game-area" ref={areaRef}>
       {words.map((word) => {
         const isPartialMatch =
-          lowerInput.length > 0 && word.text.startsWith(lowerInput);
+          word.kind !== 'trap' &&
+          lowerInput.length > 0 &&
+          word.text.startsWith(lowerInput);
         return (
           <FallingWord
             key={word.id}

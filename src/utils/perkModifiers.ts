@@ -1,9 +1,11 @@
 import type { ActivePerk, PerkId } from '../types/perks';
 import { MAX_LIVES } from '../types/perks';
+import { PERK_CATALOG, trimActivePerks } from '../data/perks';
 import type { FallingWord, GameState } from '../types/game';
-import { trimActivePerks } from '../data/perks';
 import { getDifficultyTier } from './difficulty';
 import { calculateWordScore } from './scoring';
+import { getRunnerModifiers } from './runnerModifiers';
+import type { RunnerId } from '../types/run';
 
 export interface PerkModifiers {
   fallSpeedMult: number;
@@ -66,18 +68,28 @@ export function getModifiers(
   };
 }
 
+export function countDefensePerks(activePerks: ActivePerk[]): number {
+  return activePerks.filter((p) => {
+    const def = PERK_CATALOG[p.id];
+    return def?.category === 'defense';
+  }).length;
+}
+
 export function getEffectiveDifficulty(
   elapsedMs: number,
   difficultyTierOffset: number,
   activePerks: ActivePerk[],
   frozenUntilMs: number,
+  runnerId: RunnerId | null = null,
 ) {
   const tier = getDifficultyTier(elapsedMs, difficultyTierOffset);
   const mods = getModifiers(activePerks, elapsedMs, frozenUntilMs);
+  const runner = getRunnerModifiers(runnerId);
 
   return {
     ...tier,
-    fallSpeed: tier.fallSpeed * mods.fallSpeedMult,
+    fallSpeed:
+      tier.fallSpeed * mods.fallSpeedMult * runner.fallSpeedMult,
     spawnInterval: tier.spawnInterval * mods.spawnIntervalMult,
     modifiers: mods,
   };
@@ -124,7 +136,9 @@ export function calculatePerkWordScore(
   activePerks: ActivePerk[],
   elapsedMs: number,
   snipeConsumed: boolean,
+  runnerId: RunnerId | null = null,
 ): number {
+  const runner = getRunnerModifiers(runnerId);
   const topThird = groundHeight / 3;
   const inTop = yPosition < topThird;
 
@@ -136,6 +150,9 @@ export function calculatePerkWordScore(
   }
 
   let scoreMult = 1;
+  if (wordLength <= 5) scoreMult *= runner.shortWordScoreMult;
+  if (combo >= runner.comboMultFrom) scoreMult *= runner.comboMultValue;
+
   for (const perk of activePerks) {
     if (perk.expiresAtMs !== undefined && perk.expiresAtMs <= elapsedMs) continue;
     if (perk.id === 'double_score') scoreMult *= 2;
@@ -169,9 +186,12 @@ export function applyPerkSelection(
   };
 
   switch (perkId) {
-    case 'shield':
-      addPerk({ id: 'shield', charges: 1 });
+    case 'shield': {
+      const defenseCount = countDefensePerks(activePerks);
+      const charges = defenseCount >= 1 ? 2 : 1;
+      addPerk({ id: 'shield', charges });
       break;
+    }
     case 'extra_life':
       lives = Math.min(lives + 1, MAX_LIVES);
       break;

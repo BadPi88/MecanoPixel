@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import type { LeaderboardResponse } from '../types/leaderboard';
 import { fetchLeaderboard } from '../services/leaderboard';
 import { Leaderboard } from './Leaderboard';
+import { MetaShop } from './MetaShop';
 import { PixelButton } from './PixelButton';
+
+type HubTab = 'play' | 'unlocks';
 
 interface StartScreenProps {
   playerName: string;
@@ -15,6 +18,7 @@ export function StartScreen({
   onPlayerNameChange,
   onStart,
 }: StartScreenProps) {
+  const [tab, setTab] = useState<HubTab>('play');
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
     null,
   );
@@ -59,57 +63,80 @@ export function StartScreen({
   return (
     <div className="screen screen--start">
       <h1 className="screen__title">KEY RUNNER</h1>
-      <p className="screen__subtitle">MECANOGRAFIA PIXEL</p>
+      <p className="screen__subtitle">ROGUELIKE DE MECANOGRAFIA</p>
 
-      <div className="screen__layout">
-        <div className="screen__column">
-          <div className="screen__panel pixel-panel">
-            <h2 className="screen__panel-title">TU NOMBRE</h2>
-            <input
-              type="text"
-              className="pixel-input"
-              value={playerName}
-              onChange={(e) => {
-                onPlayerNameChange(e.target.value);
-                setNameError('');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleStart();
-              }}
-              placeholder="Escribe aqui..."
-              maxLength={16}
-              autoComplete="username"
-              autoFocus
-            />
-            {nameError && <p className="screen__error">{nameError}</p>}
+      <div className="hub-tabs">
+        <button
+          type="button"
+          className={`hub-tabs__tab ${tab === 'play' ? 'hub-tabs__tab--active' : ''}`}
+          onClick={() => setTab('play')}
+        >
+          JUGAR
+        </button>
+        <button
+          type="button"
+          className={`hub-tabs__tab ${tab === 'unlocks' ? 'hub-tabs__tab--active' : ''}`}
+          onClick={() => setTab('unlocks')}
+        >
+          DESBLOQUEOS
+        </button>
+      </div>
 
-            <h2 className="screen__panel-title screen__panel-title--spaced">
-              COMO JUGAR
-            </h2>
-            <ul className="screen__instructions">
-              <li>Escribe las palabras antes de que toquen el suelo</li>
-              <li>Pulsa ESPACIO o ENTER para confirmar</li>
-              <li>La velocidad sube cada 20 s — perk cada 3 subidas</li>
-              <li>Sin tildes: escribe tecnologia, no tecnología</li>
-              <li>ESC para pausar</li>
-            </ul>
+      {tab === 'play' ? (
+        <div className="screen__layout">
+          <div className="screen__column">
+            <div className="screen__panel pixel-panel">
+              <h2 className="screen__panel-title">TU NOMBRE</h2>
+              <input
+                type="text"
+                className="pixel-input"
+                value={playerName}
+                onChange={(e) => {
+                  onPlayerNameChange(e.target.value);
+                  setNameError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleStart();
+                }}
+                placeholder="Escribe aqui..."
+                maxLength={16}
+                autoComplete="username"
+                autoFocus
+              />
+              {nameError && <p className="screen__error">{nameError}</p>}
+
+              <h2 className="screen__panel-title screen__panel-title--spaced">
+                COMO JUGAR
+              </h2>
+              <ul className="screen__instructions">
+                <li>Elige un runner y sobrevive pisos de 3 subidas de ritmo</li>
+                <li>Trampas (morado), bombas (naranja), bonus (oro)</li>
+                <li>Tienda en pisos impares, eventos en pares, jefe cada 3</li>
+                <li>Perk cada 3 subidas de ritmo — meta coins al morir</li>
+                <li>Sin tildes: escribe tecnologia, no tecnología</li>
+              </ul>
+            </div>
+
+            <PixelButton onClick={handleStart} className="screen__btn">
+              NUEVA RUN
+            </PixelButton>
           </div>
 
-          <PixelButton onClick={handleStart} className="screen__btn">
-            JUGAR
-          </PixelButton>
+          <div className="screen__panel pixel-panel screen__column">
+            <Leaderboard
+              top10={leaderboard?.top10 ?? []}
+              playerRank={leaderboard?.playerRank ?? null}
+              playerName={playerName.trim()}
+              totalPlayers={leaderboard?.totalPlayers ?? 0}
+              loading={loadingLb}
+            />
+          </div>
         </div>
-
-        <div className="screen__panel pixel-panel screen__column">
-          <Leaderboard
-            top10={leaderboard?.top10 ?? []}
-            playerRank={leaderboard?.playerRank ?? null}
-            playerName={playerName.trim()}
-            totalPlayers={leaderboard?.totalPlayers ?? 0}
-            loading={loadingLb}
-          />
+      ) : (
+        <div className="screen__panel pixel-panel screen__column screen__column--wide">
+          <MetaShop />
         </div>
-      </div>
+      )}
     </div>
   );
 }

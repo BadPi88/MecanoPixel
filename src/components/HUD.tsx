@@ -1,4 +1,7 @@
+import { RAMPS_PER_FLOOR } from '../data/run';
+import { RUNNER_CATALOG } from '../data/runners';
 import type { ActivePerk } from '../types/perks';
+import type { RunnerId } from '../types/run';
 import { getEffectiveDifficulty } from '../utils/perkModifiers';
 import { formatWordsPerSecond } from '../utils/intensity';
 import { calculateWpm, formatTime } from '../utils/wpm';
@@ -19,6 +22,10 @@ interface HUDProps {
   frozenUntilMs: number;
   isPaused: boolean;
   isPerkPick?: boolean;
+  floor?: number;
+  runCoins?: number;
+  rampsThisFloor?: number;
+  runnerId?: RunnerId | null;
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -68,6 +75,10 @@ export function HUD({
   frozenUntilMs,
   isPaused,
   isPerkPick = false,
+  floor = 1,
+  runCoins = 0,
+  rampsThisFloor = 0,
+  runnerId = null,
 }: HUDProps) {
   const wpm = calculateWpm(correctChars, elapsedMs);
   const effective = getEffectiveDifficulty(
@@ -75,6 +86,7 @@ export function HUD({
     difficultyTierOffset,
     activePerks,
     frozenUntilMs,
+    runnerId,
   );
   const currentWps = formatWordsPerSecond(
     1000 / effective.spawnInterval,
@@ -87,9 +99,27 @@ export function HUD({
     <header className="hud">
       <div className="hud__panel">
         <div className="hud__row">
-          {playerName && (
+          <div className="hud__stat">
+            <span className="hud__label">PISO</span>
+            <span className="hud__value">
+              {floor} ({rampsThisFloor}/{RAMPS_PER_FLOOR})
+            </span>
+          </div>
+          <div className="hud__stat">
+            <span className="hud__label">COINS</span>
+            <span className="hud__value">{runCoins}</span>
+          </div>
+          {runnerId && (
             <div className="hud__stat hud__stat--player">
               <span className="hud__label">RUNNER</span>
+              <span className="hud__value hud__value--player">
+                {RUNNER_CATALOG[runnerId].name}
+              </span>
+            </div>
+          )}
+          {playerName && (
+            <div className="hud__stat hud__stat--player">
+              <span className="hud__label">JUGADOR</span>
               <span className="hud__value hud__value--player">{playerName}</span>
             </div>
           )}

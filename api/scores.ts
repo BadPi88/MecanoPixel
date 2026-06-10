@@ -28,6 +28,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const wpm = Number(body?.wpm);
   const wordsTyped = Number(body?.wordsTyped);
   const elapsedMs = Number(body?.elapsedMs);
+  const floorReached =
+    body?.floorReached !== undefined ? Number(body.floorReached) : undefined;
+  const runnerId =
+    typeof body?.runnerId === 'string' ? body.runnerId.slice(0, 16) : undefined;
 
   if (!isValidPlayerName(playerName)) {
     return res.status(400).json({ error: 'Nombre invalido (2-16 caracteres alfanumericos)' });
@@ -44,7 +48,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     wordsTyped < 0 ||
     !Number.isFinite(elapsedMs) ||
     elapsedMs < 0 ||
-    elapsedMs > MAX_ELAPSED_MS
+    elapsedMs > MAX_ELAPSED_MS ||
+    (floorReached !== undefined &&
+      (!Number.isFinite(floorReached) || floorReached < 0 || floorReached > 999))
   ) {
     return res.status(400).json({ error: 'Puntuacion invalida' });
   }
@@ -60,6 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         wpm: Math.round(wpm),
         wordsTyped: Math.round(wordsTyped),
         elapsedMs: Math.round(elapsedMs),
+        ...(floorReached !== undefined ? { floorReached: Math.round(floorReached) } : {}),
+        ...(runnerId ? { runnerId } : {}),
         updatedAt: new Date().toISOString(),
       };
 

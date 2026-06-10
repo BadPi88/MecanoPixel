@@ -4,6 +4,8 @@ export interface LeaderboardEntry {
   wpm: number;
   wordsTyped: number;
   elapsedMs: number;
+  floorReached?: number;
+  runnerId?: string;
   updatedAt: string;
 }
 
@@ -20,4 +22,6 @@ export interface SubmitScorePayload {
   wpm: number;
   wordsTyped: number;
   elapsedMs: number;
+  floorReached?: number;
+  runnerId?: string;
 }

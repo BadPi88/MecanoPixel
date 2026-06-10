@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { RUNNER_CATALOG } from '../data/runners';
 import type { LeaderboardResponse } from '../types/leaderboard';
+import type { DeathCause, RunnerId } from '../types/run';
+import { recordRunEnd } from '../services/meta';
 import { formatPeakIntensity } from '../utils/intensity';
+import { calculateMetaCoinsEarned } from '../utils/metaCoins';
 import { calculateWpm, formatTime } from '../utils/wpm';
 import { fetchLeaderboard, submitScore } from '../services/leaderboard';
 import { Leaderboard } from './Leaderboard';
@@ -13,9 +17,20 @@ interface GameOverScreenProps {
   wordsTyped: number;
   elapsedMs: number;
   maxWordsPerSecond: number;
+  floor: number;
+  runnerId: RunnerId | null;
+  runCoins: number;
+  deathCause: DeathCause;
   onRetry: () => void;
   onHome: () => void;
 }
+
+const DEATH_LABELS: Record<NonNullable<DeathCause>, string> = {
+  ground: 'Una palabra toco el suelo',
+  bomb: 'Explosion de bomba',
+  boss: 'El jefe te alcanzo',
+  event: 'Pacto mortal',
+};
 
 export function GameOverScreen({
   playerName,
@@ -24,11 +39,20 @@ export function GameOverScreen({
   wordsTyped,
   elapsedMs,
   maxWordsPerSecond,
+  floor,
+  runnerId,
+  runCoins,
+  deathCause,
   onRetry,
   onHome,
 }: GameOverScreenProps) {
   const wpm = calculateWpm(correctChars, elapsedMs);
   const peakIntensity = formatPeakIntensity(maxWordsPerSecond);
+  const metaCoinsEarned = useMemo(
+    () => calculateMetaCoinsEarned(floor, score),
+    [floor, score],
+  );
+
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
     null,
   );
@@ -36,6 +60,10 @@ export function GameOverScreen({
     'saving' | 'saved' | 'error' | 'skipped'
   >('saving');
   const [newRank, setNewRank] = useState<number | null>(null);
+
+  useEffect(() => {
+    recordRunEnd(floor, wordsTyped, metaCoinsEarned);
+  }, [floor, wordsTyped, metaCoinsEarned]);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +81,8 @@ export function GameOverScreen({
           wpm,
           wordsTyped,
           elapsedMs,
+          floorReached: floor,
+          runnerId: runnerId ?? undefined,
         });
         if (cancelled) return;
         setNewRank(result.rank);
@@ -81,12 +111,15 @@ export function GameOverScreen({
     return () => {
       cancelled = true;
     };
-  }, [playerName, score, wpm, wordsTyped, elapsedMs]);
+  }, [playerName, score, wpm, wordsTyped, elapsedMs, floor, runnerId]);
 
   return (
     <div className="screen screen--gameover">
       <h1 className="screen__title screen__title--danger">GAME OVER</h1>
       <p className="screen__subtitle">{playerName || 'Jugador'}</p>
+      {deathCause && (
+        <p className="screen__status">{DEATH_LABELS[deathCause]}</p>
+      )}
 
       {submitStatus === 'saving' && (
         <p className="screen__status">Guardando puntuacion...</p>
@@ -107,6 +140,10 @@ export function GameOverScreen({
       <div className="screen__layout screen__layout--gameover">
         <div className="screen__panel screen__stats pixel-panel">
           <div className="screen__stat">
+            <span className="screen__stat-label">PISO</span>
+            <span className="screen__stat-value">{floor}</span>
+          </div>
+          <div className="screen__stat">
             <span className="screen__stat-label">SCORE</span>
             <span className="screen__stat-value">{score}</span>
           </div>
@@ -114,6 +151,24 @@ export function GameOverScreen({
             <span className="screen__stat-label">WPM</span>
             <span className="screen__stat-value">{wpm}</span>
           </div>
+          <div className="screen__stat">
+            <span className="screen__stat-label">RUN COINS</span>
+            <span className="screen__stat-value">{runCoins}</span>
+          </div>
+          <div className="screen__stat screen__stat--wide">
+            <span className="screen__stat-label">META COINS</span>
+            <span className="screen__stat-value screen__stat-value--gold">
+              +{metaCoinsEarned}
+            </span>
+          </div>
+          {runnerId && (
+            <div className="screen__stat screen__stat--wide">
+              <span className="screen__stat-label">RUNNER</span>
+              <span className="screen__stat-value">
+                {RUNNER_CATALOG[runnerId].name}
+              </span>
+            </div>
+          )}
           <div className="screen__stat">
             <span className="screen__stat-label">PALABRAS</span>
             <span className="screen__stat-value">{wordsTyped}</span>
