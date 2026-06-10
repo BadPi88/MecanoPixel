@@ -26,7 +26,7 @@ export interface GameState {
   startTime: number | null;
   elapsedMs: number;
   showSpeedNotice: boolean;
-  maxFallSpeed: number;
+  maxWordsPerSecond: number;
   lastTier: number;
   poppingWordId: string | null;
 }
@@ -60,7 +60,7 @@ export const initialGameState: GameState = {
   startTime: null,
   elapsedMs: 0,
   showSpeedNotice: false,
-  maxFallSpeed: 0,
+  maxWordsPerSecond: 0,
   lastTier: 0,
   poppingWordId: null,
 };

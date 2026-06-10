@@ -1,7 +1,8 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameState } from '../hooks/useGameState';
 import { useKeyboard } from '../hooks/useKeyboard';
+import { loadPlayerName, savePlayerName } from '../services/leaderboard';
 import { GameArea } from './GameArea';
 import { GameOverScreen } from './GameOverScreen';
 import { HUD } from './HUD';
@@ -10,6 +11,7 @@ import { StartScreen } from './StartScreen';
 export function Game() {
   const { state, dispatch } = useGameState();
   const gameAreaRef = useRef<HTMLDivElement>(null);
+  const [playerName, setPlayerName] = useState(loadPlayerName);
 
   useGameLoop(state, dispatch, gameAreaRef);
   useKeyboard(state, dispatch);
@@ -18,15 +20,30 @@ export function Game() {
     dispatch({ type: 'CLEAR_POP' });
   }, [dispatch]);
 
+  const handlePlayerNameChange = useCallback((name: string) => {
+    setPlayerName(name);
+    savePlayerName(name);
+  }, []);
+
+  const handleStart = useCallback(() => {
+    savePlayerName(playerName.trim());
+    dispatch({ type: 'START' });
+  }, [dispatch, playerName]);
+
   return (
     <div className="game">
       {state.status === 'idle' && (
-        <StartScreen onStart={() => dispatch({ type: 'START' })} />
+        <StartScreen
+          playerName={playerName}
+          onPlayerNameChange={handlePlayerNameChange}
+          onStart={handleStart}
+        />
       )}
 
       {(state.status === 'playing' || state.status === 'paused') && (
         <>
           <HUD
+            playerName={playerName.trim()}
             score={state.score}
             lives={state.lives}
             combo={state.combo}
@@ -48,11 +65,12 @@ export function Game() {
 
       {state.status === 'gameOver' && (
         <GameOverScreen
+          playerName={playerName.trim()}
           score={state.score}
           correctChars={state.correctChars}
           wordsTyped={state.wordsTyped}
           elapsedMs={state.elapsedMs}
-          maxFallSpeed={state.maxFallSpeed}
+          maxWordsPerSecond={state.maxWordsPerSecond}
           onRetry={() => dispatch({ type: 'RETRY' })}
           onHome={() => dispatch({ type: 'GO_HOME' })}
         />

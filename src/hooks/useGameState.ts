@@ -6,6 +6,7 @@ import {
   type GameAction,
   type GameState,
 } from '../types/game';
+import { wordsPerSecondFromElapsed } from '../utils/intensity';
 import { calculateMissPenalty, calculateWordScore } from '../utils/scoring';
 
 const GROUND_OFFSET = 48;
@@ -48,11 +49,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         return { ...word, y: word.y + fallSpeed * deltaSec };
       });
 
+      const wps = wordsPerSecondFromElapsed(newElapsed);
+
       return {
         ...state,
         elapsedMs: newElapsed,
         words: updatedWords,
-        maxFallSpeed: Math.max(state.maxFallSpeed, fallSpeed),
+        maxWordsPerSecond: Math.max(state.maxWordsPerSecond, wps),
       };
     }
 
@@ -129,10 +132,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'SPEED_RAMP': {
-      const { fallSpeed } = action.payload;
+      const wps = wordsPerSecondFromElapsed(state.elapsedMs);
       return {
         ...state,
-        maxFallSpeed: Math.max(state.maxFallSpeed, fallSpeed),
+        maxWordsPerSecond: Math.max(state.maxWordsPerSecond, wps),
         showSpeedNotice: true,
       };
     }

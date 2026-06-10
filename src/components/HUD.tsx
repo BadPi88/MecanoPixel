@@ -1,6 +1,8 @@
+import { formatWordsPerSecond, wordsPerSecondFromElapsed } from '../utils/intensity';
 import { calculateWpm, formatTime } from '../utils/wpm';
 
 interface HUDProps {
+  playerName?: string;
   score: number;
   lives: number;
   combo: number;
@@ -44,6 +46,7 @@ function HeartIcon({ filled }: { filled: boolean }) {
 }
 
 export function HUD({
+  playerName,
   score,
   lives,
   combo,
@@ -54,6 +57,7 @@ export function HUD({
   isPaused,
 }: HUDProps) {
   const wpm = calculateWpm(correctChars, elapsedMs);
+  const currentWps = wordsPerSecondFromElapsed(elapsedMs);
   const maxComboBlocks = 10;
   const comboBlocks = Math.min(combo, maxComboBlocks);
 
@@ -61,6 +65,12 @@ export function HUD({
     <header className="hud">
       <div className="hud__panel">
         <div className="hud__row">
+          {playerName && (
+            <div className="hud__stat hud__stat--player">
+              <span className="hud__label">RUNNER</span>
+              <span className="hud__value hud__value--player">{playerName}</span>
+            </div>
+          )}
           <div className="hud__stat hud__stat--score">
             <span className="hud__label">SCORE</span>
             <span className="hud__value">{score}</span>
@@ -102,7 +112,7 @@ export function HUD({
 
       {showSpeedNotice && (
         <div className="hud__speed-notice" role="status">
-          ¡MAS RAPIDO!
+          ¡MAS RAPIDO! {formatWordsPerSecond(currentWps)}
         </div>
       )}
 

@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel:dev": "vercel dev"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.0",
+    "@vercel/node": "^5.8.15",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
