@@ -1,0 +1,36 @@
+.pixel-btn {
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  padding: 12px 24px;
+  border: 4px solid var(--color-panel-border);
+  background: var(--color-highlight);
+  color: var(--color-sky);
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #000;
+  transition: transform 0.05s steps(2), box-shadow 0.05s steps(2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pixel-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.pixel-btn--secondary {
+  background: var(--color-panel);
+  color: var(--color-text);
+  border-color: var(--color-panel-border);
+}
+
+.pixel-panel {
+  background: var(--color-panel);
+  border: 4px solid var(--color-panel-border);
+  box-shadow: 4px 4px 0 #000;
+  padding: 16px;
+}
