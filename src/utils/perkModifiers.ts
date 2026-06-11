@@ -80,6 +80,9 @@ export interface CombatExtras {
   tempoBuffUntilMs?: number;
   flowSpawnMult?: number;
   flowSpeedMult?: number;
+  relicFallMult?: number;
+  biomeSpeedMult?: number;
+  eliteSpawnMult?: number;
 }
 
 const ADJ_TEMPO_BUFF_MULT = 0.8;
@@ -112,6 +115,15 @@ export function getEffectiveDifficulty(
   }
   if (extras.flowSpawnMult !== undefined) {
     spawnInterval *= extras.flowSpawnMult;
+  }
+  if (extras.relicFallMult !== undefined && !mods.frozen) {
+    fallSpeed *= extras.relicFallMult;
+  }
+  if (extras.biomeSpeedMult !== undefined && !mods.frozen) {
+    fallSpeed *= extras.biomeSpeedMult;
+  }
+  if (extras.eliteSpawnMult !== undefined) {
+    spawnInterval *= extras.eliteSpawnMult;
   }
 
   return {
@@ -257,6 +269,29 @@ export function applyPerkSelection(
     case 'radar':
       addPerk({ id: 'radar', expiresAtMs: elapsed + 25_000 });
       break;
+    case 'phoenix':
+      addPerk({ id: 'phoenix', charges: 1 });
+      break;
+    case 'time_warp':
+      frozenUntilMs = Math.max(frozenUntilMs, elapsed + 8_000);
+      break;
+    case 'word_drought':
+      return {
+        activePerks: trimActivePerks([
+          ...activePerks,
+          { id: 'word_drought', expiresAtMs: elapsed + 25_000 },
+        ]),
+        wordDroughtUntilMs: elapsed + 25_000,
+        pendingPerkChoice: null,
+        status: 'playing',
+      };
+    case 'chaos_roll':
+      return {
+        activePerks,
+        chaosRollRemaining: 5,
+        pendingPerkChoice: null,
+        status: 'playing',
+      };
     default:
       break;
   }

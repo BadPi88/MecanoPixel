@@ -1,7 +1,6 @@
 import type { ActivePerk, PerkDefinition, PerkId } from '../types/perks';
 import { MAX_ACTIVE_PERKS } from '../types/perks';
 
-/** Cada cuantas subidas de ritmo se ofrece elegir un perk. */
 export const PERKS_EVERY_N_RAMPS = 3;
 
 export const PERK_CATALOG: Record<PerkId, PerkDefinition> = {
@@ -45,7 +44,7 @@ export const PERK_CATALOG: Record<PerkId, PerkDefinition> = {
     name: 'RACHA DORADA',
     description: 'Con combo 5+: +50% puntos',
     category: 'score',
-    rarity: 'uncommon',
+    rarity: 'rare',
   },
   snipe: {
     id: 'snipe',
@@ -89,6 +88,34 @@ export const PERK_CATALOG: Record<PerkId, PerkDefinition> = {
     category: 'utility',
     rarity: 'common',
   },
+  phoenix: {
+    id: 'phoenix',
+    name: 'FENIX',
+    description: 'Revive una vez al llegar a 0 vidas',
+    category: 'defense',
+    rarity: 'legendary',
+  },
+  time_warp: {
+    id: 'time_warp',
+    name: 'DISTORSION',
+    description: 'Congela todo 8 s',
+    category: 'tempo',
+    rarity: 'legendary',
+  },
+  word_drought: {
+    id: 'word_drought',
+    name: 'SEQUÍA',
+    description: 'Max 2 palabras en pantalla 25 s',
+    category: 'utility',
+    rarity: 'legendary',
+  },
+  chaos_roll: {
+    id: 'chaos_roll',
+    name: 'CAOS',
+    description: 'Proximas 5 palabras: tipo aleatorio',
+    category: 'score',
+    rarity: 'legendary',
+  },
 };
 
 const COMMON_IDS: PerkId[] = [
@@ -105,8 +132,16 @@ const UNCOMMON_IDS: PerkId[] = [
   'double_score',
   'freeze',
   'broken_clock',
-  'golden_streak',
   'safety_net',
+];
+
+const RARE_IDS: PerkId[] = ['golden_streak'];
+
+const LEGENDARY_IDS: PerkId[] = [
+  'phoenix',
+  'time_warp',
+  'word_drought',
+  'chaos_roll',
 ];
 
 function pickOne<T>(arr: T[]): T {
@@ -117,27 +152,41 @@ function isPerkBlocked(id: PerkId, active: ActivePerk[]): boolean {
   return active.some((p) => p.id === id);
 }
 
-export function pickPerkChoices(activePerks: ActivePerk[], count = 3): PerkId[] {
+export function pickPerkChoices(
+  activePerks: ActivePerk[],
+  count = 3,
+  floor = 1,
+  ascensionLevel = 0,
+): PerkId[] {
   const chosen = new Set<PerkId>();
-  const availableCommon = COMMON_IDS.filter(
-    (id) => !isPerkBlocked(id, activePerks),
-  );
-  const availableUncommon = UNCOMMON_IDS.filter(
-    (id) => !isPerkBlocked(id, activePerks),
-  );
+  const canLegendary = floor >= 6 || ascensionLevel >= 2;
 
-  const pool = [...availableCommon, ...availableUncommon];
+  const filterPool = (ids: PerkId[]) =>
+    ids.filter((id) => !isPerkBlocked(id, activePerks));
+
+  const availableLegendary = canLegendary ? filterPool(LEGENDARY_IDS) : [];
+  const availableRare = filterPool(RARE_IDS);
+  const availableUncommon = filterPool(UNCOMMON_IDS);
+  const availableCommon = filterPool(COMMON_IDS);
+
+  const pool = [
+    ...availableCommon,
+    ...availableUncommon,
+    ...availableRare,
+    ...availableLegendary,
+  ];
+
   if (pool.length === 0) {
-    const fallback: PerkId[] = ['shield', 'breath', 'purge'];
-    return fallback.slice(0, count);
+    return (['shield', 'breath', 'purge'] as PerkId[]).slice(0, count);
   }
 
-  const uncommonPick =
-    availableUncommon.length > 0 && Math.random() < 0.35
-      ? pickOne(availableUncommon)
-      : null;
-
-  if (uncommonPick) chosen.add(uncommonPick);
+  if (availableLegendary.length > 0 && Math.random() < 0.12) {
+    chosen.add(pickOne(availableLegendary));
+  } else if (availableRare.length > 0 && Math.random() < 0.2) {
+    chosen.add(pickOne(availableRare));
+  } else if (availableUncommon.length > 0 && Math.random() < 0.35) {
+    chosen.add(pickOne(availableUncommon));
+  }
 
   while (chosen.size < count) {
     const candidates = pool.filter((id) => !chosen.has(id));

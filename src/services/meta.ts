@@ -14,8 +14,29 @@ import {
   pickMissionForDate,
 } from '../data/dailyMissions';
 import { getUtcDateString } from '../utils/dailySeed';
+import { applyAchievementReward } from '../data/achievements';
+import {
+  DEFAULT_UNLOCKED_RELICS,
+  type FrameId,
+  type TrailId,
+  type WordPaletteId,
+} from '../data/metaUnlocks';
 
 const META_KEY = 'keyrunner:meta';
+
+export interface MetaCosmetics {
+  wordPalette: WordPaletteId;
+  typingTrail: TrailId;
+  leaderboardFrame: FrameId;
+  unlockedPalettes: WordPaletteId[];
+  unlockedTrails: TrailId[];
+  unlockedFrames: FrameId[];
+}
+
+export interface MetaHubUpgrades {
+  extraMapOption: boolean;
+  safeFirstFloor: boolean;
+}
 
 export interface MetaStats {
   runsPlayed: number;
@@ -41,6 +62,25 @@ export interface MetaProgress {
   seenHints: string[];
   daily: DailyMissionState;
   stats: MetaStats;
+  ascensionUnlocked: boolean;
+  maxAscension: number;
+  cosmetics: MetaCosmetics;
+  hubUpgrades: MetaHubUpgrades;
+}
+
+function defaultCosmetics(): MetaCosmetics {
+  return {
+    wordPalette: 'classic',
+    typingTrail: 'none',
+    leaderboardFrame: 'default',
+    unlockedPalettes: ['classic'],
+    unlockedTrails: ['none'],
+    unlockedFrames: ['default'],
+  };
+}
+
+function defaultHubUpgrades(): MetaHubUpgrades {
+  return { extraMapOption: false, safeFirstFloor: false };
 }
 
 const DEFAULT_RUNNERS: RunnerId[] = ['veloz', 'tanque', 'codificador'];
@@ -85,13 +125,17 @@ export function getDefaultMeta(): MetaProgress {
   return {
     totalCoins: 0,
     unlockedRunners: [...DEFAULT_RUNNERS],
-    unlockedRelics: [],
+    unlockedRelics: [...DEFAULT_UNLOCKED_RELICS],
     unlockedGlossaries: [...DEFAULT_GLOSSARIES],
     unlockedAchievements: [],
     tutorialComplete: false,
     seenHints: [],
     daily: defaultDailyMission(),
     stats: { runsPlayed: 0, bestFloor: 0, totalWords: 0, bestRunScore: 0 },
+    ascensionUnlocked: false,
+    maxAscension: 0,
+    cosmetics: defaultCosmetics(),
+    hubUpgrades: defaultHubUpgrades(),
   };
 }
 
@@ -122,9 +166,6 @@ export function loadMeta(): MetaProgress {
       unlockedRunners: [
         ...new Set([...DEFAULT_RUNNERS, ...(parsed.unlockedRunners ?? [])]),
       ],
-      unlockedRelics: (parsed.unlockedRelics ??
-        parsed.unlockedPerks ??
-        []) as RelicId[],
       unlockedGlossaries: [
         ...new Set([
           ...DEFAULT_GLOSSARIES,
@@ -144,6 +185,42 @@ export function loadMeta(): MetaProgress {
           }
         : defaultDailyMission(),
       stats: { ...getDefaultMeta().stats, ...parsed.stats },
+      ascensionUnlocked: parsed.ascensionUnlocked ?? false,
+      maxAscension: parsed.maxAscension ?? 0,
+      cosmetics: {
+        ...defaultCosmetics(),
+        ...parsed.cosmetics,
+        unlockedPalettes: [
+          ...new Set<WordPaletteId>([
+            'classic',
+            ...((parsed.cosmetics?.unlockedPalettes ?? []) as WordPaletteId[]),
+          ]),
+        ],
+        unlockedTrails: [
+          ...new Set<TrailId>([
+            'none',
+            ...((parsed.cosmetics?.unlockedTrails ?? []) as TrailId[]),
+          ]),
+        ],
+        unlockedFrames: [
+          ...new Set<FrameId>([
+            'default',
+            ...((parsed.cosmetics?.unlockedFrames ?? []) as FrameId[]),
+          ]),
+        ],
+      },
+      hubUpgrades: {
+        ...defaultHubUpgrades(),
+        ...parsed.hubUpgrades,
+      },
+      unlockedRelics: [
+        ...new Set([
+          ...DEFAULT_UNLOCKED_RELICS,
+          ...((parsed.unlockedRelics ??
+            parsed.unlockedPerks ??
+            []) as RelicId[]),
+        ]),
+      ],
     };
     return ensureDailyMission(merged);
   } catch {
@@ -262,7 +339,10 @@ export function recordRunEnd(
   };
 
   const newlyUnlockedAchievements = evaluateAchievements(meta, achievementRun);
-  meta.unlockedAchievements.push(...newlyUnlockedAchievements);
+  for (const id of newlyUnlockedAchievements) {
+    meta.unlockedAchievements.push(id);
+    meta = applyAchievementReward(meta, id);
+  }
 
   const newlyUnlockedRunners = evaluateRunnerUnlocks(meta);
   meta.unlockedRunners.push(...newlyUnlockedRunners);
@@ -294,6 +374,78 @@ export function unlockGlossary(
   if (meta.totalCoins < cost) return null;
   meta.totalCoins -= cost;
   meta.unlockedGlossaries.push(glossaryId);
+  saveMeta(meta);
+  return meta;
+}
+
+export function unlockRelicMeta(
+  relicId: RelicId,
+  cost: number,
+): MetaProgress | null {
+  const meta = loadMeta();
+  if (meta.unlockedRelics.includes(relicId)) return meta;
+  if (meta.totalCoins < cost) return null;
+  meta.totalCoins -= cost;
+  meta.unlockedRelics.push(relicId);
+  saveMeta(meta);
+  return meta;
+}
+
+export function purchaseCosmetic(
+  kind: 'palette' | 'trail' | 'frame',
+  value: WordPaletteId | TrailId | FrameId,
+  cost: number,
+): MetaProgress | null {
+  const meta = loadMeta();
+  const key =
+    kind === 'palette'
+      ? 'unlockedPalettes'
+      : kind === 'trail'
+        ? 'unlockedTrails'
+        : 'unlockedFrames';
+  const list = meta.cosmetics[key] as (typeof value)[];
+  if (list.includes(value as never)) {
+    if (kind === 'palette') meta.cosmetics.wordPalette = value as WordPaletteId;
+    if (kind === 'trail') meta.cosmetics.typingTrail = value as TrailId;
+    if (kind === 'frame')
+      meta.cosmetics.leaderboardFrame = value as FrameId;
+    saveMeta(meta);
+    return meta;
+  }
+  if (meta.totalCoins < cost) return null;
+  meta.totalCoins -= cost;
+  list.push(value as never);
+  if (kind === 'palette') meta.cosmetics.wordPalette = value as WordPaletteId;
+  if (kind === 'trail') meta.cosmetics.typingTrail = value as TrailId;
+  if (kind === 'frame') meta.cosmetics.leaderboardFrame = value as FrameId;
+  saveMeta(meta);
+  return meta;
+}
+
+export function purchaseHubUpgrade(
+  id: 'extraMapOption' | 'safeFirstFloor',
+  cost: number,
+): MetaProgress | null {
+  const meta = loadMeta();
+  if (meta.hubUpgrades[id]) return meta;
+  if (meta.totalCoins < cost) return null;
+  meta.totalCoins -= cost;
+  meta.hubUpgrades[id] = true;
+  saveMeta(meta);
+  return meta;
+}
+
+export function recordVictory(): MetaProgress {
+  const meta = loadMeta();
+  meta.ascensionUnlocked = true;
+  meta.maxAscension = Math.max(meta.maxAscension, 1);
+  saveMeta(meta);
+  return meta;
+}
+
+export function unlockAscensionLevel(level: number): MetaProgress {
+  const meta = loadMeta();
+  meta.maxAscension = Math.max(meta.maxAscension, level);
   saveMeta(meta);
   return meta;
 }
@@ -347,6 +499,40 @@ export function mergeMetaProgress(
       bestFloor: Math.max(a.stats.bestFloor, b.stats.bestFloor),
       totalWords: Math.max(a.stats.totalWords, b.stats.totalWords),
       bestRunScore: Math.max(a.stats.bestRunScore, b.stats.bestRunScore),
+    },
+    ascensionUnlocked: a.ascensionUnlocked || b.ascensionUnlocked,
+    maxAscension: Math.max(a.maxAscension, b.maxAscension),
+    cosmetics: {
+      wordPalette: a.cosmetics?.wordPalette ?? b.cosmetics?.wordPalette ?? 'classic',
+      typingTrail: a.cosmetics?.typingTrail ?? b.cosmetics?.typingTrail ?? 'none',
+      leaderboardFrame:
+        a.cosmetics?.leaderboardFrame ??
+        b.cosmetics?.leaderboardFrame ??
+        'default',
+      unlockedPalettes: [
+        ...new Set([
+          ...(a.cosmetics?.unlockedPalettes ?? []),
+          ...(b.cosmetics?.unlockedPalettes ?? []),
+        ]),
+      ] as WordPaletteId[],
+      unlockedTrails: [
+        ...new Set([
+          ...(a.cosmetics?.unlockedTrails ?? []),
+          ...(b.cosmetics?.unlockedTrails ?? []),
+        ]),
+      ] as TrailId[],
+      unlockedFrames: [
+        ...new Set([
+          ...(a.cosmetics?.unlockedFrames ?? []),
+          ...(b.cosmetics?.unlockedFrames ?? []),
+        ]),
+      ] as FrameId[],
+    },
+    hubUpgrades: {
+      extraMapOption:
+        a.hubUpgrades?.extraMapOption || b.hubUpgrades?.extraMapOption,
+      safeFirstFloor:
+        a.hubUpgrades?.safeFirstFloor || b.hubUpgrades?.safeFirstFloor,
     },
   };
   merged.unlockedRunners.push(...evaluateRunnerUnlocks(merged));

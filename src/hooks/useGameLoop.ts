@@ -9,15 +9,27 @@ import {
 } from '../utils/perkModifiers';
 import { getFloorTierOffset } from '../utils/runTransitions';
 import { getRunnerModifiers } from '../utils/runnerModifiers';
-import { getSpawnConstraints } from '../utils/combatModifiers';
+import {
+  getRelicFallSpeedMult,
+  getSpawnConstraints,
+} from '../utils/combatModifiers';
+import { applyEliteSpawnConstraints } from '../utils/eliteModifiers';
+import { getBiomeSpeedMult } from '../utils/biomeModifiers';
+import { getEliteSpawnMult } from '../utils/eliteModifiers';
+import { shouldSkipTrapsOnFloor } from '../utils/hubModifiers';
 import {
   decorateSpawn,
+  getOracleRateMult,
   getSpawnRatesForFloor,
   getWordTextForKind,
   rollWordKind,
 } from '../utils/wordSpawn';
-import { getBossFallSpeed, getBossProjectileIntervalMult } from '../data/bosses';
-import { createWordId } from './useGameState';
+import {
+  getBossFallSpeed,
+  getBossProjectileIntervalMult,
+} from '../data/bosses';
+import { getAscensionBossAttackMult } from '../utils/ascensionModifiers';
+import { createWordId } from './useGameStateHelpers';
 
 const WORD_HEIGHT = 36;
 const MIN_X_PADDING = 16;
@@ -60,6 +72,9 @@ function getCombatExtras(state: GameState): CombatExtras {
     tempoBuffUntilMs: state.tempoBuffUntilMs,
     flowSpawnMult: state.flowStats.spawnMult,
     flowSpeedMult: state.flowStats.speedMult,
+    relicFallMult: getRelicFallSpeedMult(state.activeRelics),
+    biomeSpeedMult: getBiomeSpeedMult(state.biomeId),
+    eliteSpawnMult: getEliteSpawnMult(state.eliteModifierId),
   };
 }
 
@@ -70,8 +85,6 @@ export function useGameLoop(
 ) {
   const stateRef = useRef(state);
 
-  // Declarado antes que el resto de efectos para que cualquier lector de
-  // stateRef en el mismo commit vea ya el estado recien renderizado.
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -210,6 +223,15 @@ export function useGameLoop(
       const current = stateRef.current;
       if (current.status !== 'playing') return;
 
+      if (
+        current.wordDroughtUntilMs > 0 &&
+        current.elapsedMs < current.wordDroughtUntilMs &&
+        current.words.length >= 2
+      ) {
+        timeoutId = setTimeout(scheduleSpawn, 500);
+        return;
+      }
+
       const tierOffset = getFloorTierOffset(current);
       const effective = getEffectiveDifficulty(
         current.elapsedMs,
@@ -219,17 +241,27 @@ export function useGameLoop(
         current.runnerId,
         getCombatExtras(current),
       );
-      const constraints = getSpawnConstraints(current.activeRelics);
+      const constraints = applyEliteSpawnConstraints(
+        getSpawnConstraints(current.activeRelics),
+        current.eliteModifierId,
+      );
       spawnIntervalRef.current =
         effective.spawnInterval * constraints.spawnIntervalMult;
 
       const rates = getSpawnRatesForFloor(
         current.floor,
-        current.noTrapsNextFloor,
+        shouldSkipTrapsOnFloor(current),
         current.activeRelics,
+        current.biomeId,
+        current.ascensionLevel,
       );
       rates.bonus += getRunnerModifiers(current.runnerId).bonusChanceBonus;
-      const kind = rollWordKind(rates);
+      const chaosMode = current.chaosRollRemaining > 0;
+      const kind = rollWordKind(
+        rates,
+        getOracleRateMult(current.biomeId),
+        chaosMode,
+      );
       const text = getWordTextForKind(
         kind,
         current.elapsedMs,
@@ -237,12 +269,15 @@ export function useGameLoop(
         current.selectedGlossary,
         current.activeRelics,
       );
+      const devoratexto = current.bossId === 'devoratexto';
       const decoration = decorateSpawn(
         kind,
         text,
         current.floor,
         current.elapsedMs,
         current.activeRelics,
+        current.biomeId,
+        devoratexto,
       );
       const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
       const x = findSpawnX(areaWidth, text, current.words);
@@ -270,7 +305,6 @@ export function useGameLoop(
     return () => clearTimeout(timeoutId);
   }, [state.status, dispatch, gameAreaRef]);
 
-  // Proyectiles de letra: piso 2+ en juego, o jefe con ataque de proyectiles
   useEffect(() => {
     const projectilesActive =
       (state.status === 'playing' && state.floor >= 2) ||
@@ -301,10 +335,13 @@ export function useGameLoop(
         },
       });
 
-      const intervalMult =
+      let intervalMult =
         current.status === 'boss'
           ? getBossProjectileIntervalMult(current.bossId)
           : 1;
+      if (current.status === 'boss') {
+        intervalMult *= getAscensionBossAttackMult(current.ascensionLevel);
+      }
       const baseInterval =
         PROJECTILE_MIN_INTERVAL +
         Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
@@ -315,36 +352,8 @@ export function useGameLoop(
       );
     };
 
-    const initialMult =
-      state.status === 'boss'
-        ? getBossProjectileIntervalMult(state.bossId)
-        : 1;
-    const initialInterval =
-      PROJECTILE_MIN_INTERVAL +
-      Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
-
-    timeoutId = setTimeout(
-      scheduleProjectile,
-      initialInterval * initialMult,
-    );
+    timeoutId = setTimeout(scheduleProjectile, PROJECTILE_MIN_INTERVAL);
 
     return () => clearTimeout(timeoutId);
-  }, [state.status, state.floor, state.bossId, state.bossAttack, dispatch, gameAreaRef]);
-
-  useEffect(() => {
-    if (!state.showSpeedNotice) return;
-
-    const timer = setTimeout(() => {
-      dispatch({ type: 'HIDE_SPEED_NOTICE' });
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [state.showSpeedNotice, dispatch]);
-
-  useEffect(() => {
-    if (state.status === 'idle' || state.status === 'gameOver') {
-      lastTierRef.current = 0;
-      spawnIntervalRef.current = 2500;
-    }
-  }, [state.status]);
+  }, [state.status, state.bossAttack?.projectiles, dispatch, gameAreaRef]);
 }

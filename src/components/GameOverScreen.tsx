@@ -10,6 +10,7 @@ import { recordRunEnd } from '../services/meta';
 import { syncMetaToProfile } from '../services/profile';
 import { submitDailyScore } from '../services/daily';
 import { formatPeakIntensity } from '../utils/intensity';
+import { getAscensionMetaCoinsMult } from '../utils/ascensionModifiers';
 import { calculateMetaCoinsEarned } from '../utils/metaCoins';
 import { calculateWpm, formatTime } from '../utils/wpm';
 import {
@@ -41,6 +42,8 @@ interface GameOverScreenProps {
   synergyNames: string[];
   dailyRun: boolean;
   reachedBoss: boolean;
+  bossSkipMetaMult?: number;
+  ascensionLevel?: number;
   onRetry: () => void;
   onHome: () => void;
 }
@@ -72,14 +75,21 @@ export function GameOverScreen({
   synergyNames,
   dailyRun,
   reachedBoss,
+  bossSkipMetaMult = 1,
+  ascensionLevel = 0,
   onRetry,
   onHome,
 }: GameOverScreenProps) {
   const wpm = calculateWpm(correctChars, elapsedMs);
   const peakIntensity = formatPeakIntensity(maxWordsPerSecond);
   const metaCoinsEarned = useMemo(
-    () => calculateMetaCoinsEarned(floor, score),
-    [floor, score],
+    () =>
+      calculateMetaCoinsEarned(
+        floor,
+        score,
+        bossSkipMetaMult * getAscensionMetaCoinsMult(ascensionLevel),
+      ),
+    [floor, score, bossSkipMetaMult, ascensionLevel],
   );
 
   const runTitle = useMemo(() => {

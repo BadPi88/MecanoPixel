@@ -10,10 +10,14 @@ export type PerkId =
   | 'freeze'
   | 'broken_clock'
   | 'purge'
-  | 'radar';
+  | 'radar'
+  | 'phoenix'
+  | 'time_warp'
+  | 'word_drought'
+  | 'chaos_roll';
 
 export type PerkCategory = 'defense' | 'score' | 'tempo' | 'utility';
-export type PerkRarity = 'common' | 'uncommon';
+export type PerkRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 export interface PerkDefinition {
   id: PerkId;

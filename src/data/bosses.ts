@@ -80,14 +80,69 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     attacks: { blind: true, remap: true, projectiles: true },
     projectileIntervalMult: 0.8,
   },
+  cronista: {
+    id: 'cronista',
+    name: 'EL CRONISTA',
+    floorMin: 6,
+    theme: 'archivo',
+    quote: 'Cada letra anotada es una sentencia.',
+    fallSpeed: 28,
+    dualWords: false,
+    bonusCoins: 140,
+    attacks: { blind: true, remap: false, projectiles: false },
+    projectileIntervalMult: 1,
+  },
+  devoratexto: {
+    id: 'devoratexto',
+    name: 'DEVORATEXTO',
+    floorMin: 9,
+    theme: 'vacuo',
+    quote: 'Las letras desaparecen una a una.',
+    fallSpeed: 32,
+    dualWords: false,
+    bonusCoins: 180,
+    attacks: { blind: false, remap: false, projectiles: true },
+    projectileIntervalMult: 0.9,
+  },
+  mini_guardian: {
+    id: 'mini_guardian',
+    name: 'GUARDIAN',
+    floorMin: 1,
+    theme: 'trono',
+    quote: 'Un ultimo obstaculo.',
+    fallSpeed: 22,
+    dualWords: false,
+    bonusCoins: 40,
+    attacks: { blind: false, remap: false, projectiles: false },
+    projectileIntervalMult: 1,
+  },
 };
 
-/** Devuelve el jefe correspondiente al piso actual. */
-export function getBossForFloor(floor: number): BossDefinition {
+function getStandardBossForFloor(floor: number): BossDefinition {
   if (floor >= BOSS_CATALOG.tiranotipo.floorMin) return BOSS_CATALOG.tiranotipo;
   if (floor >= BOSS_CATALOG.perforador.floorMin) return BOSS_CATALOG.perforador;
   if (floor >= BOSS_CATALOG.saboteador.floorMin) return BOSS_CATALOG.saboteador;
   return BOSS_CATALOG.archivista;
+}
+
+/** Devuelve el jefe correspondiente al piso (con secretos en ascension 3+). */
+export function getBossForFloor(
+  floor: number,
+  ascensionLevel = 0,
+  runSeed = 0,
+): BossDefinition {
+  if (ascensionLevel >= 3) {
+    const roll = ((runSeed + floor * 31337) >>> 0) % 100;
+    if (roll < 25) {
+      if (floor >= 9) return BOSS_CATALOG.devoratexto;
+      if (floor >= 6) return BOSS_CATALOG.cronista;
+    }
+  }
+  return getStandardBossForFloor(floor);
+}
+
+export function getMiniBoss(): BossDefinition {
+  return BOSS_CATALOG.mini_guardian;
 }
 
 export function getBossFallSpeed(bossId: BossId | null): number {

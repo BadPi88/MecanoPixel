@@ -1,4 +1,5 @@
-import { BOSS_EVERY_N_FLOORS } from './run';
+import type { EliteModifierId } from './eliteModifiers';
+import { FLOORS_PER_BIOME } from './biomes';
 
 export type MapRoomType =
   | 'shop'
@@ -14,6 +15,28 @@ export interface MapRoomOption {
   label: string;
   description: string;
   icon: string;
+  layer: number;
+  eliteModifier?: EliteModifierId;
+  previewHidden?: boolean;
+  /** Nodo del arbol al que corresponde esta opcion. */
+  nodeId: string;
+}
+
+export interface ActMapNode {
+  id: string;
+  layer: number;
+  type: MapRoomType;
+  children: string[];
+  parentId: string | null;
+  eliteModifier?: EliteModifierId;
+  previewHidden: boolean;
+}
+
+export interface ActMapGraph {
+  actIndex: number;
+  nodes: ActMapNode[];
+  startNodeId: string;
+  bossNodeId: string;
 }
 
 const ROOM_META: Record<
@@ -41,7 +64,7 @@ const ROOM_META: Record<
   elite: {
     type: 'elite',
     label: 'ELITE',
-    description: 'Combate duro: +1 tier de dificultad',
+    description: 'Combate duro: +50% coins y modificador',
     icon: '!',
   },
   rest: {
@@ -58,6 +81,8 @@ const ROOM_META: Record<
   },
 };
 
+const ELITE_MODIFIERS: EliteModifierId[] = ['fog', 'storm', 'cascade'];
+
 function seededRandom(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
@@ -66,40 +91,191 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function shuffle<T>(items: T[], rand: () => number): T[] {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+function pickOne<T>(arr: T[], rand: () => number): T {
+  return arr[Math.floor(rand() * arr.length)];
 }
 
-/** Genera 3 salas elegibles tras completar un piso de combate. */
-export function generateMapOptions(
+export function getActIndexForFloor(floor: number): number {
+  return Math.floor((Math.max(floor, 1) - 1) / FLOORS_PER_BIOME);
+}
+
+/** Genera un arbol de 5 capas por acto (capas 0-3 salas, capa 4 jefe). */
+export function generateActMap(actIndex: number, runSeed: number): ActMapGraph {
+  const rand = seededRandom((runSeed + actIndex * 9973) >>> 0);
+  const nodes: ActMapNode[] = [];
+  const fillerTypes: MapRoomType[] = [
+    'shop',
+    'event',
+    'treasure',
+    'elite',
+    'rest',
+  ];
+
+  const startId = `act${actIndex}-L0`;
+  nodes.push({
+    id: startId,
+    layer: 0,
+    type: 'rest',
+    children: [],
+    parentId: null,
+    previewHidden: false,
+  });
+
+  let prevLayerIds = [startId];
+
+  for (let layer = 1; layer <= 3; layer++) {
+    const nextLayerIds: string[] = [];
+    const branchCount = layer === 3 ? 2 : prevLayerIds.length;
+
+    for (let b = 0; b < branchCount; b++) {
+      const parentIdx =
+        layer === 3
+          ? b % prevLayerIds.length
+          : Math.min(b, prevLayerIds.length - 1);
+      const parentId = prevLayerIds[parentIdx];
+      const parent = nodes.find((n) => n.id === parentId)!;
+
+      let type = pickOne(fillerTypes, rand);
+      if (layer === 3 && b === 1) type = 'elite';
+
+      const nodeId = `act${actIndex}-L${layer}-${b}`;
+      const eliteModifier =
+        type === 'elite'
+          ? pickOne(ELITE_MODIFIERS, rand)
+          : undefined;
+
+      const previewHidden = layer >= 2;
+
+      nodes.push({
+        id: nodeId,
+        layer,
+        type,
+        children: [],
+        parentId,
+        eliteModifier,
+        previewHidden,
+      });
+
+      parent.children.push(nodeId);
+      nextLayerIds.push(nodeId);
+    }
+
+    prevLayerIds = nextLayerIds;
+  }
+
+  const bossId = `act${actIndex}-BOSS`;
+  for (const id of prevLayerIds) {
+    const parent = nodes.find((n) => n.id === id)!;
+    parent.children.push(bossId);
+  }
+
+  nodes.push({
+    id: bossId,
+    layer: 4,
+    type: 'boss',
+    children: [],
+    parentId: prevLayerIds[0],
+    previewHidden: false,
+  });
+
+  return { actIndex, nodes, startNodeId: startId, bossNodeId: bossId };
+}
+
+export function nodeToOption(
+  node: ActMapNode,
   floor: number,
-  runSeed: number,
+  revealPreview: boolean,
+): MapRoomOption {
+  const meta = ROOM_META[node.type];
+  let description = meta.description;
+  if (node.type === 'elite' && node.eliteModifier) {
+    description = `${meta.description} (${node.eliteModifier.toUpperCase()})`;
+  }
+  return {
+    id: `map-${floor}-${node.id}`,
+    nodeId: node.id,
+    layer: node.layer,
+    type: node.type,
+    label: meta.label,
+    description,
+    icon: meta.icon,
+    eliteModifier: node.eliteModifier,
+    previewHidden: node.previewHidden && !revealPreview,
+  };
+}
+
+export function getNodeById(
+  graph: ActMapGraph,
+  nodeId: string,
+): ActMapNode | undefined {
+  return graph.nodes.find((n) => n.id === nodeId);
+}
+
+export function getChildNodes(
+  graph: ActMapGraph,
+  nodeId: string,
+): ActMapNode[] {
+  const node = getNodeById(graph, nodeId);
+  if (!node) return [];
+  return node.children
+    .map((id) => getNodeById(graph, id))
+    .filter((n): n is ActMapNode => n !== undefined);
+}
+
+/** Opciones tras completar combate: hijos del nodo actual en el arbol. */
+export function getMapChoicesFromAct(
+  graph: ActMapGraph,
+  currentNodeId: string | null,
+  floor: number,
+  bossSkippedPending: boolean,
+  maxChoices: number,
 ): MapRoomOption[] {
-  const rand = seededRandom((runSeed + floor * 7919) >>> 0);
-  const isBossFloor = floor % BOSS_EVERY_N_FLOORS === 0;
-
-  const fillers: MapRoomType[] = ['shop', 'event', 'treasure', 'elite', 'rest'];
-  const shuffledFillers = shuffle(fillers, rand);
-
-  const picked: MapRoomType[] = isBossFloor ? ['boss'] : [];
-
-  for (const type of shuffledFillers) {
-    if (picked.length >= 3) break;
-    if (!picked.includes(type)) picked.push(type);
+  if (bossSkippedPending) {
+    const boss = getNodeById(graph, graph.bossNodeId);
+    if (boss) return [nodeToOption(boss, floor, true)];
   }
 
-  while (picked.length < 3) {
-    const fallback = shuffledFillers[picked.length % shuffledFillers.length];
-    picked.push(fallback);
+  const fromId = currentNodeId ?? graph.startNodeId;
+  const children = getChildNodes(graph, fromId);
+
+  if (children.length === 0) {
+    const boss = getNodeById(graph, graph.bossNodeId);
+    return boss ? [nodeToOption(boss, floor, true)] : [];
   }
 
-  return shuffle(picked.slice(0, 3), rand).map((type, index) => ({
-    id: `map-${floor}-${type}-${index}`,
-    ...ROOM_META[type],
-  }));
+  const isActEndFloor = floor % FLOORS_PER_BIOME === 0;
+  let pool = children;
+
+  if (isActEndFloor && !bossSkippedPending) {
+    const boss = getNodeById(graph, graph.bossNodeId);
+    const nonBoss = children.filter((c) => c.type !== 'boss');
+    if (boss && nonBoss.length > 0) {
+      pool = [...nonBoss.slice(0, maxChoices - 1), boss].slice(0, maxChoices);
+    }
+  }
+
+  const reveal = !bossSkippedPending;
+  return pool
+    .slice(0, maxChoices)
+    .map((n) => nodeToOption(n, floor, reveal));
+}
+
+/** Vista completa del arbol para la UI (con preview oculto a 2+ capas). */
+export function getActMapDisplayNodes(
+  graph: ActMapGraph,
+  currentNodeId: string | null,
+  floor: number,
+): MapRoomOption[] {
+  const currentLayer =
+    currentNodeId !== null
+      ? (getNodeById(graph, currentNodeId)?.layer ?? 0)
+      : 0;
+
+  return graph.nodes
+    .filter((n) => n.layer > 0)
+    .map((n) => {
+      const layersAhead = n.layer - currentLayer;
+      const hide = layersAhead >= 2;
+      return nodeToOption(n, floor, !hide);
+    });
 }

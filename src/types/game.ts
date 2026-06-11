@@ -1,5 +1,6 @@
 import type { BiomeId } from '../data/biomes';
-import type { MapRoomOption } from '../data/mapRooms';
+import type { EliteModifierId } from '../data/eliteModifiers';
+import type { ActMapGraph, MapRoomOption } from '../data/mapRooms';
 import type { EventDefinition } from '../data/events';
 import type { ActivePerk, PerkId } from './perks';
 import type { DeathCause, RunnerId, ShopItemId, WordKind } from './run';
@@ -28,6 +29,7 @@ export type GameStatus =
   | 'boss'
   | 'oraclePick'
   | 'mapPick'
+  | 'victory'
   | 'gameOver';
 
 export interface FallingWord {
@@ -124,6 +126,42 @@ export interface GameState {
   eliteTierBonus: number;
   /** Semilla de la run para generar rutas del mapa. */
   runSeed: number;
+  /** Indice de acto actual (0 = pisos 1-3). */
+  actIndex: number;
+  /** Arbol de mapa del acto actual. */
+  actMap: ActMapGraph | null;
+  /** Nodo actual en el arbol del acto. */
+  actMapNodeId: string | null;
+  /** Si evito el jefe: proximo mapa solo boss + debuff. */
+  bossSkippedPending: boolean;
+  /** Multiplicador de meta coins si evito jefe (0.7). */
+  bossSkipMetaMult: number;
+  /** Modificador de sala elite activo en el piso. */
+  eliteModifierId: EliteModifierId | null;
+  /** Multiplicador de coins de piso por elite (1.5). */
+  eliteCoinMult: number;
+  /** Ultimo tick de niebla elite. */
+  eliteFogLastAtMs: number;
+  /** Nivel de ascension de la run (0-5). */
+  ascensionLevel: number;
+  /** Modo endless tras victoria en piso 12. */
+  endlessMode: boolean;
+  /** Panel de build visible. */
+  showBuildOverlay: boolean;
+  /** Phoenix perk: revive pendiente. */
+  phoenixUsed: boolean;
+  /** Chaos roll: palabras restantes con kind aleatorio. */
+  chaosRollRemaining: number;
+  /** Word drought activo hasta este ms. */
+  wordDroughtUntilMs: number;
+  /** Timestamp inicio de palabra actual (maldicion prisa). */
+  wordStartedAtMs: number;
+  /** Pisos completados con contrato sangriento. */
+  floorsSinceBloodContract: number;
+  /** Remap fabrica: proximo remap. */
+  fabricaRemapNextAtMs: number;
+  /** Mini-jefe trono pendiente tras completar piso. */
+  pendingMiniBoss: boolean;
   // --- Enemigos especiales ---
   letterProjectiles: LetterProjectile[];
   deflectedLetters: number;
@@ -146,7 +184,10 @@ export interface GameState {
 }
 
 export type GameAction =
-  | { type: 'BEGIN_RUN'; payload?: { dailyRun?: boolean } }
+  | {
+      type: 'BEGIN_RUN';
+      payload?: { dailyRun?: boolean; ascensionLevel?: number };
+    }
   | { type: 'GO_HOME' }
   | { type: 'RETRY' }
   | { type: 'SELECT_RUNNER'; payload: RunnerId }
@@ -175,7 +216,10 @@ export type GameAction =
   | { type: 'CLEAR_POP' }
   | { type: 'HIDE_SPEED_NOTICE' }
   | { type: 'ORACLE_CHOICE'; payload: 'score' | 'charge' }
-  | { type: 'PICK_ROOM'; payload: string };
+  | { type: 'PICK_ROOM'; payload: string }
+  | { type: 'TOGGLE_BUILD_OVERLAY' }
+  | { type: 'CONTINUE_ENDLESS' }
+  | { type: 'VICTORY_HOME' };
 
 export const INITIAL_LIVES = 3;
 
@@ -233,6 +277,24 @@ export const initialGameState: GameState = {
   mapRoomOptions: [],
   eliteTierBonus: 0,
   runSeed: 0,
+  actIndex: 0,
+  actMap: null,
+  actMapNodeId: null,
+  bossSkippedPending: false,
+  bossSkipMetaMult: 1,
+  eliteModifierId: null,
+  eliteCoinMult: 1,
+  eliteFogLastAtMs: 0,
+  ascensionLevel: 0,
+  endlessMode: false,
+  showBuildOverlay: false,
+  phoenixUsed: false,
+  chaosRollRemaining: 0,
+  wordDroughtUntilMs: 0,
+  wordStartedAtMs: 0,
+  floorsSinceBloodContract: 0,
+  fabricaRemapNextAtMs: 0,
+  pendingMiniBoss: false,
   letterProjectiles: [],
   deflectedLetters: 0,
   inputBlindedUntilMs: 0,

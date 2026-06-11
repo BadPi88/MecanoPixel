@@ -22,8 +22,12 @@ import { HUD } from './HUD';
 import { PerkPicker } from './PerkPicker';
 import { RelicPicker } from './RelicPicker';
 import { RunnerPicker } from './RunnerPicker';
+import { getBiomeModifierLabel } from '../utils/biomeModifiers';
+import { BuildOverlay } from './BuildOverlay';
+import { ContextualHint } from './ContextualHint';
 import { MapScreen } from './MapScreen';
 import { ShopScreen } from './ShopScreen';
+import { VictoryScreen } from './VictoryScreen';
 import { PixelButton } from './PixelButton';
 import { StartScreen } from './StartScreen';
 import { TutorialOverlay } from './TutorialOverlay';
@@ -62,10 +66,12 @@ export function Game() {
     savePlayerName(name);
   }, []);
 
+  const [ascensionLevel, setAscensionLevel] = useState(0);
+
   const handleStart = useCallback(() => {
     savePlayerName(playerName.trim());
-    dispatch({ type: 'BEGIN_RUN' });
-  }, [dispatch, playerName]);
+    dispatch({ type: 'BEGIN_RUN', payload: { ascensionLevel } });
+  }, [dispatch, playerName, ascensionLevel]);
 
   const handleDailyStart = useCallback(() => {
     savePlayerName(playerName.trim());
@@ -141,6 +147,8 @@ export function Game() {
           onPlayerNameChange={handlePlayerNameChange}
           onStart={handleStart}
           onDailyStart={handleDailyStart}
+          ascensionLevel={ascensionLevel}
+          onAscensionChange={setAscensionLevel}
         />
       )}
 
@@ -162,9 +170,24 @@ export function Game() {
         <MapScreen
           floor={state.floor}
           options={state.mapRoomOptions}
+          actMap={state.actMap}
+          actMapNodeId={state.actMapNodeId}
+          bossSkippedPending={state.bossSkippedPending}
           onPick={(roomId) =>
             dispatch({ type: 'PICK_ROOM', payload: roomId })
           }
+        />
+      )}
+
+      {state.status === 'victory' && (
+        <VictoryScreen
+          score={state.score}
+          floor={state.floor}
+          runnerId={state.runnerId}
+          relics={state.relicsHistory}
+          elapsedMs={state.elapsedMs}
+          onContinueEndless={() => dispatch({ type: 'CONTINUE_ENDLESS' })}
+          onHome={() => dispatch({ type: 'VICTORY_HOME' })}
         />
       )}
 
@@ -222,6 +245,7 @@ export function Game() {
             relicNames={relicNames}
             selectedGlossary={state.selectedGlossary}
             gameStatus={state.status}
+            eliteModifierId={state.eliteModifierId}
           />
           <div className="game__playfield">
             {state.status === 'playing' &&
@@ -229,6 +253,10 @@ export function Game() {
                 <div className="biome-intro" role="status">
                   <span className="biome-intro__label">
                     {BIOME_CATALOG[state.biomeId].enterLabel}
+                    <br />
+                    <span className="biome-intro__mod">
+                      {getBiomeModifierLabel(state.biomeId)}
+                    </span>
                   </span>
                 </div>
               )}
@@ -271,6 +299,39 @@ export function Game() {
               onSelect={handleRelicSelect}
             />
           )}
+          {state.showBuildOverlay && (
+            <BuildOverlay
+              activeRelics={state.activeRelics}
+              activePerks={state.activePerks}
+              perksHistory={state.perksHistory}
+              synergyIds={getActiveSynergies(state)}
+              biomeId={state.biomeId}
+              eliteModifierId={state.eliteModifierId}
+              ascensionLevel={state.ascensionLevel}
+              bossSkippedPending={state.bossSkippedPending}
+              onClose={() => dispatch({ type: 'TOGGLE_BUILD_OVERLAY' })}
+            />
+          )}
+          <ContextualHint
+            hintId="word_trap"
+            message="Trampa (!): escribirla resta puntos"
+            visible={state.words.some((w) => w.kind === 'trap')}
+          />
+          <ContextualHint
+            hintId="word_bomb"
+            message="Bomba (*): al suelo quita 2 vidas"
+            visible={state.words.some((w) => w.kind === 'bomb')}
+          />
+          <ContextualHint
+            hintId="word_oracle"
+            message="Oraculo (?): elige recompensa al completar"
+            visible={state.words.some((w) => w.kind === 'oracle')}
+          />
+          <ContextualHint
+            hintId="boss_intro"
+            message="Jefe: escribe la palabra antes de que toque el suelo"
+            visible={state.status === 'boss'}
+          />
           {state.status === 'oraclePick' && state.oracleRewardWord && (
             <div className="oracle-overlay" role="dialog" aria-modal="true">
               <div className="oracle-overlay__panel pixel-panel">
@@ -321,6 +382,8 @@ export function Game() {
           synergyNames={synergyNames}
           dailyRun={state.dailyRun}
           reachedBoss={state.reachedBoss}
+          bossSkipMetaMult={state.bossSkipMetaMult}
+          ascensionLevel={state.ascensionLevel}
           onRetry={() =>
             state.dailyRun
               ? dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } })

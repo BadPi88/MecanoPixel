@@ -1,4 +1,8 @@
 import { BIOME_CATALOG, type BiomeId } from '../data/biomes';
+import {
+  ELITE_MODIFIER_CATALOG,
+  type EliteModifierId,
+} from '../data/eliteModifiers';
 import { RAMPS_PER_FLOOR } from '../data/run';
 import { RUNNER_CATALOG } from '../data/runners';
 import type { GlossaryId } from '../types/combat';
@@ -38,6 +42,7 @@ interface HUDProps {
   relicNames?: string[];
   selectedGlossary?: GlossaryId;
   gameStatus?: GameStatus;
+  eliteModifierId?: EliteModifierId | null;
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -99,6 +104,7 @@ export function HUD({
   relicNames = [],
   selectedGlossary = 'general',
   gameStatus = 'playing',
+  eliteModifierId = null,
 }: HUDProps) {
   const glossaryFloorNotice =
     selectedGlossary === 'medico' && floor % 2 === 0
@@ -138,6 +144,14 @@ export function HUD({
               {BIOME_CATALOG[biomeId].name}
             </span>
           </div>
+          {eliteModifierId && (
+            <div className="hud__stat hud__stat--elite">
+              <span className="hud__label">ELITE</span>
+              <span className="hud__value hud__value--elite">
+                {ELITE_MODIFIER_CATALOG[eliteModifierId].label}
+              </span>
+            </div>
+          )}
           <div className="hud__stat">
             <span className="hud__label">COINS</span>
             <span className="hud__value">{runCoins}</span>

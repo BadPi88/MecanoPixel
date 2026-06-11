@@ -42,12 +42,22 @@ import {
   initBossWords,
 } from '../data/bosses';
 import { morphDisplayText } from '../utils/wordSpawn';
+import { ELITE_COIN_MULT } from '../data/eliteModifiers';
+import { getMiniBoss } from '../data/bosses';
+import { FLOORS_PER_BIOME } from '../data/biomes';
+import { getAscensionInitialLivesPenalty } from '../utils/ascensionModifiers';
 import {
   applyRelicOnMiss,
   applyRelicOnSubmit,
   getBossUltimateChargePerChar,
+  getShopPriceMult,
+  getTrapShieldOnFloorStart,
+  getUltimateChargePerChar,
 } from '../utils/combatModifiers';
+import { getNodeById } from '../data/mapRooms';
 import { hasSynergy } from '../utils/synergyEngine';
+import { tickEliteFog } from '../utils/eliteModifiers';
+import { getBiomeGameplayMod } from '../utils/biomeModifiers';
 import { updateFlowStats } from '../utils/flowDifficulty';
 import {
   applyBrokenClockSkip,
@@ -97,12 +107,14 @@ function clearBossEncounter(): Partial<GameState> {
 }
 
 /** Partial de estado al entrar en shop/event/boss tras un piso o reliquia. */
-function enterPostFloor(
+function enterBossFight(
   state: GameState,
-  nextStatus: GameStatus,
+  boss = getBossForFloor(
+    state.floor,
+    state.ascensionLevel,
+    state.runSeed,
+  ),
 ): Partial<GameState> {
-  if (nextStatus === 'boss') {
-    const boss = getBossForFloor(state.floor);
     const tierOffset = getFloorTierOffset(state);
     const bossWords = initBossWords(
       boss,
@@ -122,7 +134,17 @@ function enterPostFloor(
       bossAttack,
       keyRemap: bossAttack.remap ? { ...BOSS_REMAP_TABLE } : null,
       pendingEvent: null,
+      bossSkippedPending: false,
+      bossSkipMetaMult: 1,
     };
+}
+
+function enterPostFloor(
+  state: GameState,
+  nextStatus: GameStatus,
+): Partial<GameState> {
+  if (nextStatus === 'boss') {
+    return enterBossFight(state);
   }
   if (nextStatus === 'event') {
     return { status: 'event', pendingEvent: pickRandomEvent(state) };
@@ -140,9 +162,21 @@ function enterPostFloor(
 /** Completa el piso actual: monedas, limpieza y pantalla de mapa. */
 function completeFloor(state: GameState): GameState {
   const coins = scaleRunCoins(getFloorClearCoins(state), state);
+  let lives = state.lives;
+  let floorsSinceBloodContract = state.floorsSinceBloodContract + 1;
+
+  if (
+    state.activeRelics.includes('contrato_sangriento') &&
+    floorsSinceBloodContract >= 3
+  ) {
+    floorsSinceBloodContract = 0;
+    if (lives > 1) lives -= 1;
+  }
 
   const base: GameState = {
     ...state,
+    lives,
+    floorsSinceBloodContract,
     runCoins: state.runCoins + coins,
     nextFloorCoinMult: 1,
     words: [],
@@ -153,6 +187,14 @@ function completeFloor(state: GameState): GameState {
     backspacesUsedThisWord: 0,
   };
 
+  if (base.pendingMiniBoss) {
+    return {
+      ...base,
+      pendingMiniBoss: false,
+      ...enterBossFight(base, getMiniBoss()),
+    };
+  }
+
   return { ...base, ...buildMapPickState(base) };
 }
 
@@ -160,13 +202,31 @@ function applyRoomFromMap(state: GameState, roomId: string): GameState {
   const room = state.mapRoomOptions.find((option) => option.id === roomId);
   if (!room) return state;
 
-  const cleared: Partial<GameState> = { mapRoomOptions: [] };
+  const cleared: Partial<GameState> = {
+    mapRoomOptions: [],
+    actMapNodeId: room.nodeId,
+  };
+
+  const isActEnd = state.floor % FLOORS_PER_BIOME === 0;
+  const skippedBoss =
+    isActEnd && room.type !== 'boss' && !state.bossSkippedPending;
+
+  const skipPenalty: Partial<GameState> = skippedBoss
+    ? {
+        bossSkippedPending: true,
+        bossSkipMetaMult: 0.7,
+        difficultyTierOffset: state.difficultyTierOffset + 1,
+      }
+    : room.type === 'boss'
+      ? { bossSkippedPending: false, bossSkipMetaMult: 1 }
+      : {};
 
   switch (room.type) {
     case 'shop':
       return {
         ...state,
         ...cleared,
+        ...skipPenalty,
         status: 'shop',
         pendingEvent: null,
         shopOffers: pickShopOffers(state.floor, state.runSeed + state.floor),
@@ -175,6 +235,7 @@ function applyRoomFromMap(state: GameState, roomId: string): GameState {
       return {
         ...state,
         ...cleared,
+        ...skipPenalty,
         status: 'event',
         pendingEvent: pickRandomEvent(state),
       };
@@ -188,6 +249,7 @@ function applyRoomFromMap(state: GameState, roomId: string): GameState {
         return {
           ...state,
           ...cleared,
+          ...skipPenalty,
           ...finishRoomToCombat(state, applyNextFloorStartModifiers(state)),
           runCoins: state.runCoins + 25,
         };
@@ -195,6 +257,7 @@ function applyRoomFromMap(state: GameState, roomId: string): GameState {
       return {
         ...state,
         ...cleared,
+        ...skipPenalty,
         status: 'relicPick',
         pendingRelicChoice: choices,
         postRelicStatus: null,
@@ -208,19 +271,32 @@ function applyRoomFromMap(state: GameState, roomId: string): GameState {
       return {
         ...state,
         ...cleared,
+        ...skipPenalty,
         ...healed,
         ...finishRoomToCombat(state, applyNextFloorStartModifiers(state)),
       };
     }
-    case 'elite':
+    case 'elite': {
+      const node = state.actMap
+        ? getNodeById(state.actMap, room.nodeId)
+        : undefined;
       return {
         ...state,
         ...cleared,
+        ...skipPenalty,
         eliteTierBonus: 1,
+        eliteModifierId: node?.eliteModifier ?? room.eliteModifier ?? 'fog',
+        eliteCoinMult: ELITE_COIN_MULT,
         ...finishRoomToCombat(state, applyNextFloorStartModifiers(state)),
       };
+    }
     case 'boss':
-      return { ...state, ...cleared, ...enterPostFloor(state, 'boss') };
+      return {
+        ...state,
+        ...cleared,
+        ...skipPenalty,
+        ...enterPostFloor(state, 'boss'),
+      };
     default:
       return state;
   }
@@ -230,6 +306,10 @@ function applyNextFloorStartModifiers(state: GameState): Partial<GameState> {
   const partial: Partial<GameState> = {
     nextFloorCoinMult: 1,
     shopOffers: [],
+    trapIgnoreRemaining:
+      state.trapIgnoreRemaining +
+      getTrapShieldOnFloorStart(state.activeRelics),
+    wordStartedAtMs: state.elapsedMs,
   };
   if (state.freezeNextFloorMs > 0) {
     partial.frozenUntilMs = state.elapsedMs + state.freezeNextFloorMs;
@@ -244,12 +324,14 @@ function scaleRunCoins(amount: number, state: GameState): number {
 
 function applyShopItem(state: GameState, itemId: ShopItemId): GameState | null {
   const item = getShopItem(itemId);
-  if (!item || state.runCoins < item.price) return null;
+  if (!item) return null;
+  const price = Math.round(item.price * getShopPriceMult(state.activeRelics));
+  if (state.runCoins < price) return null;
   if (!state.shopOffers.includes(itemId)) return null;
 
   let next: GameState = {
     ...state,
-    runCoins: state.runCoins - item.price,
+    runCoins: state.runCoins - price,
   };
 
   switch (itemId) {
@@ -258,7 +340,12 @@ function applyShopItem(state: GameState, itemId: ShopItemId): GameState | null {
       next.lives += 1;
       break;
     case 'random_perk': {
-      const choices = pickPerkChoices(next.activePerks, 1);
+      const choices = pickPerkChoices(
+        next.activePerks,
+        1,
+        next.floor,
+        next.ascensionLevel,
+      );
       if (choices.length === 0) return null;
       const perkPartial = applyPerkSelection(next, choices[0]);
       next = { ...next, ...perkPartial, perksHistory: [...next.perksHistory, choices[0]] };
@@ -375,7 +462,12 @@ function applyEventChoice(state: GameState, choice: 'A' | 'B'): GameState {
     case 'lose_life_rare_perk': {
       if (next.lives > 1) {
         next.lives -= 1;
-        const rare = pickPerkChoices(next.activePerks, 1);
+        const rare = pickPerkChoices(
+          next.activePerks,
+          1,
+          next.floor,
+          next.ascensionLevel,
+        );
         if (rare[0]) {
           const p = applyPerkSelection(next, rare[0]);
           next = { ...next, ...p, perksHistory: [...next.perksHistory, rare[0]] };
@@ -450,8 +542,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'BEGIN_RUN': {
       const dailyRun = action.payload?.dailyRun ?? false;
+      const ascensionLevel = action.payload?.ascensionLevel ?? 0;
       if (!dailyRun) {
-        return { ...initialGameState, status: 'runnerPick' };
+        return {
+          ...initialGameState,
+          status: 'runnerPick',
+          ascensionLevel,
+        };
       }
       const challenge = getDailyChallengeConfig();
       const runnerId = challenge.runnerId;
@@ -478,8 +575,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SELECT_GLOSSARY': {
       const runnerId = state.runnerId;
-      const lives = getInitialLives(runnerId);
-      const trapIgnore = getRunnerModifiers(runnerId).trapIgnoreCharges;
+      const ascensionLevel = state.dailyRun ? 0 : state.ascensionLevel;
+      const livesPenalty = getAscensionInitialLivesPenalty(ascensionLevel);
+      const lives = Math.max(
+        1,
+        getInitialLives(runnerId) - livesPenalty,
+      );
+      const trapIgnore =
+        getRunnerModifiers(runnerId).trapIgnoreCharges +
+        getTrapShieldOnFloorStart([]);
       return {
         ...initialGameState,
         status: 'playing',
@@ -489,7 +593,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         trapIgnoreRemaining: trapIgnore,
         selectedGlossary: action.payload,
         dailyRun: state.dailyRun,
+        ascensionLevel,
         runSeed: (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0,
+        wordStartedAtMs: 0,
       };
     }
 
@@ -512,6 +618,30 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newElapsed = state.elapsedMs + deltaMs;
       let activePerks = expirePerks(state.activePerks, newElapsed);
       const frozen = newElapsed < state.frozenUntilMs;
+
+      const fogTick = tickEliteFog(
+        { ...state, elapsedMs: newElapsed },
+        newElapsed,
+      );
+      const inputBlindedUntilMs =
+        fogTick?.inputBlindedUntilMs ?? state.inputBlindedUntilMs;
+      const eliteFogLastAtMs =
+        fogTick?.eliteFogLastAtMs ?? state.eliteFogLastAtMs;
+
+      const fabricaMod = getBiomeGameplayMod(state.biomeId);
+      let keyRemap = state.keyRemap;
+      let fabricaRemapNextAtMs = state.fabricaRemapNextAtMs;
+      if (fabricaMod.fabricaRemap) {
+        if (state.fabricaRemapNextAtMs === 0) {
+          fabricaRemapNextAtMs = newElapsed + 20_000;
+        } else if (!keyRemap && newElapsed >= state.fabricaRemapNextAtMs) {
+          keyRemap = { a: 's', s: 'a' };
+          fabricaRemapNextAtMs = newElapsed + 5_000;
+        } else if (keyRemap && newElapsed >= state.fabricaRemapNextAtMs) {
+          keyRemap = null;
+          fabricaRemapNextAtMs = newElapsed + 20_000;
+        }
+      }
 
       let updatedWords = state.words.map((word) => {
         if (word.id === state.poppingWordId) return word;
@@ -585,6 +715,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         deathCause,
         letterProjectiles: surviving,
         lastPurgeFreeAtMs,
+        inputBlindedUntilMs,
+        eliteFogLastAtMs,
+        keyRemap,
+        fabricaRemapNextAtMs,
         flowStats: updateFlowStats(state.flowStats, newElapsed),
         status: lives <= 0 ? 'gameOver' : state.status,
         maxWordsPerSecond: Math.max(
@@ -710,9 +844,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             );
 
       if (matchesSomething) {
+        const chargeMult =
+          getUltimateChargePerChar(state.activeRelics) *
+          getRunnerModifiers(state.runnerId).ultimateChargeMult;
         return {
           ...state,
           input: newInput,
+          wordStartedAtMs:
+            state.input === '' ? state.elapsedMs : state.wordStartedAtMs,
           precisionStreak: state.precisionStreak + 1,
           ultimateCharge: clampCharge(
             state.ultimateCharge +
@@ -720,8 +859,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
                 getBossUltimateChargePerChar(
                   state.selectedGlossary,
                   state.status,
+                  state.activeRelics,
                 )) *
-                getRunnerModifiers(state.runnerId).ultimateChargeMult,
+                chargeMult,
           ),
           flowStats: {
             ...state.flowStats,
@@ -822,7 +962,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           };
         }
 
-        const rareChoices = pickPerkChoices(state.activePerks);
+        const rareChoices = pickPerkChoices(
+          state.activePerks,
+          1,
+          state.floor,
+          state.ascensionLevel,
+        );
         const rare = rareChoices[0];
         const perkPartial = rare ? applyPerkSelection(state, rare) : {};
         const runnerMult = getRunnerModifiers(state.runnerId).runCoinsMult;
@@ -833,10 +978,33 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const lifeReward =
           state.lives < MAX_LIVES ? { lives: state.lives + 1 } : {};
 
+        const isVictory =
+          bossDef?.id === 'tiranotipo' &&
+          state.floor >= 12 &&
+          !state.endlessMode &&
+          !state.dailyRun;
+
+        if (isVictory) {
+          return {
+            ...state,
+            ...perkPartial,
+            ...lifeReward,
+            ...clearBossEncounter(),
+            runCoins: state.runCoins + baseCoins + bonusCoins,
+            perksHistory: rare ? [...state.perksHistory, rare] : state.perksHistory,
+            input: '',
+            backspacesUsedThisWord: 0,
+            wordsTyped: state.wordsTyped + 1,
+            correctChars: state.correctChars + trimmed.length,
+            status: 'victory',
+          };
+        }
+
         const afterBoss: GameState = {
           ...state,
           ...perkPartial,
           ...lifeReward,
+          ...clearBossEncounter(),
           runCoins: state.runCoins + baseCoins + bonusCoins,
           perksHistory: rare ? [...state.perksHistory, rare] : state.perksHistory,
           input: '',
@@ -933,13 +1101,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       if (matched.kind === 'bonus') {
-        const coins = Math.round(
+        let coins = Math.round(
           BONUS_WORD_COINS * getRunnerModifiers(state.runnerId).runCoinsMult,
         );
+        if (state.activeRelics.includes('moneda_ardiente')) coins += 8;
+        if (hasSynergy(state, 'mercader_dorado')) coins *= 2;
         return {
           ...state,
           input: '',
           backspacesUsedThisWord: 0,
+          wordStartedAtMs: state.elapsedMs,
           runCoins: state.runCoins + coins,
           words: state.words.filter((w) => w.id !== matched.id),
           poppingWordId: matched.id,
@@ -977,14 +1148,32 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         points,
         hasSynergy(state, 'fuego_electrico'),
       );
-      points = Math.round(points * relicResult.scoreMult) + relicResult.aoeBonus;
+      let scoreMult = relicResult.scoreMult;
+      if (
+        hasSynergy(state, 'caos_maldito') &&
+        state.activeRelics.includes('dados_caoticos')
+      ) {
+        scoreMult = Math.max(scoreMult, 1);
+      }
+      points = Math.round(points * scoreMult) + relicResult.aoeBonus;
       if (cleanWord) points = Math.round(points * CLEAN_WORD_SCORE_MULT);
 
+      let combo = state.combo + 1;
+      if (
+        state.activeRelics.includes('maldicion_prisa') &&
+        state.elapsedMs - state.wordStartedAtMs > 4_000
+      ) {
+        combo = 0;
+      }
+
       const runCoinGain = calculateRunCoinsFromScore(points);
-      const runCoins = state.runCoins + scaleRunCoins(
-        Math.round(runCoinGain * getRunnerModifiers(state.runnerId).runCoinsMult),
-        state,
-      );
+      const runCoins =
+        state.runCoins +
+        scaleRunCoins(
+          Math.round(runCoinGain * getRunnerModifiers(state.runnerId).runCoinsMult),
+          state,
+        ) +
+        relicResult.bonusRunCoins;
 
       const burnSet = new Set(relicResult.burnWordIds);
       const wordsAfter = state.words.map((w) =>
@@ -1001,7 +1190,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         words: wordsAfter,
         ...posPartial,
         input: '',
-        combo: state.combo + 1,
+        combo,
         score: state.score + points,
         runCoins,
         correctChars: state.correctChars + matched.text.length,
@@ -1009,6 +1198,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         poppingWordId: matched.id,
         activePerks: posPartial.activePerks ?? activePerks,
         backspacesUsedThisWord: 0,
+        wordStartedAtMs: state.elapsedMs,
+        chaosRollRemaining: Math.max(0, state.chaosRollRemaining - 1),
         ultimateCharge: clampCharge(
           state.ultimateCharge +
             ((cleanWord ? ULTIMATE_CLEAN_WORD_BONUS : 0) +
@@ -1042,6 +1233,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       const lifeLoss = word.kind === 'bomb' ? 2 : 1;
       const newLives = state.lives - lifeLoss;
+
+      if (
+        newLives <= 0 &&
+        hasPerkWithCharge(state.activePerks, 'phoenix') &&
+        !state.phoenixUsed
+      ) {
+        return {
+          ...state,
+          lives: 1,
+          phoenixUsed: true,
+          activePerks: consumePerkCharge(state.activePerks, 'phoenix'),
+          combo: 0,
+          words: state.words.filter((w) => w.id !== action.payload),
+        };
+      }
+
       let words = state.words.filter((w) => w.id !== action.payload);
 
       if (hasPerkWithCharge(state.activePerks, 'safety_net') && newLives > 0) {
@@ -1089,7 +1296,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         rampsThisFloor,
         rampCount: offerPerk ? 0 : rampCount,
         status: offerPerk ? 'perkPick' : 'playing',
-        pendingPerkChoice: offerPerk ? pickPerkChoices(state.activePerks) : null,
+        pendingPerkChoice: offerPerk
+          ? pickPerkChoices(
+              state.activePerks,
+              3,
+              state.floor,
+              state.ascensionLevel,
+            )
+          : null,
       };
 
       if (!offerPerk && shouldCompleteFloor(next)) {
@@ -1181,6 +1395,23 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         poppingWordId: null,
         words: state.words.filter((w) => w.id !== state.poppingWordId),
       };
+
+    case 'TOGGLE_BUILD_OVERLAY':
+      return { ...state, showBuildOverlay: !state.showBuildOverlay };
+
+    case 'CONTINUE_ENDLESS': {
+      if (state.status !== 'victory') return state;
+      const continued: GameState = {
+        ...state,
+        endlessMode: true,
+        status: 'mapPick',
+        ...buildMapPickState({ ...state, endlessMode: true, floor: state.floor }),
+      };
+      return continued;
+    }
+
+    case 'VICTORY_HOME':
+      return { ...initialGameState };
 
     case 'ORACLE_CHOICE': {
       if (state.status !== 'oraclePick' || !state.oracleRewardWord) return state;

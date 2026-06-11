@@ -1,13 +1,18 @@
 import { applyBiomeForFloor } from '../data/biomes';
-import { generateMapOptions } from '../data/mapRooms';
 import { FLOOR_CLEAR_COINS, RAMPS_PER_FLOOR } from '../data/run';
 import type { GameState } from '../types/game';
+import { getEffectiveAscensionTierOffset } from './ascensionModifiers';
+import { getEliteCoinMult, getEliteTierBonus } from './eliteModifiers';
+import { buildActMapChoices, initActMapIfNeeded } from './mapAct';
+import { getBiomeGameplayMod } from './biomeModifiers';
 
 export function getFloorTierOffset(state: GameState): number {
   return (
     state.difficultyTierOffset +
     Math.max(0, state.floor - 1) +
-    state.eliteTierBonus
+    state.eliteTierBonus +
+    getEliteTierBonus(state.eliteModifierId) +
+    getEffectiveAscensionTierOffset(state)
   );
 }
 
@@ -18,14 +23,31 @@ export function shouldCompleteFloor(state: GameState): boolean {
 export function getFloorClearCoins(state: GameState): number {
   let coins = FLOOR_CLEAR_COINS;
   if (state.runnerId === 'magnate') coins = Math.round(coins * 1.2);
+  coins = Math.round(coins * getEliteCoinMult(state));
   return coins;
 }
 
 export function buildMapPickState(state: GameState): Partial<GameState> {
+  const actInit = initActMapIfNeeded(state);
+  const merged = { ...state, ...actInit };
+  const { mapRoomOptions, actMap } = buildActMapChoices(merged);
+
+  const tronoMod = getBiomeGameplayMod(merged.biomeId);
+  const pendingMiniBoss =
+    tronoMod.tronoMiniBossChance > 0 &&
+    merged.floor % 3 !== 0 &&
+    Math.random() < tronoMod.tronoMiniBossChance;
+
   return {
+    ...actInit,
     status: 'mapPick',
-    mapRoomOptions: generateMapOptions(state.floor, state.runSeed),
+    actMap,
+    mapRoomOptions,
     eliteTierBonus: 0,
+    eliteModifierId: null,
+    eliteCoinMult: 1,
+    eliteFogLastAtMs: 0,
+    pendingMiniBoss,
     words: [],
     input: '',
     letterProjectiles: [],

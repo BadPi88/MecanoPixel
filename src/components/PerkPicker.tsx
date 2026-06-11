@@ -25,11 +25,16 @@ export function PerkPicker({ choices, onSelect }: PerkPickerProps) {
               <button
                 key={id}
                 type="button"
-                className={`perk-card ${CATEGORY_CLASS[perk.category] ?? ''}`}
+                className={`perk-card ${CATEGORY_CLASS[perk.category] ?? ''} perk-card--${perk.rarity}`}
                 onClick={() => onSelect(id)}
               >
                 <span className="perk-card__key">{index + 1}</span>
-                <span className="perk-card__name">{perk.name}</span>
+                <span className="perk-card__name">
+                  {perk.name}
+                  {perk.rarity === 'legendary' && (
+                    <span className="perk-card__rarity"> ★</span>
+                  )}
+                </span>
                 <span className="perk-card__desc">{perk.description}</span>
               </button>
             );

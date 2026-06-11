@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { LeaderboardResponse } from '../types/leaderboard';
 import type { DailyLeaderboardResponse } from '../types/daily';
 import { RUNNER_CATALOG } from '../data/runners';
+import { ASCENSION_LEVELS } from '../data/ascension';
 import { GLOSSARY_CATALOG } from '../data/glossaries';
 import { fetchLeaderboard } from '../services/leaderboard';
 import { fetchDailyLeaderboard } from '../services/daily';
@@ -25,6 +26,8 @@ interface StartScreenProps {
   onPlayerNameChange: (name: string) => void;
   onStart: () => void;
   onDailyStart: () => void;
+  ascensionLevel?: number;
+  onAscensionChange?: (level: number) => void;
 }
 
 export function StartScreen({
@@ -32,7 +35,10 @@ export function StartScreen({
   onPlayerNameChange,
   onStart,
   onDailyStart,
+  ascensionLevel = 0,
+  onAscensionChange,
 }: StartScreenProps) {
+  const meta = loadMeta();
   const [tab, setTab] = useState<HubTab>('play');
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
     null,
@@ -307,13 +313,41 @@ export function StartScreen({
                 COMO JUGAR
               </h2>
               <ul className="screen__instructions">
-                <li>Elige runner y glosario; sobrevive pisos de 3 subidas</li>
-                <li>Trampas (!), bombas (*), bonus (+); V/A/S = verbo, adjetivo, sustantivo</li>
-                <li>Escribir sin Backspace carga el ULTIMATE — disparalo con TAB</li>
-                <li>Reliquia cada 2 pisos; tienda/evento entre pisos, jefe cada 3</li>
-                <li>Letras sueltas que caen se desvian tecleandolas (input vacio)</li>
+                <li>Elige runner y glosario; 3 subidas por piso de combate</li>
+                <li>Mapa con rutas: tienda, tesoro, elite, descanso, jefe</li>
+                <li>ULTIMATE con TAB; tecla I para ver tu build</li>
+                <li>Biomas cambian las reglas cada 3 pisos</li>
                 <li>Sin tildes: escribe tecnologia, no tecnología</li>
               </ul>
+
+              {meta.ascensionUnlocked && onAscensionChange && (
+                <>
+                  <h2 className="screen__panel-title screen__panel-title--spaced">
+                    ASCENSION
+                  </h2>
+                  <div className="ascension-picker">
+                    {ASCENSION_LEVELS.filter(
+                      (l) => l.level <= meta.maxAscension,
+                    ).map((level) => (
+                      <button
+                        key={level.level}
+                        type="button"
+                        className={`ascension-picker__btn${
+                          ascensionLevel === level.level
+                            ? ' ascension-picker__btn--active'
+                            : ''
+                        }`}
+                        onClick={() => onAscensionChange(level.level)}
+                      >
+                        {level.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="ascension-picker__desc">
+                    {ASCENSION_LEVELS[ascensionLevel]?.description}
+                  </p>
+                </>
+              )}
             </div>
 
             <PixelButton onClick={handleStart} className="screen__btn">

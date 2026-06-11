@@ -63,7 +63,26 @@ export function useKeyboard(
         return;
       }
 
+      if (event.key === 'i' || event.key === 'I') {
+        if (
+          state.status === 'playing' ||
+          state.status === 'paused' ||
+          state.status === 'boss' ||
+          state.status === 'perkPick' ||
+          state.status === 'relicPick'
+        ) {
+          event.preventDefault();
+          dispatch({ type: 'TOGGLE_BUILD_OVERLAY' });
+        }
+        return;
+      }
+
       if (event.key === 'Escape') {
+        if (state.showBuildOverlay) {
+          event.preventDefault();
+          dispatch({ type: 'TOGGLE_BUILD_OVERLAY' });
+          return;
+        }
         if (state.status === 'playing' || state.status === 'paused') {
           event.preventDefault();
           dispatch({ type: 'TOGGLE_PAUSE' });
@@ -112,6 +131,7 @@ export function useKeyboard(
     state.pendingPerkChoice,
     state.pendingRelicChoice,
     state.mapRoomOptions,
+    state.showBuildOverlay,
     state.ultimateCharge,
     state.keyRemap,
     dispatch,

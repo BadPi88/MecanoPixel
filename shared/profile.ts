@@ -17,6 +17,20 @@ export interface ProfileDailyMission {
   claimed: boolean;
 }
 
+export interface ProfileCosmetics {
+  wordPalette: string;
+  typingTrail: string;
+  leaderboardFrame: string;
+  unlockedPalettes: string[];
+  unlockedTrails: string[];
+  unlockedFrames: string[];
+}
+
+export interface ProfileHubUpgrades {
+  extraMapOption: boolean;
+  safeFirstFloor: boolean;
+}
+
 export interface ProfileMeta {
   totalCoins: number;
   unlockedRunners: string[];
@@ -27,6 +41,10 @@ export interface ProfileMeta {
   seenHints: string[];
   daily: ProfileDailyMission;
   stats: ProfileMetaStats;
+  ascensionUnlocked: boolean;
+  maxAscension: number;
+  cosmetics: ProfileCosmetics;
+  hubUpgrades: ProfileHubUpgrades;
 }
 
 export type ProfileAction = 'auth' | 'save';

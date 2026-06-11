@@ -1,9 +1,20 @@
+import type { BiomeId } from '../data/biomes';
 import { getRandomWord } from '../data/dictionary';
 import { getRandomTrapWord } from '../data/traps';
 import type { GlossaryId, RelicId, WordModifier } from '../types/combat';
 import type { WordKind } from '../types/run';
+import { applyAscensionToSpawnRates } from './ascensionModifiers';
+import {
+  applyBiomeToSpawnRates,
+  getBiomeAnagramRateMult,
+  getBiomeOracleRateMult,
+} from './biomeModifiers';
+import {
+  getSpawnConstraints,
+  reverseText,
+  stripVowels,
+} from './combatModifiers';
 import { getWordPOS } from './posHeuristics';
-import { getSpawnConstraints, stripVowels } from './combatModifiers';
 
 export const ORACLE_SPAWN_RATE = 0.03;
 
@@ -17,6 +28,8 @@ export function getSpawnRatesForFloor(
   floor: number,
   noTrapsNextFloor: boolean,
   relics: RelicId[] = [],
+  biomeId: BiomeId = 'scriptorium',
+  ascensionLevel = 0,
 ): SpawnRates {
   let rates: SpawnRates;
   if (floor <= 1 || noTrapsNextFloor) {
@@ -31,15 +44,27 @@ export function getSpawnRatesForFloor(
     rates = { ...rates, trap: Math.min(rates.trap * 2, 0.3) };
   }
 
+  rates = applyBiomeToSpawnRates(rates, biomeId);
+  rates = applyAscensionToSpawnRates(rates, ascensionLevel);
   return rates;
 }
 
-export function rollWordKind(rates: SpawnRates): WordKind {
+export function rollWordKind(
+  rates: SpawnRates,
+  oracleMult = 1,
+  chaosMode = false,
+): WordKind {
+  if (chaosMode) {
+    const kinds: WordKind[] = ['normal', 'trap', 'bomb', 'bonus', 'oracle'];
+    return kinds[Math.floor(Math.random() * kinds.length)];
+  }
+
+  const oracleRate = ORACLE_SPAWN_RATE * oracleMult;
   const roll = Math.random();
-  if (roll < ORACLE_SPAWN_RATE) return 'oracle';
-  if (roll < ORACLE_SPAWN_RATE + rates.trap) return 'trap';
-  if (roll < ORACLE_SPAWN_RATE + rates.trap + rates.bomb) return 'bomb';
-  if (roll < ORACLE_SPAWN_RATE + rates.trap + rates.bomb + rates.bonus) {
+  if (roll < oracleRate) return 'oracle';
+  if (roll < oracleRate + rates.trap) return 'trap';
+  if (roll < oracleRate + rates.trap + rates.bomb) return 'bomb';
+  if (roll < oracleRate + rates.trap + rates.bomb + rates.bonus) {
     return 'bonus';
   }
   return 'normal';
@@ -86,28 +111,28 @@ export interface SpawnDecoration {
   morphAtMs?: number;
 }
 
-/** Probabilidad de anagrama por piso (sube con la profundidad). */
-function getAnagramRate(floor: number): number {
+function getAnagramRate(floor: number, biomeId: BiomeId): number {
   if (floor < 2) return 0;
-  return Math.min(0.1 + (floor - 2) * 0.02, 0.25);
+  return Math.min(
+    (0.1 + (floor - 2) * 0.02) * getBiomeAnagramRateMult(biomeId),
+    0.35,
+  );
 }
 
-/** Probabilidad de palabra cambiante por piso. */
-function getShiftingRate(floor: number): number {
-  if (floor < 3) return 0;
-  return Math.min(0.08 + (floor - 3) * 0.02, 0.2);
+function getShiftingRate(floor: number, devoratexto = false): number {
+  if (floor < 3 && !devoratexto) return 0;
+  const base = devoratexto ? 0.35 : 0.08 + (floor - 3) * 0.02;
+  return Math.min(base, devoratexto ? 0.5 : 0.2);
 }
 
-/**
- * Decora una palabra recien generada: POS, anagrama/cambiante segun piso
- * y texto sin vocales si la reliquia esta activa.
- */
 export function decorateSpawn(
   kind: WordKind,
   text: string,
   floor: number,
   elapsedMs: number,
   relics: RelicId[],
+  biomeId: BiomeId = 'scriptorium',
+  devoratextoBoss = false,
 ): SpawnDecoration {
   const pos = getWordPOS(text);
 
@@ -120,16 +145,24 @@ export function decorateSpawn(
   let displayText: string | undefined;
   let morphAtMs: number | undefined;
 
+  if (relics.includes('teclado_espejo')) {
+    modifiers.push('reversed');
+    displayText = reverseText(text);
+    return { pos, modifiers, displayText };
+  }
+
   const forceAnagram = relics.includes('espejo_roto');
+  const anagramRate = getAnagramRate(floor, biomeId);
+  const shiftingRate = getShiftingRate(floor, devoratextoBoss);
 
   const roll = Math.random();
-  if (forceAnagram || roll < getAnagramRate(floor)) {
+  if (forceAnagram || roll < anagramRate) {
     modifiers.push('anagram');
     displayText = shuffleText(text);
-  } else if (roll < getAnagramRate(floor) + getShiftingRate(floor)) {
+  } else if (roll < anagramRate + shiftingRate) {
     modifiers.push('shifting');
     displayText = shuffleText(text);
-    morphAtMs = elapsedMs + 3_000;
+    morphAtMs = elapsedMs + (devoratextoBoss ? 1_500 : 3_000);
   }
 
   if (constraints.vowelless && modifiers.length === 0) {
@@ -145,7 +178,6 @@ export function decorateSpawn(
   };
 }
 
-/** Re-baraja el texto mostrado de una palabra cambiante. */
 export function morphDisplayText(targetText: string): string {
   return shuffleText(targetText);
 }
@@ -156,4 +188,8 @@ export function getBossWord(elapsedMs: number, tierOffset: number): string {
     if (word.length >= len - 2) return word;
   }
   return getRandomWord(elapsedMs, tierOffset);
+}
+
+export function getOracleRateMult(biomeId: BiomeId): number {
+  return getBiomeOracleRateMult(biomeId);
 }

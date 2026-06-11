@@ -9,10 +9,19 @@ export type RelicId =
   | 'tinta_toxica'
   | 'afinacion_vocales'
   | 'sello_maldito'
-  | 'espejo_roto';
+  | 'espejo_roto'
+  | 'escudo_runico'
+  | 'cronometro_veloz'
+  | 'bolsa_mercader'
+  | 'dados_caoticos'
+  | 'ancla_gravitatoria'
+  | 'moneda_ardiente'
+  | 'contrato_sangriento'
+  | 'teclado_espejo'
+  | 'maldicion_prisa';
 
 /** Modificadores visuales/mentales de palabras enemigas. */
-export type WordModifier = 'anagram' | 'shifting' | 'vowelless';
+export type WordModifier = 'anagram' | 'shifting' | 'vowelless' | 'reversed';
 
 /** Elemento de dano asociado a glosarios/reliquias. */
 export type CombatElement = 'fire' | 'poison' | 'electric' | 'none';
@@ -53,7 +62,14 @@ export const INITIAL_FLOW_STATS: FlowStats = {
 };
 
 /** Villanos unicos de jefe (no son runners). */
-export type BossId = 'archivista' | 'saboteador' | 'perforador' | 'tiranotipo';
+export type BossId =
+  | 'archivista'
+  | 'saboteador'
+  | 'perforador'
+  | 'tiranotipo'
+  | 'cronista'
+  | 'devoratexto'
+  | 'mini_guardian';
 
 /** Ataques de interfaz del jefe segun catalogo. */
 export interface BossAttackState {

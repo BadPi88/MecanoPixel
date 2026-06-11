@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { RunnerSprite } from '../assets/runnerSprites';
+import { RELIC_CATALOG } from '../data/relics';
+import {
+  COSMETIC_UNLOCKS,
+  HUB_UPGRADES,
+  RELIC_UNLOCKS,
+} from '../data/metaUnlocks';
 import { RUNNER_CATALOG, UNLOCK_STAT_LABELS } from '../data/runners';
 import {
   loadMeta,
-  META_UNLOCKS,
-  unlockGlossary,
+  purchaseCosmetic,
+  purchaseHubUpgrade,
+  unlockRelicMeta,
   type MetaProgress,
-  type MetaUnlockEntry,
 } from '../services/meta';
 import { PixelButton } from './PixelButton';
 
@@ -17,8 +23,7 @@ interface MetaShopProps {
 export function MetaShop({ onMetaChange }: MetaShopProps) {
   const [meta, setMeta] = useState(loadMeta);
 
-  const handleUnlock = (entry: MetaUnlockEntry) => {
-    const updated = unlockGlossary(entry.glossary, entry.cost);
+  const refresh = (updated: MetaProgress | null) => {
     if (updated) {
       setMeta(updated);
       onMetaChange?.(updated);
@@ -56,9 +61,7 @@ export function MetaShop({ onMetaChange }: MetaShopProps) {
                   {runner.name}
                   <span className="meta-shop__item-kind"> [RUNNER]</span>
                 </span>
-                <span className="meta-shop__item-desc">
-                  {runner.description}
-                </span>
+                <span className="meta-shop__item-desc">{runner.description}</span>
                 {!owned && (
                   <span className="unlock-progress" aria-hidden="true">
                     <span
@@ -84,26 +87,83 @@ export function MetaShop({ onMetaChange }: MetaShopProps) {
         })}
       </ul>
 
-      <h3 className="meta-shop__section-title">GLOSARIOS — meta coins</h3>
+      <h3 className="meta-shop__section-title">RELIQUIAS — meta coins</h3>
       <ul className="meta-shop__list">
-        {META_UNLOCKS.map((entry) => {
-          const owned = meta.unlockedGlossaries.includes(entry.glossary);
-          const canBuy = !owned && meta.totalCoins >= entry.cost;
+        {RELIC_UNLOCKS.map((entry) => {
+          const owned = meta.unlockedRelics.includes(entry.relicId);
+          const def = RELIC_CATALOG[entry.relicId];
           return (
-            <li key={entry.glossary} className="meta-shop__item pixel-panel">
+            <li key={entry.relicId} className="meta-shop__item pixel-panel">
               <div className="meta-shop__item-info">
-                <span className="meta-shop__item-name">
-                  {entry.label}
-                  <span className="meta-shop__item-kind"> [GLOSARIO]</span>
-                </span>
-                <span className="meta-shop__item-desc">{entry.description}</span>
+                <span className="meta-shop__item-name">{entry.label}</span>
+                <span className="meta-shop__item-desc">{def.description}</span>
               </div>
               {owned ? (
                 <span className="meta-shop__owned">DESBLOQUEADO</span>
               ) : (
                 <PixelButton
-                  disabled={!canBuy}
-                  onClick={() => handleUnlock(entry)}
+                  disabled={meta.totalCoins < entry.cost}
+                  onClick={() =>
+                    refresh(unlockRelicMeta(entry.relicId, entry.cost))
+                  }
+                >
+                  {entry.cost} coins
+                </PixelButton>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      <h3 className="meta-shop__section-title">COSMETICOS</h3>
+      <ul className="meta-shop__list">
+        {COSMETIC_UNLOCKS.map((entry) => {
+          const list =
+            entry.kind === 'palette'
+              ? meta.cosmetics.unlockedPalettes
+              : entry.kind === 'trail'
+                ? meta.cosmetics.unlockedTrails
+                : meta.cosmetics.unlockedFrames;
+          const owned = list.includes(entry.value as never);
+          return (
+            <li key={entry.id} className="meta-shop__item pixel-panel">
+              <div className="meta-shop__item-info">
+                <span className="meta-shop__item-name">{entry.label}</span>
+                <span className="meta-shop__item-desc">{entry.description}</span>
+              </div>
+              <PixelButton
+                disabled={!owned && meta.totalCoins < entry.cost}
+                onClick={() =>
+                  refresh(
+                    purchaseCosmetic(entry.kind, entry.value, entry.cost),
+                  )
+                }
+              >
+                {owned ? 'EQUIPADO' : `${entry.cost} coins`}
+              </PixelButton>
+            </li>
+          );
+        })}
+      </ul>
+
+      <h3 className="meta-shop__section-title">MEJORAS HUB</h3>
+      <ul className="meta-shop__list">
+        {HUB_UPGRADES.map((entry) => {
+          const owned = meta.hubUpgrades[entry.id];
+          return (
+            <li key={entry.id} className="meta-shop__item pixel-panel">
+              <div className="meta-shop__item-info">
+                <span className="meta-shop__item-name">{entry.label}</span>
+                <span className="meta-shop__item-desc">{entry.description}</span>
+              </div>
+              {owned ? (
+                <span className="meta-shop__owned">ACTIVO</span>
+              ) : (
+                <PixelButton
+                  disabled={meta.totalCoins < entry.cost}
+                  onClick={() =>
+                    refresh(purchaseHubUpgrade(entry.id, entry.cost))
+                  }
                 >
                   {entry.cost} coins
                 </PixelButton>
@@ -116,6 +176,9 @@ export function MetaShop({ onMetaChange }: MetaShopProps) {
       <div className="meta-shop__stats pixel-panel">
         <p>Runs: {meta.stats.runsPlayed}</p>
         <p>Palabras totales: {meta.stats.totalWords}</p>
+        {meta.ascensionUnlocked && (
+          <p>Ascension max: {meta.maxAscension}</p>
+        )}
       </div>
     </div>
   );

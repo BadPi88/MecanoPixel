@@ -63,6 +63,10 @@ function toProfileMeta(meta: MetaProgress): ProfileMeta {
     seenHints: meta.seenHints,
     daily: { ...meta.daily },
     stats: { ...meta.stats },
+    ascensionUnlocked: meta.ascensionUnlocked,
+    maxAscension: meta.maxAscension,
+    cosmetics: { ...meta.cosmetics },
+    hubUpgrades: { ...meta.hubUpgrades },
   };
 }
 
@@ -99,6 +103,41 @@ function fromProfileMeta(meta: ProfileMeta): MetaProgress {
         }
       : defaults.daily,
     stats: { ...defaults.stats, ...meta.stats },
+    ascensionUnlocked: meta.ascensionUnlocked ?? defaults.ascensionUnlocked,
+    maxAscension: meta.maxAscension ?? defaults.maxAscension,
+    cosmetics: {
+      wordPalette:
+        (meta.cosmetics?.wordPalette as MetaProgress['cosmetics']['wordPalette']) ??
+        defaults.cosmetics.wordPalette,
+      typingTrail:
+        (meta.cosmetics?.typingTrail as MetaProgress['cosmetics']['typingTrail']) ??
+        defaults.cosmetics.typingTrail,
+      leaderboardFrame:
+        (meta.cosmetics?.leaderboardFrame as MetaProgress['cosmetics']['leaderboardFrame']) ??
+        defaults.cosmetics.leaderboardFrame,
+      unlockedPalettes: [
+        ...new Set([
+          ...defaults.cosmetics.unlockedPalettes,
+          ...(meta.cosmetics?.unlockedPalettes ?? []),
+        ]),
+      ] as MetaProgress['cosmetics']['unlockedPalettes'],
+      unlockedTrails: [
+        ...new Set([
+          ...defaults.cosmetics.unlockedTrails,
+          ...(meta.cosmetics?.unlockedTrails ?? []),
+        ]),
+      ] as MetaProgress['cosmetics']['unlockedTrails'],
+      unlockedFrames: [
+        ...new Set([
+          ...defaults.cosmetics.unlockedFrames,
+          ...(meta.cosmetics?.unlockedFrames ?? []),
+        ]),
+      ] as MetaProgress['cosmetics']['unlockedFrames'],
+    },
+    hubUpgrades: {
+      ...defaults.hubUpgrades,
+      ...meta.hubUpgrades,
+    },
   };
 }
 

@@ -1,6 +1,6 @@
 # Key Runner — Agent Guide
 
-Roguelike de mecanografía en español con estética pixel art. Palabras caen por la pantalla; el jugador las escribe antes de que toquen el suelo. Loop roguelike: hub → elegir runner → pisos (3 subidas de ritmo por piso) → perk cada 3 subidas → tienda/evento/jefe entre pisos → game over → meta coins persistentes.
+Roguelike de mecanografía en español con estética pixel art. Palabras caen por la pantalla; el jugador las escribe antes de que toquen el suelo. Loop: hub → runner → glosario (+ ascensión 0–5) → combate (3 ramps/piso) → **mapa en árbol por acto** (shop/event/treasure/elite/rest/boss) → jefe obligatorio con penalización si se evita → victoria piso 12+ (endless opcional) o game over → meta coins.
 
 ## Comandos
 
@@ -22,7 +22,7 @@ npm run lint         # eslint
 
 Todo el estado de juego vive en un único reducer:
 
-- `src/types/game.ts` — `GameState`, `GameAction`, `GameStatus` (`idle | runnerPick | playing | paused | perkPick | shop | event | boss | gameOver`), `initialGameState`
+- `src/types/game.ts` — `GameState`, `GameAction`, `GameStatus` (`idle | runnerPick | playing | paused | perkPick | shop | event | boss | mapPick | relicPick | victory | gameOver`), `initialGameState`
 - `src/hooks/useGameState.ts` — `gameReducer` central: typing (TYPE_CHAR/BACKSPACE/SUBMIT), ramps, pisos, tienda, eventos, jefe
 - `src/hooks/useGameLoop.ts` — rAF tick, spawn de palabras por intervalo, tick del jefe, detección de suelo
 - `src/hooks/useKeyboard.ts` — listener global de teclado (normaliza tildes con NFD)
@@ -30,11 +30,16 @@ Todo el estado de juego vive en un único reducer:
 
 Capas de modificadores (funciones puras, se componen en `getEffectiveDifficulty`):
 
-- `src/utils/difficulty.ts` — tier base por tiempo + `tierOffset`
-- `src/utils/perkModifiers.ts` — 12 perks (catálogo en `src/data/perks.ts`)
-- `src/utils/runnerModifiers.ts` — 5 runners (catálogo en `src/data/runners.ts`)
-- `src/utils/runTransitions.ts` — pisos: `shouldCompleteFloor`, `buildFloorClearState`, `advanceToNextFloor`, `getFloorTierOffset`
-- `src/utils/wordSpawn.ts` — tipos de palabra (`normal | trap | bomb | bonus`) y palabra de jefe
+- `src/utils/flowDifficulty.ts` — tier base por tiempo + `tierOffset`
+- `src/utils/perkModifiers.ts` — perks (catálogo en `src/data/perks.ts`, incluye legendarios)
+- `src/utils/runnerModifiers.ts` — 8 runners (catálogo en `src/data/runners.ts`)
+- `src/utils/runTransitions.ts` — pisos, mapa, elite coins, boss skip
+- `src/utils/biomeModifiers.ts` — reglas por bioma (spawn, remap fábrica, mini-jefe trono)
+- `src/utils/eliteModifiers.ts` — niebla/tormenta/cascada en salas elite
+- `src/utils/ascensionModifiers.ts` — niveles 0–5 (trampas, vidas, jefes, meta coins)
+- `src/utils/hubModifiers.ts` — mejoras hub (`safeFirstFloor`, `extraMapOption`)
+- `src/utils/wordSpawn.ts` — tipos de palabra y spawn con bioma/ascensión
+- `src/data/mapRooms.ts` — `ActMapGraph`, generación determinista por `runSeed + actIndex`
 
 Persistencia:
 

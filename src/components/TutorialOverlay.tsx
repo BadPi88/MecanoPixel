@@ -9,15 +9,19 @@ const STEPS = [
   },
   {
     title: 'TIPOS ESPECIALES',
-    body: 'Trampa (!), bomba (*), bonus (+). V/A/S marcan verbo, adjetivo y sustantivo.',
+    body: 'Trampa (!), bomba (*), bonus (+), oraculo (?). V/A/S = verbo, adjetivo, sustantivo.',
   },
   {
     title: 'ULTIMATE Y DESVIOS',
-    body: 'Escribe sin Backspace para cargar el ULTIMATE (TAB). Letras sueltas se desvian con input vacio.',
+    body: 'Sin Backspace carga el ULTIMATE (TAB). Letras sueltas se desvian con input vacio.',
   },
   {
-    title: 'ROGUELIKE',
-    body: '3 subidas por piso, perk cada 3, reliquia cada 2 pisos. Tienda, evento o jefe entre pisos.',
+    title: 'MAPA DE RUTAS',
+    body: 'Tras cada piso elige ruta: tienda, tesoro, elite (+50% coins), descanso o jefe. Evitar al jefe penaliza.',
+  },
+  {
+    title: 'BIOMAS Y BUILD',
+    body: 'Cada 3 pisos cambia la zona y sus reglas. Pulsa I para ver reliquias, perks y sinergias.',
   },
 ];
 

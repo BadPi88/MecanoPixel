@@ -6,7 +6,10 @@ export type SynergyId =
   | 'radar_purga'
   | 'fuego_electrico'
   | 'tinta_segura'
-  | 'vocal_codificada';
+  | 'vocal_codificada'
+  | 'sangre_toxica'
+  | 'caos_maldito'
+  | 'mercader_dorado';
 
 export interface SynergyDefinition {
   id: SynergyId;
@@ -40,6 +43,21 @@ export const SYNERGY_CATALOG: Record<SynergyId, SynergyDefinition> = {
     name: 'VOCAL CODIFICADA',
     description: 'Combo x2 desde combo 2',
   },
+  sangre_toxica: {
+    id: 'sangre_toxica',
+    name: 'SANGRE TOXICA',
+    description: 'Contrato sangriento no pierde combo al explotar',
+  },
+  caos_maldito: {
+    id: 'caos_maldito',
+    name: 'CAOS MALDITO',
+    description: 'Dados caoticos nunca bajan de x1',
+  },
+  mercader_dorado: {
+    id: 'mercader_dorado',
+    name: 'MERCADER DORADO',
+    description: 'Moneda ardiente x2 run coins en bonus',
+  },
 };
 
 export function getActiveSynergies(state: GameState): SynergyId[] {
@@ -68,6 +86,27 @@ export function getActiveSynergies(state: GameState): SynergyId[] {
     state.runnerId === 'codificador'
   ) {
     result.push('vocal_codificada');
+  }
+
+  if (
+    state.activeRelics.includes('contrato_sangriento') &&
+    state.activeRelics.includes('tinta_toxica')
+  ) {
+    result.push('sangre_toxica');
+  }
+
+  if (
+    state.activeRelics.includes('dados_caoticos') &&
+    state.activeRelics.includes('sello_maldito')
+  ) {
+    result.push('caos_maldito');
+  }
+
+  if (
+    state.activeRelics.includes('moneda_ardiente') &&
+    state.activeRelics.includes('bolsa_mercader')
+  ) {
+    result.push('mercader_dorado');
   }
 
   return result;
