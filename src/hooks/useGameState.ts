@@ -2,7 +2,7 @@ import { useReducer } from 'react';
 import { pickPerkChoices, PERKS_EVERY_N_RAMPS, trimActivePerks } from '../data/perks';
 import { pickRandomEvent } from '../data/events';
 import { pickRelicChoices } from '../data/relics';
-import { SHOP_ITEMS } from '../data/shop';
+import { getShopItem, pickShopOffers } from '../data/shop';
 import { BONUS_WORD_COINS } from '../data/run';
 import {
   initialGameState,
@@ -13,7 +13,6 @@ import {
 } from '../types/game';
 import { MAX_LIVES } from '../types/perks';
 import type { ShopItemId } from '../types/run';
-import type { BossAttackState } from '../types/combat';
 import {
   MAX_LETTER_PROJECTILES,
   POS_EFFECT_COOLDOWN_MS,
@@ -31,8 +30,22 @@ import {
   shouldCompleteFloor,
 } from '../utils/runTransitions';
 import { getInitialLives, getRunnerModifiers } from '../utils/runnerModifiers';
-import { getBossWord, morphDisplayText } from '../utils/wordSpawn';
-import { applyRelicOnMiss, applyRelicOnSubmit } from '../utils/combatModifiers';
+import {
+  BOSS_BLIND_DURATION_MS,
+  BOSS_BLIND_INTERVAL_MS,
+  BOSS_CATALOG,
+  BOSS_REMAP_TABLE,
+  getBossFallSpeed,
+  getBossForFloor,
+  initBossAttackFromCatalog,
+  initBossWords,
+} from '../data/bosses';
+import { morphDisplayText } from '../utils/wordSpawn';
+import {
+  applyRelicOnMiss,
+  applyRelicOnSubmit,
+  getBossUltimateChargePerChar,
+} from '../utils/combatModifiers';
 import { hasSynergy } from '../utils/synergyEngine';
 import { updateFlowStats } from '../utils/flowDifficulty';
 import {
@@ -47,55 +60,38 @@ import {
   removePerk,
 } from '../utils/perkModifiers';
 import { calculateMissPenalty } from '../utils/scoring';
+import { getDailyChallengeConfig } from '../utils/dailySeed';
 import { createWordId } from './useGameStateHelpers';
 
 export { createWordId } from './useGameStateHelpers';
 
 const GROUND_OFFSET = 48;
 const TRAP_PENALTY = 40;
-const BOSS_FALL_SPEED = 25;
 const ULTIMATE_CHARGE_PER_CHAR = 1.5;
 const ULTIMATE_DEFLECT_BONUS = 5;
 const ULTIMATE_FREEZE_MS = 2_000;
-const BOSS_BLIND_INTERVAL_MS = 10_000;
-const BOSS_BLIND_DURATION_MS = 2_000;
-const BOSS_REMAP_DURATION_MS = 15_000;
-const BOSS_REMAP_TABLE: Record<string, string> = {
-  a: 'z',
-  z: 'a',
-  s: 'x',
-  x: 's',
-};
 const ADJ_TEMPO_BUFF_MS = 8_000;
 const VERB_AOE_FACTOR = 0.7;
 const CLEAN_WORD_SCORE_MULT = 1.1;
 const PROJECTILE_HEIGHT = 24;
+const ORACLE_SCORE_BASE = 50;
+const ORACLE_SCORE_PER_CHAR = 10;
+const ORACLE_CHARGE_REWARD = 35;
 
 function clampCharge(value: number): number {
   return Math.min(ULTIMATE_MAX_CHARGE, Math.max(0, value));
 }
 
-function initBossWord(state: GameState): FallingWord {
-  const tierOffset = getFloorTierOffset(state);
-  const text = getBossWord(state.elapsedMs, tierOffset);
+function clearBossEncounter(): Partial<GameState> {
   return {
-    id: createWordId(),
-    text,
-    x: 120,
-    y: 40,
-    kind: 'normal',
-  };
-}
-
-/** Configura los ataques de UI del jefe segun el piso. */
-function initBossAttack(floor: number, elapsedMs: number): BossAttackState {
-  return {
-    blind: floor >= 3 && floor !== 6,
-    remap: floor >= 6,
-    projectiles: floor >= 9,
-    startedAtMs: elapsedMs,
-    nextBlindAtMs: elapsedMs + BOSS_BLIND_INTERVAL_MS,
-    remapUntilMs: floor >= 6 ? elapsedMs + BOSS_REMAP_DURATION_MS : 0,
+    bossId: null,
+    bossWord: null,
+    bossWords: [],
+    bossPhase: 0,
+    activeBossWordIndex: 0,
+    bossAttack: null,
+    keyRemap: null,
+    inputBlindedUntilMs: 0,
   };
 }
 
@@ -105,19 +101,39 @@ function enterPostFloor(
   nextStatus: GameStatus,
 ): Partial<GameState> {
   if (nextStatus === 'boss') {
-    const bossAttack = initBossAttack(state.floor, state.elapsedMs);
+    const boss = getBossForFloor(state.floor);
+    const tierOffset = getFloorTierOffset(state);
+    const bossWords = initBossWords(
+      boss,
+      state.elapsedMs,
+      tierOffset,
+      createWordId,
+    );
+    const bossAttack = initBossAttackFromCatalog(boss, state.elapsedMs);
     return {
       status: 'boss',
-      bossWord: initBossWord(state),
+      reachedBoss: true,
+      bossId: boss.id,
+      bossWords,
+      bossWord: bossWords[0] ?? null,
+      bossPhase: 0,
+      activeBossWordIndex: 0,
       bossAttack,
       keyRemap: bossAttack.remap ? { ...BOSS_REMAP_TABLE } : null,
       pendingEvent: null,
     };
   }
   if (nextStatus === 'event') {
-    return { status: 'event', pendingEvent: pickRandomEvent() };
+    return { status: 'event', pendingEvent: pickRandomEvent(state) };
   }
-  return { status: nextStatus, pendingEvent: null };
+  if (nextStatus === 'shop') {
+    return {
+      status: 'shop',
+      pendingEvent: null,
+      shopOffers: pickShopOffers(state.floor, state.runCoins + state.score),
+    };
+  }
+  return { status: nextStatus, pendingEvent: null, shopOffers: [] };
 }
 
 /**
@@ -125,12 +141,13 @@ function enterPostFloor(
  * antes de la pantalla de tienda/evento/jefe.
  */
 function completeFloor(state: GameState): GameState {
-  const coins = getFloorClearCoins(state);
+  const coins = scaleRunCoins(getFloorClearCoins(state), state);
   const nextStatus = getPostFloorStatus(state.floor);
 
   const base: GameState = {
     ...state,
     runCoins: state.runCoins + coins,
+    nextFloorCoinMult: 1,
     words: [],
     letterProjectiles: [],
     input: '',
@@ -140,13 +157,18 @@ function completeFloor(state: GameState): GameState {
   };
 
   if (state.floor % 2 === 0) {
-    const choices = pickRelicChoices(state.activeRelics);
+    const choices = pickRelicChoices(
+      state.activeRelics,
+      3,
+      state.relicRerollPending,
+    );
     if (choices.length > 0) {
       return {
         ...base,
         status: 'relicPick',
         pendingRelicChoice: choices,
         postRelicStatus: nextStatus,
+        relicRerollPending: false,
       };
     }
   }
@@ -154,9 +176,26 @@ function completeFloor(state: GameState): GameState {
   return { ...base, ...enterPostFloor(base, nextStatus) };
 }
 
+function applyNextFloorStartModifiers(state: GameState): Partial<GameState> {
+  const partial: Partial<GameState> = {
+    nextFloorCoinMult: 1,
+    shopOffers: [],
+  };
+  if (state.freezeNextFloorMs > 0) {
+    partial.frozenUntilMs = state.elapsedMs + state.freezeNextFloorMs;
+    partial.freezeNextFloorMs = 0;
+  }
+  return partial;
+}
+
+function scaleRunCoins(amount: number, state: GameState): number {
+  return Math.round(amount * state.nextFloorCoinMult);
+}
+
 function applyShopItem(state: GameState, itemId: ShopItemId): GameState | null {
-  const item = SHOP_ITEMS.find((i) => i.id === itemId);
+  const item = getShopItem(itemId);
   if (!item || state.runCoins < item.price) return null;
+  if (!state.shopOffers.includes(itemId)) return null;
 
   let next: GameState = {
     ...state,
@@ -184,6 +223,25 @@ function applyShopItem(state: GameState, itemId: ShopItemId): GameState | null {
         { id: 'double_score', expiresAtMs: next.elapsedMs + 20_000 },
       ]);
       break;
+    case 'reroll_relic':
+      next.relicRerollPending = true;
+      break;
+    case 'run_shield':
+      next.trapIgnoreRemaining += 3;
+      break;
+    case 'freeze_floor':
+      next.freezeNextFloorMs = 3_000;
+      break;
+    case 'coin_boost':
+      next.nextFloorCoinMult = 1.5;
+      break;
+    case 'tier_calm':
+      next.difficultyTierOffset = Math.max(0, next.difficultyTierOffset - 1);
+      break;
+    case 'speed_trade':
+      next.runCoins += 80;
+      next.difficultyTierOffset += 1;
+      break;
     default:
       return null;
   }
@@ -192,7 +250,7 @@ function applyShopItem(state: GameState, itemId: ShopItemId): GameState | null {
 }
 
 function applyEventChoice(state: GameState, choice: 'A' | 'B'): GameState {
-  const event = state.pendingEvent ?? pickRandomEvent();
+  const event = state.pendingEvent ?? pickRandomEvent(state);
   const effect = choice === 'A' ? event.effectA : event.effectB;
   let next: GameState = { ...state };
 
@@ -203,11 +261,66 @@ function applyEventChoice(state: GameState, choice: 'A' | 'B'): GameState {
     case 'coins_150':
       next.runCoins += 150;
       break;
+    case 'coins_120':
+      next.runCoins += 120;
+      break;
+    case 'coins_100':
+      next.runCoins += 100;
+      break;
     case 'coins_80':
       next.runCoins += 80;
       break;
+    case 'coins_60':
+      next.runCoins += 60;
+      break;
     case 'coins_50':
       next.runCoins += 50;
+      break;
+    case 'coins_200':
+      next.runCoins += 200;
+      break;
+    case 'coins_200_lose_life':
+      next.runCoins += 200;
+      if (next.lives > 1) {
+        next.lives -= 1;
+      }
+      break;
+    case 'tier_up':
+      next.difficultyTierOffset += 1;
+      break;
+    case 'tier_up_coins_100':
+      next.difficultyTierOffset += 1;
+      next.runCoins += 100;
+      break;
+    case 'tier_down':
+      next.difficultyTierOffset = Math.max(0, next.difficultyTierOffset - 1);
+      break;
+    case 'heal_one':
+      if (next.lives < MAX_LIVES) next.lives += 1;
+      break;
+    case 'trap_shield_3':
+      next.trapIgnoreRemaining += 3;
+      break;
+    case 'curse_perk': {
+      const cursed = applyPerkSelection(next, 'broken_clock');
+      next = {
+        ...next,
+        ...cursed,
+        perksHistory: [...next.perksHistory, 'broken_clock'],
+      };
+      break;
+    }
+    case 'combo_buff':
+      next.activePerks = trimActivePerks([
+        ...next.activePerks.filter((p) => p.id !== 'golden_streak'),
+        { id: 'golden_streak' },
+      ]);
+      break;
+    case 'lose_coins_half':
+      next.runCoins = Math.floor(next.runCoins / 2);
+      break;
+    case 'lose_life':
+      if (next.lives > 1) next.lives -= 1;
       break;
     case 'lose_life_rare_perk': {
       if (next.lives > 1) {
@@ -240,7 +353,9 @@ function applyEventChoice(state: GameState, choice: 'A' | 'B'): GameState {
   return {
     ...next,
     ...advanced,
+    ...applyNextFloorStartModifiers(next),
     noTrapsNextFloor: effect === 'no_traps_next' ? true : next.noTrapsNextFloor,
+    pendingEvent: null,
   };
 }
 
@@ -285,11 +400,26 @@ function applyPosEffect(state: GameState, word: FallingWord): Partial<GameState>
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case 'BEGIN_RUN':
+    case 'BEGIN_RUN': {
+      const dailyRun = action.payload?.dailyRun ?? false;
+      if (!dailyRun) {
+        return { ...initialGameState, status: 'runnerPick' };
+      }
+      const challenge = getDailyChallengeConfig();
+      const runnerId = challenge.runnerId;
+      const lives = getInitialLives(runnerId);
+      const trapIgnore = getRunnerModifiers(runnerId).trapIgnoreCharges;
       return {
         ...initialGameState,
-        status: 'runnerPick',
+        status: 'playing',
+        startTime: Date.now(),
+        lives,
+        runnerId,
+        trapIgnoreRemaining: trapIgnore,
+        selectedGlossary: challenge.glossaryId,
+        dailyRun: true,
       };
+    }
 
     case 'SELECT_RUNNER':
       return {
@@ -310,6 +440,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         runnerId,
         trapIgnoreRemaining: trapIgnore,
         selectedGlossary: action.payload,
+        dailyRun: state.dailyRun,
       };
     }
 
@@ -415,12 +546,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'BOSS_TICK': {
-      if (state.status !== 'boss' || !state.bossWord) return state;
+      if (state.status !== 'boss' || state.bossWords.length === 0) return state;
       const deltaSec = action.payload.deltaMs / 1000;
-      const bossWord = {
-        ...state.bossWord,
-        y: state.bossWord.y + BOSS_FALL_SPEED * deltaSec,
-      };
+      const fallSpeed = getBossFallSpeed(state.bossId);
+      const bossWords = state.bossWords.map((w) => ({
+        ...w,
+        y: w.y + fallSpeed * deltaSec,
+      }));
+      const activeIdx = state.activeBossWordIndex;
+      const bossWord = bossWords[activeIdx] ?? bossWords[0] ?? null;
       const newElapsed = state.elapsedMs + action.payload.deltaMs;
 
       let inputBlindedUntilMs = state.inputBlindedUntilMs;
@@ -459,15 +593,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           lives: 0,
           status: 'gameOver',
           deathCause: 'projectile',
-          bossWord: null,
-          bossAttack: null,
-          keyRemap: null,
+          ...clearBossEncounter(),
           letterProjectiles: [],
         };
       }
 
       return {
         ...state,
+        bossWords,
         bossWord,
         elapsedMs: newElapsed,
         inputBlindedUntilMs,
@@ -534,7 +667,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           precisionStreak: state.precisionStreak + 1,
           ultimateCharge: clampCharge(
             state.ultimateCharge +
-              ULTIMATE_CHARGE_PER_CHAR *
+              (ULTIMATE_CHARGE_PER_CHAR +
+                getBossUltimateChargePerChar(
+                  state.selectedGlossary,
+                  state.status,
+                )) *
                 getRunnerModifiers(state.runnerId).ultimateChargeMult,
           ),
           flowStats: {
@@ -615,16 +752,44 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             },
           };
         }
+
+        const bossDef = state.bossId ? BOSS_CATALOG[state.bossId] : null;
+        const isDual = bossDef?.dualWords && state.bossWords.length > 1;
+        const nextPhase = state.bossPhase + 1;
+        const hasMoreWords = isDual && nextPhase < state.bossWords.length;
+
+        if (hasMoreWords) {
+          const nextIdx = state.activeBossWordIndex + 1;
+          return {
+            ...state,
+            bossPhase: nextPhase,
+            activeBossWordIndex: nextIdx,
+            bossWord: state.bossWords[nextIdx] ?? null,
+            input: '',
+            backspacesUsedThisWord: 0,
+            wordsTyped: state.wordsTyped + 1,
+            correctChars: state.correctChars + trimmed.length,
+            combo: state.combo + 1,
+          };
+        }
+
         const rareChoices = pickPerkChoices(state.activePerks);
         const rare = rareChoices[0];
         const perkPartial = rare ? applyPerkSelection(state, rare) : {};
-        const coins = Math.round(100 * getRunnerModifiers(state.runnerId).runCoinsMult);
+        const runnerMult = getRunnerModifiers(state.runnerId).runCoinsMult;
+        const baseCoins = Math.round(100 * runnerMult);
+        const bonusCoins = bossDef
+          ? Math.round(bossDef.bonusCoins * runnerMult)
+          : 0;
+        const lifeReward =
+          state.lives < MAX_LIVES ? { lives: state.lives + 1 } : {};
+
         return {
           ...state,
           ...perkPartial,
-          runCoins: state.runCoins + coins,
+          ...lifeReward,
+          runCoins: state.runCoins + baseCoins + bonusCoins,
           perksHistory: rare ? [...state.perksHistory, rare] : state.perksHistory,
-          bossWord: null,
           input: '',
           backspacesUsedThisWord: 0,
           wordsTyped: state.wordsTyped + 1,
@@ -705,6 +870,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const groundHeight =
         typeof window !== 'undefined' ? window.innerHeight - GROUND_OFFSET : 600;
 
+      if (matched.kind === 'oracle') {
+        return {
+          ...state,
+          input: '',
+          backspacesUsedThisWord: 0,
+          poppingWordId: matched.id,
+          status: 'oraclePick',
+          oracleRewardWord: matched,
+          combo: state.combo + 1,
+        };
+      }
+
       if (matched.kind === 'bonus') {
         const coins = Math.round(
           BONUS_WORD_COINS * getRunnerModifiers(state.runnerId).runCoinsMult,
@@ -754,8 +931,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       if (cleanWord) points = Math.round(points * CLEAN_WORD_SCORE_MULT);
 
       const runCoinGain = calculateRunCoinsFromScore(points);
-      const runCoins = state.runCoins + Math.round(
-        runCoinGain * getRunnerModifiers(state.runnerId).runCoinsMult,
+      const runCoins = state.runCoins + scaleRunCoins(
+        Math.round(runCoinGain * getRunnerModifiers(state.runnerId).runCoinsMult),
+        state,
       );
 
       const burnSet = new Set(relicResult.burnWordIds);
@@ -910,9 +1088,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         status: 'gameOver',
         deathCause: 'boss',
-        bossWord: null,
-        bossAttack: null,
-        keyRemap: null,
+        ...clearBossEncounter(),
         input: '',
       };
 
@@ -926,7 +1102,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         ...advanceToNextFloor(state),
+        ...applyNextFloorStartModifiers(state),
         noTrapsNextFloor: false,
+        shopOffers: [],
       };
 
     case 'EVENT_CHOICE':
@@ -937,11 +1115,41 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'CLEAR_POP':
       if (!state.poppingWordId) return state;
+      if (state.status === 'oraclePick') {
+        return { ...state, poppingWordId: null };
+      }
       return {
         ...state,
         poppingWordId: null,
         words: state.words.filter((w) => w.id !== state.poppingWordId),
       };
+
+    case 'ORACLE_CHOICE': {
+      if (state.status !== 'oraclePick' || !state.oracleRewardWord) return state;
+      const word = state.oracleRewardWord;
+      const scoreBonus =
+        ORACLE_SCORE_BASE + word.text.length * ORACLE_SCORE_PER_CHAR;
+      const shared: Partial<GameState> = {
+        status: 'playing',
+        oracleRewardWord: null,
+        poppingWordId: null,
+        words: state.words.filter((w) => w.id !== word.id),
+        wordsTyped: state.wordsTyped + 1,
+        correctChars: state.correctChars + word.text.length,
+        input: '',
+        backspacesUsedThisWord: 0,
+      };
+      if (action.payload === 'score') {
+        return { ...state, ...shared, score: state.score + scoreBonus };
+      }
+      return {
+        ...state,
+        ...shared,
+        ultimateCharge: clampCharge(
+          state.ultimateCharge + ORACLE_CHARGE_REWARD,
+        ),
+      };
+    }
 
     default:
       return state;

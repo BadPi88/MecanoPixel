@@ -1,3 +1,4 @@
+import type { RelicId } from '../types/combat';
 import type { GameState } from '../types/game';
 
 export type SynergyId =
@@ -74,4 +75,19 @@ export function getActiveSynergies(state: GameState): SynergyId[] {
 
 export function hasSynergy(state: GameState, id: SynergyId): boolean {
   return getActiveSynergies(state).includes(id);
+}
+
+/** Sinergias que se activarian al elegir esta reliquia (preview en picker). */
+export function previewSynergiesIfRelic(
+  state: GameState,
+  relicId: RelicId,
+): SynergyId[] {
+  const current = getActiveSynergies(state);
+  const withRelic: GameState = {
+    ...state,
+    activeRelics: state.activeRelics.includes(relicId)
+      ? state.activeRelics
+      : [...state.activeRelics, relicId],
+  };
+  return getActiveSynergies(withRelic).filter((id) => !current.includes(id));
 }

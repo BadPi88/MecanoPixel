@@ -22,6 +22,7 @@ export interface GameSettings {
   theme: ThemeId;
   fontScale: FontScale;
   reducedMotion: boolean;
+  soundEnabled: boolean;
 }
 
 const SETTINGS_KEY = 'keyrunner:settings';
@@ -32,6 +33,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   theme: 'default',
   fontScale: 1,
   reducedMotion: false,
+  soundEnabled: true,
 };
 
 export function loadSettings(): GameSettings {

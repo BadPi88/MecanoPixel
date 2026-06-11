@@ -1,8 +1,9 @@
 import type { EventDefinition } from '../data/events';
 import type { ActivePerk, PerkId } from './perks';
-import type { DeathCause, RunnerId, WordKind } from './run';
+import type { DeathCause, RunnerId, ShopItemId, WordKind } from './run';
 import type {
   BossAttackState,
+  BossId,
   FlowStats,
   GlossaryId,
   LetterProjectile,
@@ -23,6 +24,7 @@ export type GameStatus =
   | 'shop'
   | 'event'
   | 'boss'
+  | 'oraclePick'
   | 'gameOver';
 
 export interface FallingWord {
@@ -77,7 +79,22 @@ export interface GameState {
   noTrapsNextFloor: boolean;
   trapIgnoreRemaining: number;
   pendingEvent: EventDefinition | null;
+  /** Ofertas rotativas de la tienda del piso actual. */
+  shopOffers: ShopItemId[];
+  /** Multiplicador de run coins durante el proximo piso (tienda). */
+  nextFloorCoinMult: number;
+  /** Regenerar opciones en la proxima eleccion de reliquia. */
+  relicRerollPending: boolean;
+  /** Milisegundos de congelacion al iniciar el proximo piso. */
+  freezeNextFloorMs: number;
+  bossId: BossId | null;
+  /** Palabra activa del jefe (objetivo actual de tipeo). */
   bossWord: FallingWord | null;
+  /** Todas las palabras del encuentro (1 o 2 en Tiranotipo). */
+  bossWords: FallingWord[];
+  /** Fase del jefe: 0 = primera palabra, 1 = segunda en dual. */
+  bossPhase: number;
+  activeBossWordIndex: number;
   deathCause: DeathCause;
   perksHistory: PerkId[];
   lastPurgeFreeAtMs: number;
@@ -105,10 +122,16 @@ export interface GameState {
   lastPosEffectAtMs: number;
   // --- Flow adaptativo ---
   flowStats: FlowStats;
+  /** Run del desafio diario (runner/glosario fijados por fecha UTC). */
+  dailyRun: boolean;
+  /** Llego a al menos un combate de jefe en esta run. */
+  reachedBoss: boolean;
+  /** Palabra oraculo pendiente de recompensa (score vs carga). */
+  oracleRewardWord: FallingWord | null;
 }
 
 export type GameAction =
-  | { type: 'BEGIN_RUN' }
+  | { type: 'BEGIN_RUN'; payload?: { dailyRun?: boolean } }
   | { type: 'GO_HOME' }
   | { type: 'RETRY' }
   | { type: 'SELECT_RUNNER'; payload: RunnerId }
@@ -135,7 +158,8 @@ export type GameAction =
   | { type: 'BOSS_TICK'; payload: { deltaMs: number } }
   | { type: 'BOSS_FAIL' }
   | { type: 'CLEAR_POP' }
-  | { type: 'HIDE_SPEED_NOTICE' };
+  | { type: 'HIDE_SPEED_NOTICE' }
+  | { type: 'ORACLE_CHOICE'; payload: 'score' | 'charge' };
 
 export const INITIAL_LIVES = 3;
 
@@ -167,7 +191,15 @@ export const initialGameState: GameState = {
   noTrapsNextFloor: false,
   trapIgnoreRemaining: 0,
   pendingEvent: null,
+  shopOffers: [],
+  nextFloorCoinMult: 1,
+  relicRerollPending: false,
+  freezeNextFloorMs: 0,
+  bossId: null,
   bossWord: null,
+  bossWords: [],
+  bossPhase: 0,
+  activeBossWordIndex: 0,
   deathCause: null,
   perksHistory: [],
   lastPurgeFreeAtMs: 0,
@@ -188,4 +220,7 @@ export const initialGameState: GameState = {
   tempoBuffUntilMs: 0,
   lastPosEffectAtMs: 0,
   flowStats: INITIAL_FLOW_STATS,
+  dailyRun: false,
+  reachedBoss: false,
+  oracleRewardWord: null,
 };

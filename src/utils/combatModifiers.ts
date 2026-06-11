@@ -59,6 +59,10 @@ export function applyRelicOnSubmit(
   const burnWordIds: string[] = [];
   let aoeBonus = 0;
 
+  if (relics.includes('sello_maldito')) {
+    scoreMult *= 2;
+  }
+
   if (relics.includes('diccionario_erudito')) {
     if (len >= 8) scoreMult *= 3;
     else if (len <= 4) scoreMult *= 0.5;
@@ -90,18 +94,37 @@ export function applyRelicOnSubmit(
     );
   }
 
-  scoreMult *= getGlossaryScoreMult(state.selectedGlossary, len);
+  scoreMult *= getGlossaryScoreMult(
+    state.selectedGlossary,
+    len,
+    state.floor,
+  );
 
-  if (state.selectedGlossary === 'tecnico') {
+  if (state.selectedGlossary === 'tecnico' && state.status !== 'boss') {
     extraUltimateCharge += 1;
   }
 
   return { scoreMult, extraUltimateCharge, burnWordIds, aoeBonus };
 }
 
-function getGlossaryScoreMult(glossary: GlossaryId, wordLength: number): number {
-  if (glossary === 'medico' && wordLength >= 7) return 1.3;
+function getGlossaryScoreMult(
+  glossary: GlossaryId,
+  wordLength: number,
+  floor: number,
+): number {
+  if (glossary === 'medico' && floor % 2 === 0 && wordLength >= 7) {
+    return 1.3;
+  }
   return 1;
+}
+
+/** Carga extra de ultimate por caracter durante combate de jefe (glosario tecnico). */
+export function getBossUltimateChargePerChar(
+  glossary: GlossaryId,
+  status: GameState['status'],
+): number {
+  if (glossary === 'tecnico' && status === 'boss') return 3;
+  return 0;
 }
 
 export interface MissRelicResult {

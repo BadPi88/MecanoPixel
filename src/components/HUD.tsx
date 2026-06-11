@@ -1,6 +1,8 @@
 import { RAMPS_PER_FLOOR } from '../data/run';
 import { RUNNER_CATALOG } from '../data/runners';
+import type { GlossaryId } from '../types/combat';
 import type { ActivePerk } from '../types/perks';
+import type { GameStatus } from '../types/game';
 import type { RunnerId } from '../types/run';
 import { getEffectiveDifficulty } from '../utils/perkModifiers';
 import { formatWordsPerSecond } from '../utils/intensity';
@@ -32,6 +34,8 @@ interface HUDProps {
   inputBlinded?: boolean;
   synergyNames?: string[];
   relicNames?: string[];
+  selectedGlossary?: GlossaryId;
+  gameStatus?: GameStatus;
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -90,7 +94,15 @@ export function HUD({
   inputBlinded = false,
   synergyNames = [],
   relicNames = [],
+  selectedGlossary = 'general',
+  gameStatus = 'playing',
 }: HUDProps) {
+  const glossaryFloorNotice =
+    selectedGlossary === 'medico' && floor % 2 === 0
+      ? 'VENENO ACTIVO — palabras 7+ letras +30%'
+      : selectedGlossary === 'tecnico' && gameStatus === 'boss'
+        ? 'ELECTRICO — ultimate acelera en jefe'
+        : null;
   const wpm = calculateWpm(correctChars, elapsedMs);
   const effective = getEffectiveDifficulty(
     elapsedMs,
@@ -104,6 +116,7 @@ export function HUD({
   );
   const maxComboBlocks = 10;
   const comboBlocks = Math.min(combo, maxComboBlocks);
+  const comboMilestone = combo >= 5 && combo % 5 === 0;
   const maxHearts = 5;
 
   return (
@@ -176,6 +189,12 @@ export function HUD({
           </div>
         )}
 
+        {glossaryFloorNotice && (
+          <div className="hud__glossary-notice" role="status">
+            {glossaryFloorNotice}
+          </div>
+        )}
+
         <div className="hud__row hud__row--combat">
           <div
             className="hud__meter"
@@ -228,7 +247,9 @@ export function HUD({
               {inputBlinded ? '▮▮▮▮▮' : input || '_'}
             </span>
           </div>
-          <div className="hud__combo">
+          <div
+            className={`hud__combo ${comboMilestone ? 'hud__combo--milestone' : ''}`}
+          >
             <span className="hud__label">COMBO</span>
             <div className="hud__combo-bar" aria-hidden="true">
               {Array.from({ length: maxComboBlocks }, (_, i) => (

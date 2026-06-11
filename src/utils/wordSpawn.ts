@@ -5,6 +5,8 @@ import type { WordKind } from '../types/run';
 import { getWordPOS } from './posHeuristics';
 import { getSpawnConstraints, stripVowels } from './combatModifiers';
 
+export const ORACLE_SPAWN_RATE = 0.03;
+
 export interface SpawnRates {
   trap: number;
   bomb: number;
@@ -14,21 +16,32 @@ export interface SpawnRates {
 export function getSpawnRatesForFloor(
   floor: number,
   noTrapsNextFloor: boolean,
+  relics: RelicId[] = [],
 ): SpawnRates {
+  let rates: SpawnRates;
   if (floor <= 1 || noTrapsNextFloor) {
-    return { trap: 0, bomb: floor >= 2 ? 0.05 : 0, bonus: 0.08 };
+    rates = { trap: 0, bomb: floor >= 2 ? 0.05 : 0, bonus: 0.08 };
+  } else {
+    const trap = Math.min(0.08 + floor * 0.02, 0.15);
+    const bomb = Math.min(0.04 + floor * 0.01, 0.1);
+    rates = { trap, bomb, bonus: 0.1 };
   }
-  const trap = Math.min(0.08 + floor * 0.02, 0.15);
-  const bomb = Math.min(0.04 + floor * 0.01, 0.1);
-  const bonus = 0.1;
-  return { trap, bomb, bonus };
+
+  if (relics.includes('sello_maldito')) {
+    rates = { ...rates, trap: Math.min(rates.trap * 2, 0.3) };
+  }
+
+  return rates;
 }
 
 export function rollWordKind(rates: SpawnRates): WordKind {
   const roll = Math.random();
-  if (roll < rates.trap) return 'trap';
-  if (roll < rates.trap + rates.bomb) return 'bomb';
-  if (roll < rates.trap + rates.bomb + rates.bonus) return 'bonus';
+  if (roll < ORACLE_SPAWN_RATE) return 'oracle';
+  if (roll < ORACLE_SPAWN_RATE + rates.trap) return 'trap';
+  if (roll < ORACLE_SPAWN_RATE + rates.trap + rates.bomb) return 'bomb';
+  if (roll < ORACLE_SPAWN_RATE + rates.trap + rates.bomb + rates.bonus) {
+    return 'bonus';
+  }
   return 'normal';
 }
 
@@ -40,6 +53,10 @@ export function getWordTextForKind(
   relics: RelicId[] = [],
 ): string {
   if (kind === 'trap') return getRandomTrapWord();
+  if (kind === 'oracle') {
+    const oracleWords = ['oraculo', 'vision', 'augurio', 'profecia', 'destino'];
+    return oracleWords[Math.floor(Math.random() * oracleWords.length)];
+  }
   if (kind === 'bonus') {
     const words = ['oro', 'gema', 'luck', 'premio', 'bonus'];
     return words[Math.floor(Math.random() * words.length)];
@@ -94,7 +111,7 @@ export function decorateSpawn(
 ): SpawnDecoration {
   const pos = getWordPOS(text);
 
-  if (kind !== 'normal' || text.length < 4) {
+  if ((kind !== 'normal' && kind !== 'oracle') || text.length < 4) {
     return { pos };
   }
 
@@ -103,8 +120,10 @@ export function decorateSpawn(
   let displayText: string | undefined;
   let morphAtMs: number | undefined;
 
+  const forceAnagram = relics.includes('espejo_roto');
+
   const roll = Math.random();
-  if (roll < getAnagramRate(floor)) {
+  if (forceAnagram || roll < getAnagramRate(floor)) {
     modifiers.push('anagram');
     displayText = shuffleText(text);
   } else if (roll < getAnagramRate(floor) + getShiftingRate(floor)) {

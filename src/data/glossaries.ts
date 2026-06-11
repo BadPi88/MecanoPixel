@@ -21,7 +21,7 @@ export const GLOSSARY_CATALOG: Record<GlossaryId, GlossaryDefinition> = {
   medico: {
     id: 'medico',
     name: 'MEDICO',
-    description: 'Veneno: palabras de 7+ letras dan +30% score',
+    description: 'Veneno en pisos pares: palabras 7+ letras +30% score',
     element: 'poison',
     metaCost: 400,
     defaultUnlocked: false,
@@ -29,7 +29,7 @@ export const GLOSSARY_CATALOG: Record<GlossaryId, GlossaryDefinition> = {
   tecnico: {
     id: 'tecnico',
     name: 'TECNICO',
-    description: 'Electrico: +1 ultimate extra por palabra',
+    description: 'Electrico: +1 ultimate/palabra; en jefe +3 ultimate/char',
     element: 'electric',
     metaCost: 600,
     defaultUnlocked: false,

@@ -15,6 +15,7 @@ export function EventScreen({ event, floor, onChoice }: EventScreenProps) {
 
       <div className="event-panel pixel-panel">
         <h2 className="event-panel__title">{event.title}</h2>
+        <p className="event-panel__desc">{event.description}</p>
         <div className="event-panel__choices">
           <PixelButton onClick={() => onChoice('A')}>
             A — {event.optionA}

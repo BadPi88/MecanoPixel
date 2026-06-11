@@ -1,6 +1,9 @@
+import type { AchievementId } from '../data/achievements';
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { RunnerId } from '../types/run';
 import type { ProfileMeta, ProfilePayload, ProfileResponse } from '../types/profile';
+import { pickMissionForDate } from '../data/dailyMissions';
+import { getUtcDateString } from '../utils/dailySeed';
 import {
   getDefaultMeta,
   loadMeta,
@@ -55,12 +58,17 @@ function toProfileMeta(meta: MetaProgress): ProfileMeta {
     unlockedRunners: meta.unlockedRunners,
     unlockedRelics: meta.unlockedRelics,
     unlockedGlossaries: meta.unlockedGlossaries,
+    unlockedAchievements: meta.unlockedAchievements,
+    tutorialComplete: meta.tutorialComplete,
+    seenHints: meta.seenHints,
+    daily: { ...meta.daily },
     stats: { ...meta.stats },
   };
 }
 
 function fromProfileMeta(meta: ProfileMeta): MetaProgress {
   const defaults = getDefaultMeta();
+  const today = getUtcDateString();
   return {
     totalCoins: meta.totalCoins,
     unlockedRunners: [
@@ -76,6 +84,20 @@ function fromProfileMeta(meta: ProfileMeta): MetaProgress {
         ...(meta.unlockedGlossaries as GlossaryId[]),
       ]),
     ],
+    unlockedAchievements: [
+      ...(meta.unlockedAchievements ?? defaults.unlockedAchievements),
+    ] as AchievementId[],
+    tutorialComplete: meta.tutorialComplete ?? false,
+    seenHints: [...(meta.seenHints ?? [])],
+    daily: meta.daily
+      ? {
+          date: meta.daily.date ?? today,
+          missionId: (meta.daily.missionId ??
+            pickMissionForDate(today)) as MetaProgress['daily']['missionId'],
+          progress: meta.daily.progress ?? 0,
+          claimed: meta.daily.claimed ?? false,
+        }
+      : defaults.daily,
     stats: { ...defaults.stats, ...meta.stats },
   };
 }

@@ -7,7 +7,9 @@ export type RelicId =
   | 'diccionario_erudito'
   | 'teclado_cortocircuitado'
   | 'tinta_toxica'
-  | 'afinacion_vocales';
+  | 'afinacion_vocales'
+  | 'sello_maldito'
+  | 'espejo_roto';
 
 /** Modificadores visuales/mentales de palabras enemigas. */
 export type WordModifier = 'anagram' | 'shifting' | 'vowelless';
@@ -50,8 +52,12 @@ export const INITIAL_FLOW_STATS: FlowStats = {
   lastUpdateMs: 0,
 };
 
-/** Ataques de interfaz del jefe segun piso. */
+/** Villanos unicos de jefe (no son runners). */
+export type BossId = 'archivista' | 'saboteador' | 'perforador' | 'tiranotipo';
+
+/** Ataques de interfaz del jefe segun catalogo. */
 export interface BossAttackState {
+  bossId: BossId;
   blind: boolean;
   remap: boolean;
   projectiles: boolean;

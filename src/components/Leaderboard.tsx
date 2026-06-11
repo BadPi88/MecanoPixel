@@ -4,6 +4,7 @@ interface LeaderboardProps {
   top10: LeaderboardEntry[];
   playerRank: number | null;
   playerName: string;
+  playerBest?: LeaderboardEntry | null;
   totalPlayers?: number;
   loading?: boolean;
   compact?: boolean;
@@ -16,10 +17,22 @@ function formatGlobalRank(rank: number, totalPlayers: number): string {
   return `Tu posicion: #${rank}`;
 }
 
+function getGapToTenth(
+  top10: LeaderboardEntry[],
+  playerBest: LeaderboardEntry | null | undefined,
+): number | null {
+  if (top10.length < 10 || !playerBest) return null;
+  const tenthScore = top10[9]?.score;
+  if (tenthScore === undefined) return null;
+  if (playerBest.score >= tenthScore) return null;
+  return tenthScore - playerBest.score;
+}
+
 export function Leaderboard({
   top10,
   playerRank,
   playerName,
+  playerBest = null,
   totalPlayers = 0,
   loading = false,
   compact = false,
@@ -38,6 +51,8 @@ export function Leaderboard({
     top10.some(
       (e) => e.playerName.toLowerCase() === playerName.toLowerCase(),
     );
+
+  const gapToTenth = getGapToTenth(top10, playerBest);
 
   return (
     <div className={`leaderboard ${compact ? 'leaderboard--compact' : ''}`}>
@@ -74,6 +89,12 @@ export function Leaderboard({
             );
           })}
         </ol>
+      )}
+
+      {gapToTenth !== null && gapToTenth > 0 && (
+        <p className="leaderboard__gap">
+          A {gapToTenth} puntos del #10
+        </p>
       )}
 
       {playerName && playerRank !== null && !inTop10 && (

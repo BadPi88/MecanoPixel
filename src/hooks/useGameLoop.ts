@@ -16,6 +16,7 @@ import {
   getWordTextForKind,
   rollWordKind,
 } from '../utils/wordSpawn';
+import { getBossFallSpeed, getBossProjectileIntervalMult } from '../data/bosses';
 import { createWordId } from './useGameState';
 
 const WORD_HEIGHT = 36;
@@ -172,7 +173,7 @@ export function useGameLoop(
       lastFrame = timestamp;
 
       const current = stateRef.current;
-      if (current.status !== 'boss' || !current.bossWord) {
+      if (current.status !== 'boss' || current.bossWords.length === 0) {
         animationId = requestAnimationFrame(tick);
         return;
       }
@@ -181,8 +182,12 @@ export function useGameLoop(
 
       const areaHeight =
         gameAreaRef.current?.clientHeight ?? window.innerHeight - 48;
-      const nextY = current.bossWord.y + 25 * (deltaMs / 1000);
-      if (nextY >= areaHeight - BOSS_WORD_HEIGHT) {
+      const fallSpeed = getBossFallSpeed(current.bossId);
+      const deltaSec = deltaMs / 1000;
+      const anyHitsGround = current.bossWords.some(
+        (w) => w.y + fallSpeed * deltaSec >= areaHeight - BOSS_WORD_HEIGHT,
+      );
+      if (anyHitsGround) {
         dispatch({ type: 'BOSS_FAIL' });
         return;
       }
@@ -221,6 +226,7 @@ export function useGameLoop(
       const rates = getSpawnRatesForFloor(
         current.floor,
         current.noTrapsNextFloor,
+        current.activeRelics,
       );
       rates.bonus += getRunnerModifiers(current.runnerId).bonusChanceBonus;
       const kind = rollWordKind(rates);
@@ -295,21 +301,35 @@ export function useGameLoop(
         },
       });
 
+      const intervalMult =
+        current.status === 'boss'
+          ? getBossProjectileIntervalMult(current.bossId)
+          : 1;
+      const baseInterval =
+        PROJECTILE_MIN_INTERVAL +
+        Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
+
       timeoutId = setTimeout(
         scheduleProjectile,
-        PROJECTILE_MIN_INTERVAL +
-          Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL),
+        baseInterval * intervalMult,
       );
     };
 
+    const initialMult =
+      state.status === 'boss'
+        ? getBossProjectileIntervalMult(state.bossId)
+        : 1;
+    const initialInterval =
+      PROJECTILE_MIN_INTERVAL +
+      Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
+
     timeoutId = setTimeout(
       scheduleProjectile,
-      PROJECTILE_MIN_INTERVAL +
-        Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL),
+      initialInterval * initialMult,
     );
 
     return () => clearTimeout(timeoutId);
-  }, [state.status, state.floor, state.bossAttack, dispatch, gameAreaRef]);
+  }, [state.status, state.floor, state.bossId, state.bossAttack, dispatch, gameAreaRef]);
 
   useEffect(() => {
     if (!state.showSpeedNotice) return;

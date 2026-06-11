@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { FallingWord as FallingWordType } from '../types/game';
+import { TooltipHint } from './TooltipHint';
 
 interface FallingWordProps {
   word: FallingWordType;
@@ -8,6 +9,7 @@ interface FallingWordProps {
   isRadarTarget?: boolean;
   isPopping: boolean;
   onPopEnd: () => void;
+  className?: string;
 }
 
 function getDangerLevel(y: number, groundHeight: number): 'safe' | 'warn' | 'danger' {
@@ -22,12 +24,26 @@ const KIND_SYMBOLS: Record<string, string> = {
   trap: '!',
   bomb: '*',
   bonus: '+',
+  oracle: '?',
+};
+
+const KIND_HINTS: Record<string, string> = {
+  trap: 'Trampa: escribirla resta puntos y combo',
+  bomb: 'Bomba: explota si toca el suelo',
+  bonus: 'Bonus: monedas extra al acertar',
+  oracle: 'Oraculo: elige recompensa al acertar',
 };
 
 const POS_SYMBOLS: Record<string, string> = {
   verb: 'V',
   adj: 'A',
   noun: 'S',
+};
+
+const POS_HINTS: Record<string, string> = {
+  verb: 'Verbo: efecto AOE al acertar',
+  adj: 'Adjetivo: buff de ritmo temporal',
+  noun: 'Sustantivo: congela palabras cercanas',
 };
 
 export function FallingWord({
@@ -37,6 +53,7 @@ export function FallingWord({
   isRadarTarget = false,
   isPopping,
   onPopEnd,
+  className = '',
 }: FallingWordProps) {
   const danger = getDangerLevel(word.y, groundHeight);
 
@@ -48,6 +65,13 @@ export function FallingWord({
 
   const kindClass =
     word.kind !== 'normal' ? `falling-word--kind-${word.kind}` : '';
+  const popClass = isPopping
+    ? word.kind === 'bonus'
+      ? 'falling-word--pop-gold'
+      : word.kind === 'bomb'
+        ? 'falling-word--pop-bomb'
+        : 'falling-word--pop'
+    : '';
   const isAnagram = word.modifiers?.includes('anagram');
   const isShifting = word.modifiers?.includes('shifting');
   const isVowelless = word.modifiers?.includes('vowelless');
@@ -64,10 +88,11 @@ export function FallingWord({
         kindClass,
         isPartialMatch ? 'falling-word--match' : '',
         isRadarTarget ? 'falling-word--radar' : '',
-        isPopping ? 'falling-word--pop' : '',
+        popClass,
         word.burning ? 'falling-word--burning' : '',
         isAnagram ? 'falling-word--anagram' : '',
         isShifting ? 'falling-word--shifting' : '',
+        className,
         isVowelless ? 'falling-word--vowelless' : '',
       ]
         .filter(Boolean)
@@ -75,10 +100,14 @@ export function FallingWord({
       style={{ left: word.x, top: word.y }}
     >
       {kindSymbol && (
-        <span className="falling-word__kind-symbol">{kindSymbol}</span>
+        <TooltipHint hintId={`kind-${word.kind}`} message={KIND_HINTS[word.kind] ?? ''}>
+          <span className="falling-word__kind-symbol">{kindSymbol}</span>
+        </TooltipHint>
       )}
-      {posSymbol && (
-        <span className="falling-word__pos-symbol">{posSymbol}·</span>
+      {posSymbol && word.pos && (
+        <TooltipHint hintId={`pos-${word.pos}`} message={POS_HINTS[word.pos] ?? ''}>
+          <span className="falling-word__pos-symbol">{posSymbol}·</span>
+        </TooltipHint>
       )}
       {word.displayText ?? word.text}
       {(isAnagram || isShifting) && (

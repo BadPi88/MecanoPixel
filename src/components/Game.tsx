@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { loadMeta } from '../services/meta';
 import type { PerkId } from '../types/perks';
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { RunnerId, ShopItemId } from '../types/run';
@@ -6,6 +7,7 @@ import { findLowestWord, getEffectiveDifficulty } from '../utils/perkModifiers';
 import { getFloorTierOffset } from '../utils/runTransitions';
 import { RELIC_CATALOG } from '../data/relics';
 import { getActiveSynergies, SYNERGY_CATALOG } from '../utils/synergyEngine';
+import { useGameAudio } from '../hooks/useGameAudio';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameState } from '../hooks/useGameState';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -20,15 +22,34 @@ import { PerkPicker } from './PerkPicker';
 import { RelicPicker } from './RelicPicker';
 import { RunnerPicker } from './RunnerPicker';
 import { ShopScreen } from './ShopScreen';
+import { PixelButton } from './PixelButton';
 import { StartScreen } from './StartScreen';
+import { TutorialOverlay } from './TutorialOverlay';
 
 export function Game() {
   const { state, dispatch } = useGameState();
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [playerName, setPlayerName] = useState(loadPlayerName);
+  const [showTutorial, setShowTutorial] = useState(
+    () => !loadMeta().tutorialComplete,
+  );
+
+  const [areaShake, setAreaShake] = useState(false);
+  const prevLivesRef = useRef(state.lives);
 
   useGameLoop(state, dispatch, gameAreaRef);
   useKeyboard(state, dispatch);
+  useGameAudio(state);
+
+  useEffect(() => {
+    if (state.lives < prevLivesRef.current) {
+      setAreaShake(true);
+      const timer = setTimeout(() => setAreaShake(false), 380);
+      prevLivesRef.current = state.lives;
+      return () => clearTimeout(timer);
+    }
+    prevLivesRef.current = state.lives;
+  }, [state.lives]);
 
   const handlePopEnd = useCallback(() => {
     dispatch({ type: 'CLEAR_POP' });
@@ -42,6 +63,11 @@ export function Game() {
   const handleStart = useCallback(() => {
     savePlayerName(playerName.trim());
     dispatch({ type: 'BEGIN_RUN' });
+  }, [dispatch, playerName]);
+
+  const handleDailyStart = useCallback(() => {
+    savePlayerName(playerName.trim());
+    dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } });
   }, [dispatch, playerName]);
 
   const handleRunnerSelect = useCallback(
@@ -102,7 +128,8 @@ export function Game() {
     state.status === 'paused' ||
     state.status === 'perkPick' ||
     state.status === 'relicPick' ||
-    state.status === 'boss';
+    state.status === 'boss' ||
+    state.status === 'oraclePick';
 
   return (
     <div className="game">
@@ -111,6 +138,7 @@ export function Game() {
           playerName={playerName}
           onPlayerNameChange={handlePlayerNameChange}
           onStart={handleStart}
+          onDailyStart={handleDailyStart}
         />
       )}
 
@@ -132,6 +160,7 @@ export function Game() {
         <ShopScreen
           runCoins={state.runCoins}
           lives={state.lives}
+          offers={state.shopOffers}
           floor={state.floor}
           onBuy={(id: ShopItemId) => dispatch({ type: 'SHOP_BUY', payload: id })}
           onLeave={() => dispatch({ type: 'SHOP_LEAVE' })}
@@ -146,6 +175,10 @@ export function Game() {
             dispatch({ type: 'EVENT_CHOICE', payload: choice })
           }
         />
+      )}
+
+      {showTutorial && inGame && (
+        <TutorialOverlay onComplete={() => setShowTutorial(false)} />
       )}
 
       {inGame && (
@@ -174,6 +207,8 @@ export function Game() {
             inputBlinded={state.elapsedMs < state.inputBlindedUntilMs}
             synergyNames={synergyNames}
             relicNames={relicNames}
+            selectedGlossary={state.selectedGlossary}
+            gameStatus={state.status}
           />
           <div className="game__playfield">
             <GameArea
@@ -184,10 +219,15 @@ export function Game() {
               poppingWordId={state.poppingWordId}
               radarTargetId={radarTargetId}
               onPopEnd={handlePopEnd}
+              shake={areaShake}
             />
-            {state.status === 'boss' && state.bossWord && (
+            {state.status === 'boss' && state.bossWord && state.bossId && (
               <BossScreen
+                bossId={state.bossId}
                 bossWord={state.bossWord}
+                bossWords={state.bossWords}
+                activeBossWordIndex={state.activeBossWordIndex}
+                bossPhase={state.bossPhase}
                 input={state.input}
                 floor={state.floor}
                 areaRef={gameAreaRef}
@@ -205,8 +245,37 @@ export function Game() {
           {state.status === 'relicPick' && state.pendingRelicChoice && (
             <RelicPicker
               choices={state.pendingRelicChoice}
+              state={state}
               onSelect={handleRelicSelect}
             />
+          )}
+          {state.status === 'oraclePick' && state.oracleRewardWord && (
+            <div className="oracle-overlay" role="dialog" aria-modal="true">
+              <div className="oracle-overlay__panel pixel-panel">
+                <h2 className="oracle-overlay__title">ORACULO</h2>
+                <p className="oracle-overlay__word">
+                  {state.oracleRewardWord.text}
+                </p>
+                <p className="oracle-overlay__hint">Elige tu recompensa</p>
+                <div className="oracle-overlay__choices">
+                  <PixelButton
+                    onClick={() =>
+                      dispatch({ type: 'ORACLE_CHOICE', payload: 'score' })
+                    }
+                  >
+                    1 — +PUNTOS
+                  </PixelButton>
+                  <PixelButton
+                    variant="secondary"
+                    onClick={() =>
+                      dispatch({ type: 'ORACLE_CHOICE', payload: 'charge' })
+                    }
+                  >
+                    2 — +CARGA ULTIMATE
+                  </PixelButton>
+                </div>
+              </div>
+            </div>
           )}
         </>
       )}
@@ -227,7 +296,14 @@ export function Game() {
           glossary={state.selectedGlossary}
           ultimatesUsed={state.ultimatesUsed}
           deflectedLetters={state.deflectedLetters}
-          onRetry={() => dispatch({ type: 'RETRY' })}
+          synergyNames={synergyNames}
+          dailyRun={state.dailyRun}
+          reachedBoss={state.reachedBoss}
+          onRetry={() =>
+            state.dailyRun
+              ? dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } })
+              : dispatch({ type: 'RETRY' })
+          }
           onHome={() => dispatch({ type: 'GO_HOME' })}
         />
       )}

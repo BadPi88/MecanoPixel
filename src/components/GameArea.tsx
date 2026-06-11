@@ -13,6 +13,7 @@ interface GameAreaProps {
   poppingWordId: string | null;
   radarTargetId: string | null;
   onPopEnd: () => void;
+  shake?: boolean;
 }
 
 export function GameArea({
@@ -23,12 +24,16 @@ export function GameArea({
   poppingWordId,
   radarTargetId,
   onPopEnd,
+  shake = false,
 }: GameAreaProps) {
   const groundHeight = useElementHeight(areaRef);
   const lowerInput = input.toLowerCase();
 
   return (
-    <div className="game-area" ref={areaRef}>
+    <div
+      className={`game-area ${shake ? 'game-area--shake' : ''}`.trim()}
+      ref={areaRef}
+    >
       {words.map((word) => {
         const isPartialMatch =
           word.kind !== 'trap' &&

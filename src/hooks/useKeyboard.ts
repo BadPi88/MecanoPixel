@@ -28,6 +28,17 @@ export function useKeyboard(
         return;
       }
 
+      if (state.status === 'oraclePick') {
+        if (event.key === '1' || event.key.toLowerCase() === 'a') {
+          event.preventDefault();
+          dispatch({ type: 'ORACLE_CHOICE', payload: 'score' });
+        } else if (event.key === '2' || event.key.toLowerCase() === 'b') {
+          event.preventDefault();
+          dispatch({ type: 'ORACLE_CHOICE', payload: 'charge' });
+        }
+        return;
+      }
+
       if (state.status === 'relicPick' && state.pendingRelicChoice) {
         const index = Number(event.key) - 1;
         if (index >= 0 && index < state.pendingRelicChoice.length) {

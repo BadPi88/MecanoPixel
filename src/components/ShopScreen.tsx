@@ -1,10 +1,12 @@
-import { SHOP_ITEMS } from '../data/shop';
+import { getShopItem } from '../data/shop';
 import type { ShopItemId } from '../types/run';
+import { MAX_LIVES } from '../types/perks';
 import { PixelButton } from './PixelButton';
 
 interface ShopScreenProps {
   runCoins: number;
   lives: number;
+  offers: ShopItemId[];
   onBuy: (itemId: ShopItemId) => void;
   onLeave: () => void;
   floor: number;
@@ -13,6 +15,7 @@ interface ShopScreenProps {
 export function ShopScreen({
   runCoins,
   lives,
+  offers,
   onBuy,
   onLeave,
   floor,
@@ -25,9 +28,13 @@ export function ShopScreen({
       </p>
 
       <div className="shop-grid">
-        {SHOP_ITEMS.map((item) => {
+        {offers.map((offerId) => {
+          const item = getShopItem(offerId);
+          if (!item) return null;
           const disabled =
-            runCoins < item.price || (item.id === 'heal' && lives >= 5);
+            runCoins < item.price ||
+            (item.id === 'heal' && lives >= MAX_LIVES) ||
+            (item.id === 'random_perk' && lives < 1);
           return (
             <button
               key={item.id}

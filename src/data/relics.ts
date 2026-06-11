@@ -7,6 +7,8 @@ export interface RelicDefinition {
   description: string;
   /** Estilo de juego que potencia (para UI). */
   archetype: string;
+  /** Reliquia con efecto negativo o riesgo elevado. */
+  cursed?: boolean;
 }
 
 export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
@@ -40,6 +42,20 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
     description: 'Las palabras se muestran sin vocales (escribe la palabra completa)',
     archetype: 'Teclista Letal',
   },
+  sello_maldito: {
+    id: 'sello_maldito',
+    name: 'SELLO MALDITO',
+    description: 'x2 score en todo, pero las trampas aparecen el doble de seguido',
+    archetype: 'Apostador',
+    cursed: true,
+  },
+  espejo_roto: {
+    id: 'espejo_roto',
+    name: 'ESPEJO ROTO',
+    description: 'Todas las palabras normales se muestran como anagrama',
+    archetype: 'Ilusionista',
+    cursed: true,
+  },
 };
 
 export const RELIC_IDS = Object.keys(RELIC_CATALOG) as RelicId[];
@@ -52,10 +68,17 @@ export function getRelicDefinition(id: RelicId): RelicDefinition {
 export function pickRelicChoices(
   activeRelics: RelicId[],
   count = 3,
+  bonusReroll = false,
 ): RelicId[] {
   if (activeRelics.length >= MAX_ACTIVE_RELICS) return [];
 
   const available = RELIC_IDS.filter((id) => !activeRelics.includes(id));
   const shuffled = [...available].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, shuffled.length));
+  if (bonusReroll) {
+    shuffled.sort(() => Math.random() - 0.5);
+  }
+  const pickCount = bonusReroll
+    ? Math.min(count + 1, shuffled.length)
+    : Math.min(count, shuffled.length);
+  return shuffled.slice(0, pickCount);
 }

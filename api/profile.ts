@@ -14,6 +14,7 @@ import {
 const PROFILE_PREFIX = 'keyrunner:profile:';
 const MAX_COINS = 100_000_000;
 const MAX_STAT = 100_000_000;
+const MAX_SCORE = 1_000_000;
 const MAX_UNLOCK_IDS = 64;
 
 interface StoredProfile {
@@ -51,6 +52,26 @@ function sanitizeIds(value: unknown): string[] {
   ].slice(0, MAX_UNLOCK_IDS);
 }
 
+function sanitizeDaily(raw: unknown): ProfileMeta['daily'] {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!raw || typeof raw !== 'object') {
+    return { date: today, missionId: 'palabras_25', progress: 0, claimed: false };
+  }
+  const daily = raw as Partial<ProfileMeta['daily']>;
+  return {
+    date:
+      typeof daily.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(daily.date)
+        ? daily.date
+        : today,
+    missionId:
+      typeof daily.missionId === 'string'
+        ? daily.missionId.slice(0, 24)
+        : 'palabras_25',
+    progress: sanitizeCount(daily.progress, 999_999),
+    claimed: Boolean(daily.claimed),
+  };
+}
+
 function sanitizeMeta(raw: unknown): ProfileMeta | null {
   if (!raw || typeof raw !== 'object') return null;
   const meta = raw as Partial<ProfileMeta>;
@@ -60,10 +81,15 @@ function sanitizeMeta(raw: unknown): ProfileMeta | null {
     unlockedRunners: sanitizeIds(meta.unlockedRunners),
     unlockedRelics: sanitizeIds(meta.unlockedRelics),
     unlockedGlossaries: sanitizeIds(meta.unlockedGlossaries),
+    unlockedAchievements: sanitizeIds(meta.unlockedAchievements),
+    tutorialComplete: Boolean(meta.tutorialComplete),
+    seenHints: sanitizeIds(meta.seenHints),
+    daily: sanitizeDaily(meta.daily),
     stats: {
       runsPlayed: sanitizeCount(stats.runsPlayed, MAX_STAT),
       bestFloor: sanitizeCount(stats.bestFloor, 999),
       totalWords: sanitizeCount(stats.totalWords, MAX_STAT),
+      bestRunScore: sanitizeCount(stats.bestRunScore, MAX_SCORE),
     },
   };
 }

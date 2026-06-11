@@ -7,6 +7,14 @@ export interface ProfileMetaStats {
   runsPlayed: number;
   bestFloor: number;
   totalWords: number;
+  bestRunScore: number;
+}
+
+export interface ProfileDailyMission {
+  date: string;
+  missionId: string;
+  progress: number;
+  claimed: boolean;
 }
 
 export interface ProfileMeta {
@@ -14,6 +22,10 @@ export interface ProfileMeta {
   unlockedRunners: string[];
   unlockedRelics: string[];
   unlockedGlossaries: string[];
+  unlockedAchievements: string[];
+  tutorialComplete: boolean;
+  seenHints: string[];
+  daily: ProfileDailyMission;
   stats: ProfileMetaStats;
 }
 

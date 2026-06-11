@@ -1,32 +1,43 @@
 import { useEffect, useState } from 'react';
 import type { LeaderboardResponse } from '../types/leaderboard';
+import type { DailyLeaderboardResponse } from '../types/daily';
+import { RUNNER_CATALOG } from '../data/runners';
+import { GLOSSARY_CATALOG } from '../data/glossaries';
 import { fetchLeaderboard } from '../services/leaderboard';
+import { fetchDailyLeaderboard } from '../services/daily';
+import { loadMeta } from '../services/meta';
 import {
   clearSession,
   loadSession,
   loginOrRegister,
   type ProfileSession,
 } from '../services/profile';
+import { AchievementsPanel } from './AchievementsPanel';
 import { Leaderboard } from './Leaderboard';
 import { MetaShop } from './MetaShop';
 import { PixelButton } from './PixelButton';
 import { SettingsPanel } from './SettingsPanel';
 
-type HubTab = 'play' | 'unlocks' | 'settings';
+type HubTab = 'play' | 'logros' | 'unlocks' | 'settings';
 
 interface StartScreenProps {
   playerName: string;
   onPlayerNameChange: (name: string) => void;
   onStart: () => void;
+  onDailyStart: () => void;
 }
 
 export function StartScreen({
   playerName,
   onPlayerNameChange,
   onStart,
+  onDailyStart,
 }: StartScreenProps) {
   const [tab, setTab] = useState<HubTab>('play');
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
+    null,
+  );
+  const [dailyBoard, setDailyBoard] = useState<DailyLeaderboardResponse | null>(
     null,
   );
   const [loadingLb, setLoadingLb] = useState(true);
@@ -37,8 +48,6 @@ export function StartScreen({
   const [profileError, setProfileError] = useState('');
   const [profileBusy, setProfileBusy] = useState(false);
 
-  // Sin setState sincrono antes del primer await: loadingLb ya arranca en
-  // true y las recargas posteriores mantienen visible la lista anterior.
   useEffect(() => {
     let cancelled = false;
 
@@ -66,6 +75,16 @@ export function StartScreen({
     };
   }, [playerName]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void fetchDailyLeaderboard(playerName.trim() || undefined).then((data) => {
+      if (!cancelled) setDailyBoard(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [playerName]);
+
   const validateName = (): string | null => {
     const trimmed = playerName.trim();
     if (trimmed.length < 2) {
@@ -83,6 +102,11 @@ export function StartScreen({
   const handleStart = () => {
     if (!validateName()) return;
     onStart();
+  };
+
+  const handleDailyStart = () => {
+    if (!validateName()) return;
+    onDailyStart();
   };
 
   const handleLogin = async () => {
@@ -120,6 +144,16 @@ export function StartScreen({
     setProfileError('');
   };
 
+  const dailyChallenge = dailyBoard?.challenge;
+  const dailyRunner =
+    dailyChallenge && dailyChallenge.runnerId in RUNNER_CATALOG
+      ? RUNNER_CATALOG[dailyChallenge.runnerId as keyof typeof RUNNER_CATALOG]
+      : null;
+  const dailyGlossary =
+    dailyChallenge && dailyChallenge.glossaryId in GLOSSARY_CATALOG
+      ? GLOSSARY_CATALOG[dailyChallenge.glossaryId as keyof typeof GLOSSARY_CATALOG]
+      : null;
+
   return (
     <div className="screen screen--start">
       <h1 className="screen__title">KEY RUNNER</h1>
@@ -132,6 +166,13 @@ export function StartScreen({
           onClick={() => setTab('play')}
         >
           JUGAR
+        </button>
+        <button
+          type="button"
+          className={`hub-tabs__tab ${tab === 'logros' ? 'hub-tabs__tab--active' : ''}`}
+          onClick={() => setTab('logros')}
+        >
+          LOGROS
         </button>
         <button
           type="button"
@@ -158,6 +199,12 @@ export function StartScreen({
       {tab === 'unlocks' && (
         <div className="screen__panel pixel-panel screen__column screen__column--wide">
           <MetaShop />
+        </div>
+      )}
+
+      {tab === 'logros' && (
+        <div className="screen__panel pixel-panel screen__column screen__column--wide">
+          <AchievementsPanel meta={loadMeta()} />
         </div>
       )}
 
@@ -237,6 +284,25 @@ export function StartScreen({
               )}
               {profileError && <p className="screen__error">{profileError}</p>}
 
+              {dailyChallenge && dailyRunner && dailyGlossary && (
+                <>
+                  <h2 className="screen__panel-title screen__panel-title--spaced">
+                    DESAFIO DIARIO
+                  </h2>
+                  <p className="daily-challenge__hint">
+                    {dailyRunner.name} · {dailyGlossary.name} — ranking del dia
+                  </p>
+                  {dailyBoard && dailyBoard.playerRank !== null && (
+                    <p className="screen__status">
+                      Tu mejor hoy: #{dailyBoard.playerRank}
+                      {dailyBoard.playerBest
+                        ? ` (${dailyBoard.playerBest.score} pts)`
+                        : ''}
+                    </p>
+                  )}
+                </>
+              )}
+
               <h2 className="screen__panel-title screen__panel-title--spaced">
                 COMO JUGAR
               </h2>
@@ -253,12 +319,20 @@ export function StartScreen({
             <PixelButton onClick={handleStart} className="screen__btn">
               NUEVA RUN
             </PixelButton>
+            <PixelButton
+              variant="secondary"
+              onClick={handleDailyStart}
+              className="screen__btn"
+            >
+              DESAFIO DIARIO
+            </PixelButton>
           </div>
 
           <div className="screen__panel pixel-panel screen__column">
             <Leaderboard
               top10={leaderboard?.top10 ?? []}
               playerRank={leaderboard?.playerRank ?? null}
+              playerBest={leaderboard?.playerBest}
               playerName={playerName.trim()}
               totalPlayers={leaderboard?.totalPlayers ?? 0}
               loading={loadingLb}

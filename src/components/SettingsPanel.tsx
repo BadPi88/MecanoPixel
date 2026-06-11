@@ -150,6 +150,17 @@ export function SettingsPanel() {
         <button
           type="button"
           role="switch"
+          aria-checked={settings.soundEnabled}
+          className={`settings__option ${
+            settings.soundEnabled ? 'settings__option--active' : ''
+          }`}
+          onClick={() => update('soundEnabled', !settings.soundEnabled)}
+        >
+          SONIDO: {settings.soundEnabled ? 'SI' : 'NO'}
+        </button>
+        <button
+          type="button"
+          role="switch"
           aria-checked={settings.reducedMotion}
           className={`settings__option ${
             settings.reducedMotion ? 'settings__option--active' : ''

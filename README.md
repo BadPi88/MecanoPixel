@@ -4,9 +4,9 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 
 ## Loop roguelike
 
-1. **Hub** — escribe tu nombre y pulsa **NUEVA RUN** (pestañas JUGAR | DESBLOQUEOS | AJUSTES).
-2. **Elige runner** — Veloz, Tanque, Codificador (Fantasma y Magnate se desbloquean con meta coins).
-3. **Elige glosario** — General; Médico (veneno) y Técnico (eléctrico) se desbloquean con meta coins.
+1. **Hub** — nombre + perfil PIN opcional (pestañas JUGAR | DESBLOQUEOS | LOGROS | AJUSTES). **DESAFIO DIARIO** con ranking aparte.
+2. **Elige runner** — 8 personajes pixel art; 5 se desbloquean jugando (hitos de runs, palabras, piso).
+3. **Elige glosario** — General; Medico y Tecnico se desbloquean con meta coins.
 4. **Pisos** — cada piso dura 3 subidas de ritmo. Perk cada 3 subidas, **reliquia cada 2 pisos**.
 5. **Entre pisos** — tienda (pisos impares), evento de riesgo (pares), **jefe cada 3 pisos**.
 6. **Game over** — permadeath con recompensa: meta coins = `piso × 50 + score / 100`.
@@ -16,7 +16,8 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 - **Precisión**: cada letra correcta seguida sube tu racha y carga el **ULTIMATE**. Backspace reinicia la racha y resta carga. Palabra perfecta (sin Backspace) = +10% score.
 - **Ultimate (TAB)**: con la barra al 100%, purga la mitad inferior de la pantalla y congela 2 s.
 - **Categorías gramaticales**: cada palabra normal lleva su marca — `V·` verbo (empuja todas las palabras hacia arriba), `A·` adjetivo (ralentiza la caída 8 s), `S·` sustantivo (carga de escudo). Efecto con cooldown de 10 s.
-- **Tipos de palabra**: `!` trampa (no la escribas), `*` bomba (x2 score, −2 vidas si cae), `+` bonus (run coins).
+- **Tipos de palabra**: `!` trampa, `*` bomba, `+` bonus, `?` oraculo (elige +score o +ultimate al completar).
+- **Sonido**: efectos sinteticos Web Audio (toggle en AJUSTES).
 - **Letras perforantes**: desde el piso 2 caen letras sueltas (Q, X, J...). Con el input vacío, teclear la letra la desvía (+carga ultimate); si llega al suelo, −1 vida.
 
 ## Reliquias (build de la run, máx. 4)
@@ -27,15 +28,28 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 | Diccionario Erudito | Francotirador | 8+ letras x3 score; 4 o menos x0.5 |
 | Teclado Cortocircuitado | Metralleta | Solo palabras 3-4 letras, spawn x1.4, daño AOE a vecinas |
 | Tinta Tóxica | Kamikaze | Fallar un envío: −1 vida pero limpia toda la pantalla |
-| Afinación de Vocales | Teclista Letal | Las palabras se muestran sin vocales |
+| Afinacion de Vocales | Teclista Letal | Palabras sin vocales |
+| Sello Maldito | Maldito | x2 score, trampas x2 |
+| Espejo Roto | Maldito | Anagramas forzados |
 
-**Sinergias**: radar+purga (purga gratis cada 60 s), Ígnea+glosario Técnico (la quemadura se propaga), Tinta+Combo Seguro (la explosión no rompe el combo), Vocales+Codificador (combo x2 desde 2), doble defensa (escudo de 2 cargas).
+**Sinergias**: preview al elegir reliquia; radar+purga, Ignea+Tecnico, Tinta+Combo Seguro, Vocales+Codificador, doble defensa.
 
-## Enemigos que desafían la mente
+## Villanos (jefes cada 3 pisos)
 
-- **Anagramas** (`?`): la palabra se muestra desordenada; escribe la original.
-- **Cambiantes** (`~`): el texto mostrado se re-baraja cada 3 s.
-- **Jefes con ataques de UI**: piso 3 ceguera (oculta tu input 2 s cada 10 s), piso 6 remap de teclas (A↔Z, S↔X durante 15 s), piso 9+ ambos más proyectiles.
+Cada jefe tiene sprite pixel, fondo tematico y ataques propios:
+
+| Piso | Villano | Tema | Mecanica |
+|------|---------|------|----------|
+| 3 | EL ARCHIVISTA | Biblioteca | Ceguera periodica |
+| 6 | EL SABOTEADOR | Fabrica | Remap teclas + proyectiles |
+| 9 | EL PERFORADOR | Vacio | Caida rapida + proyectiles |
+| 12+ | LA TIRANOTIPO | Trono | Todos los ataques + **dos palabras alternadas** |
+
+## Enemigos que desafian la mente
+
+- **Anagramas** y **cambiantes** en palabras normales.
+- **Eventos** condicionales (12+) y **tienda rotativa** (4 de 10 items por visita).
+- **Logros**, mision diaria y cartel de run al game over.
 
 ## Dificultad adaptativa (flow)
 
