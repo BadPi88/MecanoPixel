@@ -1,0 +1,168 @@
+/* Temas visuales y accesibilidad — controlados por data-attributes en <html> */
+
+/* OpenDyslexic con fallback (CDN). Si falla la carga, cae a sans-serif. */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff')
+    format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- Fuentes --- */
+:root[data-font='opendyslexic'] {
+  --font-pixel: 'OpenDyslexic', Verdana, sans-serif;
+}
+
+:root[data-font='opendyslexic'] body {
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}
+
+:root[data-font='system'] {
+  --font-pixel: system-ui, 'Segoe UI', Verdana, sans-serif;
+}
+
+:root[data-font='system'] body {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Escala de fuente --- */
+:root[data-scale='1_25'] {
+  font-size: 125%;
+}
+
+:root[data-scale='1_5'] {
+  font-size: 150%;
+}
+
+:root[data-scale='1_25'] .falling-word {
+  font-size: 12px;
+}
+
+:root[data-scale='1_5'] .falling-word {
+  font-size: 14px;
+}
+
+/* --- Alto contraste --- */
+:root[data-theme='highContrast'] {
+  --color-sky: #000000;
+  --color-ground: #ffffff;
+  --color-safe: #00ff66;
+  --color-warn: #ffff00;
+  --color-danger: #ff3333;
+  --color-highlight: #00ccff;
+  --color-text: #ffffff;
+  --color-panel: #101010;
+  --color-panel-border: #ffffff;
+}
+
+:root[data-theme='highContrast'] .falling-word {
+  border-width: 3px;
+  text-shadow: none;
+}
+
+:root[data-theme='highContrast'] #root::before,
+:root[data-theme='highContrast'] #root::after {
+  display: none;
+}
+
+/* --- Protanopia (dificultad con rojos) --- */
+:root[data-theme='protanopia'] {
+  --color-safe: #2e7fd9;
+  --color-warn: #f2d544;
+  --color-danger: #f5f5f5;
+  --color-ground: #8a8a8a;
+  --color-highlight: #2e7fd9;
+}
+
+/* --- Deuteranopia (dificultad con verdes) --- */
+:root[data-theme='deuteranopia'] {
+  --color-safe: #3a86d4;
+  --color-warn: #ffd23f;
+  --color-danger: #f0f0f0;
+  --color-ground: #9a9a9a;
+  --color-highlight: #3a86d4;
+}
+
+/* --- Tritanopia (dificultad con azules) --- */
+:root[data-theme='tritanopia'] {
+  --color-safe: #3fae6a;
+  --color-warn: #e85d75;
+  --color-danger: #ffffff;
+  --color-ground: #b06a6a;
+  --color-highlight: #e85d75;
+}
+
+/* En modos daltonismo, refuerza tipos de palabra con patrones, no solo color */
+:root[data-theme='protanopia'] .falling-word--kind-trap,
+:root[data-theme='deuteranopia'] .falling-word--kind-trap,
+:root[data-theme='tritanopia'] .falling-word--kind-trap,
+:root[data-theme='highContrast'] .falling-word--kind-trap {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.18) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+:root[data-theme='protanopia'] .falling-word--kind-bomb,
+:root[data-theme='deuteranopia'] .falling-word--kind-bomb,
+:root[data-theme='tritanopia'] .falling-word--kind-bomb,
+:root[data-theme='highContrast'] .falling-word--kind-bomb {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 0, 0, 0.3),
+    rgba(0, 0, 0, 0.3) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+:root[data-theme='protanopia'] .falling-word--kind-bonus,
+:root[data-theme='deuteranopia'] .falling-word--kind-bonus,
+:root[data-theme='tritanopia'] .falling-word--kind-bonus,
+:root[data-theme='highContrast'] .falling-word--kind-bonus {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0.22) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+}
+
+/* --- Movimiento reducido --- */
+:root[data-motion='reduced'] *,
+:root[data-motion='reduced'] *::before,
+:root[data-motion='reduced'] *::after {
+  animation-duration: 0.001s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+/* --- Focus visible (accesibilidad de teclado) --- */
+.pixel-btn:focus-visible,
+.hub-tabs__tab:focus-visible,
+.runner-card:focus-visible,
+.shop-item:focus-visible,
+.perk-card:focus-visible,
+.glossary-card:focus-visible,
+.relic-card:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 2px;
+}

@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RUNNER_CATALOG } from '../data/runners';
+import { RELIC_CATALOG } from '../data/relics';
+import { GLOSSARY_CATALOG } from '../data/glossaries';
+import type { GlossaryId, RelicId } from '../types/combat';
 import type { LeaderboardResponse } from '../types/leaderboard';
 import type { DeathCause, RunnerId } from '../types/run';
 import { recordRunEnd } from '../services/meta';
+import { syncMetaToProfile } from '../services/profile';
 import { formatPeakIntensity } from '../utils/intensity';
 import { calculateMetaCoinsEarned } from '../utils/metaCoins';
 import { calculateWpm, formatTime } from '../utils/wpm';
 import { fetchLeaderboard, submitScore } from '../services/leaderboard';
+import { RunnerSprite } from '../assets/runnerSprites';
 import { Leaderboard } from './Leaderboard';
 import { PixelButton } from './PixelButton';
 
@@ -21,6 +26,10 @@ interface GameOverScreenProps {
   runnerId: RunnerId | null;
   runCoins: number;
   deathCause: DeathCause;
+  relics: RelicId[];
+  glossary: GlossaryId;
+  ultimatesUsed: number;
+  deflectedLetters: number;
   onRetry: () => void;
   onHome: () => void;
 }
@@ -30,6 +39,8 @@ const DEATH_LABELS: Record<NonNullable<DeathCause>, string> = {
   bomb: 'Explosion de bomba',
   boss: 'El jefe te alcanzo',
   event: 'Pacto mortal',
+  toxic: 'La tinta toxica te consumio',
+  projectile: 'Una letra perforante te alcanzo',
 };
 
 export function GameOverScreen({
@@ -43,6 +54,10 @@ export function GameOverScreen({
   runnerId,
   runCoins,
   deathCause,
+  relics,
+  glossary,
+  ultimatesUsed,
+  deflectedLetters,
   onRetry,
   onHome,
 }: GameOverScreenProps) {
@@ -60,10 +75,15 @@ export function GameOverScreen({
     'saving' | 'saved' | 'error' | 'skipped'
   >('saving');
   const [newRank, setNewRank] = useState<number | null>(null);
+  // Inicializador perezoso: registra la run una sola vez al montar la pantalla.
+  const [runEnd] = useState(() =>
+    recordRunEnd(floor, wordsTyped, metaCoinsEarned),
+  );
+  const newRunners = runEnd.newlyUnlockedRunners;
 
   useEffect(() => {
-    recordRunEnd(floor, wordsTyped, metaCoinsEarned);
-  }, [floor, wordsTyped, metaCoinsEarned]);
+    void syncMetaToProfile(runEnd.meta);
+  }, [runEnd]);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +157,24 @@ export function GameOverScreen({
         </p>
       )}
 
+      {newRunners.length > 0 && (
+        <div className="unlock-banner pixel-panel" role="status">
+          <span className="unlock-banner__title">
+            ¡NUEVO PERSONAJE DESBLOQUEADO!
+          </span>
+          <div className="unlock-banner__runners">
+            {newRunners.map((id) => (
+              <div key={id} className="unlock-banner__runner">
+                <RunnerSprite runnerId={id} size={48} />
+                <span className="unlock-banner__name">
+                  {RUNNER_CATALOG[id].name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="screen__layout screen__layout--gameover">
         <div className="screen__panel screen__stats pixel-panel">
           <div className="screen__stat">
@@ -165,10 +203,26 @@ export function GameOverScreen({
             <div className="screen__stat screen__stat--wide">
               <span className="screen__stat-label">RUNNER</span>
               <span className="screen__stat-value">
-                {RUNNER_CATALOG[runnerId].name}
+                {RUNNER_CATALOG[runnerId].name} · {GLOSSARY_CATALOG[glossary].name}
               </span>
             </div>
           )}
+          {relics.length > 0 && (
+            <div className="screen__stat screen__stat--wide">
+              <span className="screen__stat-label">RELIQUIAS</span>
+              <span className="screen__stat-value screen__stat-value--small">
+                {relics.map((id) => RELIC_CATALOG[id].name).join(' · ')}
+              </span>
+            </div>
+          )}
+          <div className="screen__stat">
+            <span className="screen__stat-label">ULTIMATES</span>
+            <span className="screen__stat-value">{ultimatesUsed}</span>
+          </div>
+          <div className="screen__stat">
+            <span className="screen__stat-label">DESVIOS</span>
+            <span className="screen__stat-value">{deflectedLetters}</span>
+          </div>
           <div className="screen__stat">
             <span className="screen__stat-label">PALABRAS</span>
             <span className="screen__stat-value">{wordsTyped}</span>

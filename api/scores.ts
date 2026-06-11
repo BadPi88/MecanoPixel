@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { LeaderboardEntry, SubmitScorePayload } from '../shared/leaderboard';
+import type { LeaderboardEntry, SubmitScorePayload } from '../shared/leaderboard.js';
 import {
   getRedis,
   isValidPlayerName,
   LEADERBOARD_KEY,
   normalizePlayerName,
-} from './lib/redis';
+} from './lib/redis.js';
 
 const PLAYER_META_PREFIX = 'keyrunner:player:';
 /** Una entrada por jugador (mejor score). Sin limite de tamano del ranking. */

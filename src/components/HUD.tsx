@@ -5,6 +5,7 @@ import type { RunnerId } from '../types/run';
 import { getEffectiveDifficulty } from '../utils/perkModifiers';
 import { formatWordsPerSecond } from '../utils/intensity';
 import { calculateWpm, formatTime } from '../utils/wpm';
+import { RunnerSprite } from '../assets/runnerSprites';
 import { PerkBar } from './PerkBar';
 
 interface HUDProps {
@@ -26,6 +27,11 @@ interface HUDProps {
   runCoins?: number;
   rampsThisFloor?: number;
   runnerId?: RunnerId | null;
+  precisionStreak?: number;
+  ultimateCharge?: number;
+  inputBlinded?: boolean;
+  synergyNames?: string[];
+  relicNames?: string[];
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -79,6 +85,11 @@ export function HUD({
   runCoins = 0,
   rampsThisFloor = 0,
   runnerId = null,
+  precisionStreak = 0,
+  ultimateCharge = 0,
+  inputBlinded = false,
+  synergyNames = [],
+  relicNames = [],
 }: HUDProps) {
   const wpm = calculateWpm(correctChars, elapsedMs);
   const effective = getEffectiveDifficulty(
@@ -112,7 +123,8 @@ export function HUD({
           {runnerId && (
             <div className="hud__stat hud__stat--player">
               <span className="hud__label">RUNNER</span>
-              <span className="hud__value hud__value--player">
+              <span className="hud__value hud__value--player hud__value--runner">
+                <RunnerSprite runnerId={runnerId} size={20} />
                 {RUNNER_CATALOG[runnerId].name}
               </span>
             </div>
@@ -144,10 +156,77 @@ export function HUD({
 
         <PerkBar activePerks={activePerks} elapsedMs={elapsedMs} />
 
+        {relicNames.length > 0 && (
+          <div className="hud__relics" aria-label="Reliquias activas">
+            {relicNames.map((name) => (
+              <span key={name} className="hud__relic-chip">
+                {name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {synergyNames.length > 0 && (
+          <div className="hud__synergies" aria-label="Sinergias activas">
+            {synergyNames.map((name) => (
+              <span key={name} className="hud__synergy-badge">
+                SINERGIA: {name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="hud__row hud__row--combat">
+          <div
+            className="hud__meter"
+            role="progressbar"
+            aria-label="Precision"
+            aria-valuenow={precisionStreak}
+            aria-valuemin={0}
+            aria-valuemax={50}
+          >
+            <span className="hud__label">PRECISION</span>
+            <div className="hud__meter-bar">
+              <div
+                className="hud__meter-fill hud__meter-fill--precision"
+                style={{ width: `${Math.min(precisionStreak * 2, 100)}%` }}
+              />
+            </div>
+            <span className="hud__meter-value">x{precisionStreak}</span>
+          </div>
+          <div
+            className="hud__meter"
+            role="progressbar"
+            aria-label="Ultimate"
+            aria-valuenow={Math.round(ultimateCharge)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <span className="hud__label">
+              ULTIMATE {ultimateCharge >= 100 ? '[TAB]' : ''}
+            </span>
+            <div className="hud__meter-bar">
+              <div
+                className={`hud__meter-fill hud__meter-fill--ultimate ${
+                  ultimateCharge >= 100 ? 'hud__meter-fill--ready' : ''
+                }`}
+                style={{ width: `${Math.min(ultimateCharge, 100)}%` }}
+              />
+            </div>
+            <span className="hud__meter-value">
+              {Math.round(ultimateCharge)}%
+            </span>
+          </div>
+        </div>
+
         <div className="hud__row hud__row--bottom">
           <div className="hud__input">
             <span className="hud__label">INPUT</span>
-            <span className="hud__input-value">{input || '_'}</span>
+            <span
+              className={`hud__input-value ${inputBlinded ? 'hud__input-value--blinded' : ''}`}
+            >
+              {inputBlinded ? '▮▮▮▮▮' : input || '_'}
+            </span>
           </div>
           <div className="hud__combo">
             <span className="hud__label">COMBO</span>

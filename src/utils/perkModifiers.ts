@@ -75,22 +75,49 @@ export function countDefensePerks(activePerks: ActivePerk[]): number {
   }).length;
 }
 
+/** Capas extra de dificultad: buff de tempo (POS adjetivo) y flow adaptativo. */
+export interface CombatExtras {
+  tempoBuffUntilMs?: number;
+  flowSpawnMult?: number;
+  flowSpeedMult?: number;
+}
+
+const ADJ_TEMPO_BUFF_MULT = 0.8;
+
 export function getEffectiveDifficulty(
   elapsedMs: number,
   difficultyTierOffset: number,
   activePerks: ActivePerk[],
   frozenUntilMs: number,
   runnerId: RunnerId | null = null,
+  extras: CombatExtras = {},
 ) {
   const tier = getDifficultyTier(elapsedMs, difficultyTierOffset);
   const mods = getModifiers(activePerks, elapsedMs, frozenUntilMs);
   const runner = getRunnerModifiers(runnerId);
 
+  let fallSpeed = tier.fallSpeed * mods.fallSpeedMult * runner.fallSpeedMult;
+  let spawnInterval = tier.spawnInterval * mods.spawnIntervalMult;
+
+  if (
+    extras.tempoBuffUntilMs !== undefined &&
+    elapsedMs < extras.tempoBuffUntilMs &&
+    !mods.frozen
+  ) {
+    fallSpeed *= ADJ_TEMPO_BUFF_MULT;
+  }
+
+  if (extras.flowSpeedMult !== undefined && !mods.frozen) {
+    fallSpeed *= extras.flowSpeedMult;
+  }
+  if (extras.flowSpawnMult !== undefined) {
+    spawnInterval *= extras.flowSpawnMult;
+  }
+
   return {
     ...tier,
-    fallSpeed:
-      tier.fallSpeed * mods.fallSpeedMult * runner.fallSpeedMult,
-    spawnInterval: tier.spawnInterval * mods.spawnIntervalMult,
+    fallSpeed,
+    spawnInterval,
     modifiers: mods,
   };
 }
@@ -137,6 +164,7 @@ export function calculatePerkWordScore(
   elapsedMs: number,
   snipeConsumed: boolean,
   runnerId: RunnerId | null = null,
+  comboOverride: { from: number; value: number } | null = null,
 ): number {
   const runner = getRunnerModifiers(runnerId);
   const topThird = groundHeight / 3;
@@ -151,7 +179,9 @@ export function calculatePerkWordScore(
 
   let scoreMult = 1;
   if (wordLength <= 5) scoreMult *= runner.shortWordScoreMult;
-  if (combo >= runner.comboMultFrom) scoreMult *= runner.comboMultValue;
+  const comboFrom = comboOverride?.from ?? runner.comboMultFrom;
+  const comboValue = comboOverride?.value ?? runner.comboMultValue;
+  if (combo >= comboFrom) scoreMult *= comboValue;
 
   for (const perk of activePerks) {
     if (perk.expiresAtMs !== undefined && perk.expiresAtMs <= elapsedMs) continue;
@@ -176,7 +206,7 @@ export function applyPerkSelection(
   let lives = state.lives;
   let words = [...state.words];
   let frozenUntilMs = state.frozenUntilMs;
-  let difficultyTierOffset = state.difficultyTierOffset;
+  const difficultyTierOffset = state.difficultyTierOffset;
 
   const addPerk = (perk: ActivePerk) => {
     activePerks = trimActivePerks([

@@ -10,6 +10,8 @@ export interface RunnerModifiers {
   comboMultValue: number;
   runCoinsMult: number;
   trapIgnoreCharges: number;
+  bonusChanceBonus: number;
+  ultimateChargeMult: number;
 }
 
 export function getRunnerModifiers(runnerId: RunnerId | null): RunnerModifiers {
@@ -21,6 +23,8 @@ export function getRunnerModifiers(runnerId: RunnerId | null): RunnerModifiers {
     comboMultValue: 1,
     runCoinsMult: 1,
     trapIgnoreCharges: 0,
+    bonusChanceBonus: 0,
+    ultimateChargeMult: 1,
   };
 
   switch (runnerId) {
@@ -34,6 +38,12 @@ export function getRunnerModifiers(runnerId: RunnerId | null): RunnerModifiers {
       return { ...base, trapIgnoreCharges: 1 };
     case 'magnate':
       return { ...base, runCoinsMult: 1.2 };
+    case 'centinela':
+      return { ...base, fallSpeedMult: 0.92 };
+    case 'alquimista':
+      return { ...base, bonusChanceBonus: 0.08 };
+    case 'maestro':
+      return { ...base, ultimateChargeMult: 1.25 };
     default:
       return base;
   }

@@ -1,4 +1,6 @@
 import { getDifficultyTier } from '../utils/difficulty';
+import type { GlossaryId } from '../types/combat';
+import { GLOSSARY_MIX_RATIO, GLOSSARY_WORDS } from './glossaries';
 
 const WORDS: string[] = [
   // 3 letras
@@ -233,15 +235,47 @@ function normalizeWord(word: string): string {
     .replace(/[^a-z]/g, '');
 }
 
-export function getRandomWord(elapsedMs: number, tierOffset = 0): string {
-  const { wordLengthRange } = getDifficultyTier(elapsedMs, tierOffset);
-  const [minLen, maxLen] = wordLengthRange;
+const normalizedGlossaries: Record<string, string[]> = Object.fromEntries(
+  Object.entries(GLOSSARY_WORDS).map(([id, words]) => [
+    id,
+    [...new Set(words.map((w) => normalizeWord(w)))].filter((w) => w.length >= 3),
+  ]),
+);
 
-  const candidates = normalizedWords.filter(
+export interface WordFilter {
+  glossary?: GlossaryId;
+  /** Forzar rango de longitud (ej. Teclado Cortocircuitado: 3-4). */
+  minLen?: number;
+  maxLen?: number;
+}
+
+export function getRandomWord(
+  elapsedMs: number,
+  tierOffset = 0,
+  filter: WordFilter = {},
+): string {
+  const { wordLengthRange } = getDifficultyTier(elapsedMs, tierOffset);
+  const minLen = filter.minLen ?? wordLengthRange[0];
+  const maxLen = filter.maxLen ?? wordLengthRange[1];
+
+  let basePool = normalizedWords;
+  const glossary = filter.glossary ?? 'general';
+  if (glossary !== 'general' && normalizedGlossaries[glossary]) {
+    if (Math.random() < GLOSSARY_MIX_RATIO) {
+      basePool = normalizedGlossaries[glossary];
+    }
+  }
+
+  const candidates = basePool.filter(
     (w) => w.length >= minLen && w.length <= maxLen,
   );
 
-  const pool = candidates.length > 0 ? candidates : normalizedWords;
+  const pool =
+    candidates.length > 0
+      ? candidates
+      : basePool.length > 0
+        ? basePool
+        : normalizedWords;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 

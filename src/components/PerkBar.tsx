@@ -13,7 +13,7 @@ export function PerkBar({ activePerks, elapsedMs }: PerkBarProps) {
     <div className="perk-bar" aria-label="Perks activos">
       {activePerks.map((perk) => {
         const def = getPerkDefinition(perk.id);
-        let status = '';
+        let status: string;
         if (perk.charges !== undefined) {
           status = `x${perk.charges}`;
         } else if (perk.expiresAtMs !== undefined) {

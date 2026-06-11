@@ -42,8 +42,13 @@ export function advanceToNextFloor(state: GameState): Partial<GameState> {
     rampsThisFloor: 0,
     status: 'playing',
     bossWord: null,
+    bossAttack: null,
+    keyRemap: null,
+    inputBlindedUntilMs: 0,
+    letterProjectiles: [],
     words: [],
     input: '',
     pendingEvent: null,
+    backspacesUsedThisWord: 0,
   };
 }

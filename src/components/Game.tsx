@@ -1,8 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
 import type { PerkId } from '../types/perks';
+import type { GlossaryId, RelicId } from '../types/combat';
 import type { RunnerId, ShopItemId } from '../types/run';
 import { findLowestWord, getEffectiveDifficulty } from '../utils/perkModifiers';
 import { getFloorTierOffset } from '../utils/runTransitions';
+import { RELIC_CATALOG } from '../data/relics';
+import { getActiveSynergies, SYNERGY_CATALOG } from '../utils/synergyEngine';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameState } from '../hooks/useGameState';
 import { useKeyboard } from '../hooks/useKeyboard';
@@ -11,8 +14,10 @@ import { BossScreen } from './BossScreen';
 import { EventScreen } from './EventScreen';
 import { GameArea } from './GameArea';
 import { GameOverScreen } from './GameOverScreen';
+import { GlossaryPicker } from './GlossaryPicker';
 import { HUD } from './HUD';
 import { PerkPicker } from './PerkPicker';
+import { RelicPicker } from './RelicPicker';
 import { RunnerPicker } from './RunnerPicker';
 import { ShopScreen } from './ShopScreen';
 import { StartScreen } from './StartScreen';
@@ -46,9 +51,23 @@ export function Game() {
     [dispatch],
   );
 
+  const handleGlossarySelect = useCallback(
+    (glossaryId: GlossaryId) => {
+      dispatch({ type: 'SELECT_GLOSSARY', payload: glossaryId });
+    },
+    [dispatch],
+  );
+
   const handlePerkSelect = useCallback(
     (id: PerkId) => {
       dispatch({ type: 'SELECT_PERK', payload: id });
+    },
+    [dispatch],
+  );
+
+  const handleRelicSelect = useCallback(
+    (id: RelicId) => {
+      dispatch({ type: 'SELECT_RELIC', payload: id });
     },
     [dispatch],
   );
@@ -60,6 +79,11 @@ export function Game() {
     state.activePerks,
     state.frozenUntilMs,
     state.runnerId,
+    {
+      tempoBuffUntilMs: state.tempoBuffUntilMs,
+      flowSpawnMult: state.flowStats.spawnMult,
+      flowSpeedMult: state.flowStats.speedMult,
+    },
   );
 
   const radarTargetId =
@@ -67,10 +91,17 @@ export function Game() {
       ? findLowestWord(state.words)?.id ?? null
       : null;
 
+  const synergyNames = getActiveSynergies(state).map(
+    (id) => SYNERGY_CATALOG[id].name,
+  );
+
+  const relicNames = state.activeRelics.map((id) => RELIC_CATALOG[id].name);
+
   const inGame =
     state.status === 'playing' ||
     state.status === 'paused' ||
     state.status === 'perkPick' ||
+    state.status === 'relicPick' ||
     state.status === 'boss';
 
   return (
@@ -87,6 +118,13 @@ export function Game() {
         <RunnerPicker
           onSelect={handleRunnerSelect}
           onBack={() => dispatch({ type: 'GO_HOME' })}
+        />
+      )}
+
+      {state.status === 'glossaryPick' && (
+        <GlossaryPicker
+          onSelect={handleGlossarySelect}
+          onBack={() => dispatch({ type: 'BEGIN_RUN' })}
         />
       )}
 
@@ -126,16 +164,22 @@ export function Game() {
             activePerks={state.activePerks}
             frozenUntilMs={state.frozenUntilMs}
             isPaused={state.status === 'paused'}
-            isPerkPick={state.status === 'perkPick'}
+            isPerkPick={state.status === 'perkPick' || state.status === 'relicPick'}
             floor={state.floor}
             runCoins={state.runCoins}
             rampsThisFloor={state.rampsThisFloor}
             runnerId={state.runnerId}
+            precisionStreak={state.precisionStreak}
+            ultimateCharge={state.ultimateCharge}
+            inputBlinded={state.elapsedMs < state.inputBlindedUntilMs}
+            synergyNames={synergyNames}
+            relicNames={relicNames}
           />
           <div className="game__playfield">
             <GameArea
               areaRef={gameAreaRef}
               words={state.status === 'boss' ? [] : state.words}
+              projectiles={state.letterProjectiles}
               input={state.input}
               poppingWordId={state.poppingWordId}
               radarTargetId={radarTargetId}
@@ -147,6 +191,8 @@ export function Game() {
                 input={state.input}
                 floor={state.floor}
                 areaRef={gameAreaRef}
+                bossAttack={state.bossAttack}
+                remapActive={state.keyRemap !== null}
               />
             )}
           </div>
@@ -154,6 +200,12 @@ export function Game() {
             <PerkPicker
               choices={state.pendingPerkChoice}
               onSelect={handlePerkSelect}
+            />
+          )}
+          {state.status === 'relicPick' && state.pendingRelicChoice && (
+            <RelicPicker
+              choices={state.pendingRelicChoice}
+              onSelect={handleRelicSelect}
             />
           )}
         </>
@@ -171,6 +223,10 @@ export function Game() {
           runnerId={state.runnerId}
           runCoins={state.runCoins}
           deathCause={state.deathCause}
+          relics={state.relicsHistory}
+          glossary={state.selectedGlossary}
+          ultimatesUsed={state.ultimatesUsed}
+          deflectedLetters={state.deflectedLetters}
           onRetry={() => dispatch({ type: 'RETRY' })}
           onHome={() => dispatch({ type: 'GO_HOME' })}
         />

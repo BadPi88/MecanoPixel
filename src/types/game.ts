@@ -1,13 +1,25 @@
 import type { EventDefinition } from '../data/events';
 import type { ActivePerk, PerkId } from './perks';
 import type { DeathCause, RunnerId, WordKind } from './run';
+import type {
+  BossAttackState,
+  FlowStats,
+  GlossaryId,
+  LetterProjectile,
+  RelicId,
+  WordModifier,
+  WordPOS,
+} from './combat';
+import { INITIAL_FLOW_STATS } from './combat';
 
 export type GameStatus =
   | 'idle'
   | 'runnerPick'
+  | 'glossaryPick'
   | 'playing'
   | 'paused'
   | 'perkPick'
+  | 'relicPick'
   | 'shop'
   | 'event'
   | 'boss'
@@ -15,10 +27,19 @@ export type GameStatus =
 
 export interface FallingWord {
   id: string;
+  /** Texto objetivo que hay que teclear para acertar. */
   text: string;
+  /** Texto mostrado si difiere del objetivo (anagrama, sin vocales). */
+  displayText?: string;
   x: number;
   y: number;
   kind: WordKind;
+  pos?: WordPOS;
+  modifiers?: WordModifier[];
+  /** Marca visual de quemadura (Reliquia Ignea); +score al escribirla. */
+  burning?: boolean;
+  /** Proximo instante de mutacion para palabras 'shifting'. */
+  morphAtMs?: number;
 }
 
 export interface DifficultyTier {
@@ -60,6 +81,30 @@ export interface GameState {
   deathCause: DeathCause;
   perksHistory: PerkId[];
   lastPurgeFreeAtMs: number;
+  // --- Combate por tipeo ---
+  precisionStreak: number;
+  ultimateCharge: number;
+  ultimatesUsed: number;
+  backspacesUsedThisWord: number;
+  // --- Reliquias ---
+  activeRelics: RelicId[];
+  relicsHistory: RelicId[];
+  pendingRelicChoice: RelicId[] | null;
+  /** Estado al que volver tras elegir reliquia (shop/event/boss). */
+  postRelicStatus: GameStatus | null;
+  // --- Enemigos especiales ---
+  letterProjectiles: LetterProjectile[];
+  deflectedLetters: number;
+  // --- Ataques de UI del jefe ---
+  inputBlindedUntilMs: number;
+  keyRemap: Record<string, string> | null;
+  bossAttack: BossAttackState | null;
+  // --- Glosarios y POS ---
+  selectedGlossary: GlossaryId;
+  tempoBuffUntilMs: number;
+  lastPosEffectAtMs: number;
+  // --- Flow adaptativo ---
+  flowStats: FlowStats;
 }
 
 export type GameAction =
@@ -67,16 +112,23 @@ export type GameAction =
   | { type: 'GO_HOME' }
   | { type: 'RETRY' }
   | { type: 'SELECT_RUNNER'; payload: RunnerId }
+  | { type: 'SELECT_GLOSSARY'; payload: GlossaryId }
   | { type: 'TOGGLE_PAUSE' }
-  | { type: 'TICK'; payload: { deltaMs: number; fallSpeed: number } }
+  | {
+      type: 'TICK';
+      payload: { deltaMs: number; fallSpeed: number; groundHeight: number };
+    }
   | { type: 'SPAWN_WORD'; payload: FallingWord }
+  | { type: 'SPAWN_PROJECTILE'; payload: LetterProjectile }
   | { type: 'TYPE_CHAR'; payload: string }
   | { type: 'BACKSPACE' }
   | { type: 'SUBMIT' }
+  | { type: 'ULTIMATE_FIRE' }
   | { type: 'WORD_HIT_GROUND'; payload: string }
   | { type: 'SPEED_RAMP'; payload: { fallSpeed: number } }
   | { type: 'BROKEN_CLOCK_SKIP' }
   | { type: 'SELECT_PERK'; payload: PerkId }
+  | { type: 'SELECT_RELIC'; payload: RelicId }
   | { type: 'SHOP_BUY'; payload: import('./run').ShopItemId }
   | { type: 'SHOP_LEAVE' }
   | { type: 'EVENT_CHOICE'; payload: 'A' | 'B' }
@@ -119,4 +171,21 @@ export const initialGameState: GameState = {
   deathCause: null,
   perksHistory: [],
   lastPurgeFreeAtMs: 0,
+  precisionStreak: 0,
+  ultimateCharge: 0,
+  ultimatesUsed: 0,
+  backspacesUsedThisWord: 0,
+  activeRelics: [],
+  relicsHistory: [],
+  pendingRelicChoice: null,
+  postRelicStatus: null,
+  letterProjectiles: [],
+  deflectedLetters: 0,
+  inputBlindedUntilMs: 0,
+  keyRemap: null,
+  bossAttack: null,
+  selectedGlossary: 'general',
+  tempoBuffUntilMs: 0,
+  lastPosEffectAtMs: 0,
+  flowStats: INITIAL_FLOW_STATS,
 };

@@ -1,10 +1,14 @@
 import type { RefObject } from 'react';
 import type { FallingWord as FallingWordType } from '../types/game';
+import type { LetterProjectile } from '../types/combat';
+import { useElementHeight } from '../hooks/useElementHeight';
 import { FallingWord } from './FallingWord';
+import { LetterProjectileView } from './LetterProjectileView';
 
 interface GameAreaProps {
   areaRef: RefObject<HTMLDivElement | null>;
   words: FallingWordType[];
+  projectiles: LetterProjectile[];
   input: string;
   poppingWordId: string | null;
   radarTargetId: string | null;
@@ -14,12 +18,13 @@ interface GameAreaProps {
 export function GameArea({
   areaRef,
   words,
+  projectiles,
   input,
   poppingWordId,
   radarTargetId,
   onPopEnd,
 }: GameAreaProps) {
-  const groundHeight = areaRef.current?.clientHeight ?? 500;
+  const groundHeight = useElementHeight(areaRef);
   const lowerInput = input.toLowerCase();
 
   return (
@@ -41,6 +46,9 @@ export function GameArea({
           />
         );
       })}
+      {projectiles.map((projectile) => (
+        <LetterProjectileView key={projectile.id} projectile={projectile} />
+      ))}
       <div className="game-area__ground" aria-hidden="true">
         <div className="game-area__ground-bricks" />
       </div>

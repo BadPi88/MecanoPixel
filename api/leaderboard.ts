@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { LeaderboardEntry, LeaderboardResponse } from '../shared/leaderboard';
+import type { LeaderboardEntry, LeaderboardResponse } from '../shared/leaderboard.js';
 import {
   getRedis,
   isValidPlayerName,
   LEADERBOARD_KEY,
   normalizePlayerName,
-} from './lib/redis';
+} from './lib/redis.js';
 
 const PLAYER_META_PREFIX = 'keyrunner:player:';
 /** Top 10 para la UI; el ranking completo vive en Redis sin limite de jugadores. */

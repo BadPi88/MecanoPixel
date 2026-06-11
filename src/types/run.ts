@@ -5,13 +5,18 @@ export type RunnerId =
   | 'tanque'
   | 'codificador'
   | 'fantasma'
-  | 'magnate';
+  | 'magnate'
+  | 'centinela'
+  | 'alquimista'
+  | 'maestro';
 
 export type DeathCause =
   | 'ground'
   | 'bomb'
   | 'boss'
   | 'event'
+  | 'toxic'
+  | 'projectile'
   | null;
 
 export type ShopItemId = 'heal' | 'random_perk' | 'purge_all' | 'double_buff';

@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import './styles/pixel.css';
+@import './styles/themes.css';
 
 :root {
   --color-sky: #1a1c2c;
@@ -968,6 +969,257 @@ body {
   color: var(--color-warn);
 }
 
+/* Combate por tipeo */
+.hud__row--combat {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.hud__meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hud__meter-bar {
+  flex: 1;
+  height: 10px;
+  background: #1a1c2c;
+  border: 2px solid var(--color-panel-border);
+  overflow: hidden;
+}
+
+.hud__meter-fill {
+  height: 100%;
+  transition: width 0.15s steps(4);
+}
+
+.hud__meter-fill--precision {
+  background: var(--color-safe);
+}
+
+.hud__meter-fill--ultimate {
+  background: var(--color-highlight);
+}
+
+.hud__meter-fill--ready {
+  background: var(--color-warn);
+  animation: ultimate-ready 0.5s steps(2) infinite;
+}
+
+@keyframes ultimate-ready {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+}
+
+.hud__meter-value {
+  font-size: 8px;
+  min-width: 36px;
+  text-align: right;
+}
+
+.hud__relics {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.hud__relic-chip {
+  font-size: 7px;
+  padding: 3px 6px;
+  background: #2a1a3b;
+  border: 2px solid #8050b0;
+  color: #d0b0f0;
+}
+
+.hud__synergies {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.hud__synergy-badge {
+  font-size: 7px;
+  padding: 3px 6px;
+  background: #4a2a5b;
+  border: 2px solid #c080ff;
+  color: #f0d0ff;
+}
+
+.hud__input-value--blinded {
+  color: var(--color-danger);
+  letter-spacing: 4px;
+}
+
+.letter-projectile {
+  position: absolute;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  padding: 4px 8px;
+  background: #6b1a1a;
+  border: 2px solid var(--color-danger);
+  color: #ffd0d0;
+  z-index: 3;
+  animation: projectile-blink 0.4s steps(2) infinite;
+}
+
+@keyframes projectile-blink {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.4);
+  }
+}
+
+.falling-word__kind-symbol {
+  margin-right: 4px;
+  font-weight: bold;
+}
+
+.falling-word__pos-symbol {
+  margin-right: 3px;
+  opacity: 0.7;
+  font-size: 0.8em;
+}
+
+.falling-word__modifier-symbol {
+  margin-left: 4px;
+  color: var(--color-warn);
+}
+
+.falling-word--burning {
+  box-shadow: 0 0 0 2px #ff6b35;
+  text-shadow: 0 0 4px #ff6b35;
+}
+
+.falling-word--anagram {
+  font-style: italic;
+}
+
+.falling-word--shifting {
+  animation: shifting-wobble 0.6s steps(2) infinite;
+}
+
+@keyframes shifting-wobble {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+
+.perk-picker__title--relic {
+  color: #c080ff;
+}
+
+.relic-card {
+  border-color: #c080ff;
+}
+
+.relic-card__archetype {
+  font-size: 7px;
+  color: var(--color-warn);
+  display: block;
+}
+
+.boss-header__attacks {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.boss-header__attack {
+  font-size: 7px;
+  padding: 3px 6px;
+  background: #6b1a1a;
+  border: 2px solid var(--color-danger);
+  color: #ffd0d0;
+}
+
+.boss-header__attack--remap {
+  animation: projectile-blink 0.5s steps(2) infinite;
+}
+
+.meta-shop__item-kind {
+  font-size: 7px;
+  color: var(--color-warn);
+}
+
+.screen__stat-value--small {
+  font-size: 8px;
+  line-height: 1.6;
+}
+
+/* Panel de ajustes */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+}
+
+.settings__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings__label {
+  font-size: 8px;
+  color: var(--color-highlight);
+}
+
+.settings__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings__option {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 8px 10px;
+  background: var(--color-panel);
+  border: 2px solid var(--color-panel-border);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.settings__option--active {
+  background: var(--color-highlight);
+  color: #000;
+  border-color: #000;
+}
+
+.settings__preview {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  justify-content: center;
+}
+
+.settings__preview-word {
+  position: static;
+}
+
 .falling-word--kind-trap {
   background: #5a2a7a;
   border-color: #c080ff;
@@ -984,6 +1236,123 @@ body {
   background: #7a6a10;
   border-color: #ffd040;
   color: #fff8c0;
+}
+
+/* Sprites pixel art de runners */
+.runner-sprite {
+  display: block;
+  flex-shrink: 0;
+}
+
+.runner-sprite--locked {
+  filter: grayscale(1) brightness(0.55);
+}
+
+.runner-card__sprite {
+  margin: 0 auto 4px;
+}
+
+.hud__value--runner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Progreso de hitos de desbloqueo */
+.runner-card__lock-label {
+  display: block;
+}
+
+.unlock-progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin-top: 6px;
+  border: 2px solid var(--color-panel-border);
+  background: var(--color-sky);
+}
+
+.unlock-progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-warn);
+}
+
+/* Banner de personaje desbloqueado en game over */
+.unlock-banner {
+  padding: 12px 20px;
+  margin: 8px 0;
+  text-align: center;
+  border-color: var(--color-warn);
+}
+
+.unlock-banner__title {
+  font-size: 10px;
+  color: var(--color-warn);
+}
+
+.unlock-banner__runners {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.unlock-banner__runner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.unlock-banner__name {
+  font-size: 8px;
+  color: var(--color-highlight);
+}
+
+/* Secciones de la pantalla de desbloqueos */
+.meta-shop__section-title {
+  font-size: 9px;
+  color: var(--color-warn);
+  margin: 14px 0 6px;
+}
+
+.meta-shop__milestone {
+  font-size: 8px;
+  color: var(--color-warn);
+  text-align: right;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+/* Perfil con PIN */
+.profile-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-box__row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.profile-box__hint {
+  font-size: 8px;
+  line-height: 1.6;
+}
+
+.profile-box__status {
+  font-size: 8px;
+  line-height: 1.6;
+  color: var(--color-safe);
+}
+
+.pixel-input--pin {
+  width: 100px;
+  text-align: center;
+  letter-spacing: 4px;
 }
 
 @media (max-width: 640px) {
