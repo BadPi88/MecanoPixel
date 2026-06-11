@@ -1,12 +1,15 @@
 import type { RefObject } from 'react';
+import type { BiomeId } from '../data/biomes';
 import type { FallingWord as FallingWordType } from '../types/game';
 import type { LetterProjectile } from '../types/combat';
+import { BiomeBackground } from '../assets/biomeBackgrounds';
 import { useElementHeight } from '../hooks/useElementHeight';
 import { FallingWord } from './FallingWord';
 import { LetterProjectileView } from './LetterProjectileView';
 
 interface GameAreaProps {
   areaRef: RefObject<HTMLDivElement | null>;
+  biomeId: BiomeId;
   words: FallingWordType[];
   projectiles: LetterProjectile[];
   input: string;
@@ -18,6 +21,7 @@ interface GameAreaProps {
 
 export function GameArea({
   areaRef,
+  biomeId,
   words,
   projectiles,
   input,
@@ -32,8 +36,10 @@ export function GameArea({
   return (
     <div
       className={`game-area ${shake ? 'game-area--shake' : ''}`.trim()}
+      data-biome={biomeId}
       ref={areaRef}
     >
+      <BiomeBackground biomeId={biomeId} className="game-area__biome-bg" />
       {words.map((word) => {
         const isPartialMatch =
           word.kind !== 'trap' &&

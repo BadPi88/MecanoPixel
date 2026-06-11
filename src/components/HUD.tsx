@@ -1,3 +1,4 @@
+import { BIOME_CATALOG, type BiomeId } from '../data/biomes';
 import { RAMPS_PER_FLOOR } from '../data/run';
 import { RUNNER_CATALOG } from '../data/runners';
 import type { GlossaryId } from '../types/combat';
@@ -26,6 +27,7 @@ interface HUDProps {
   isPaused: boolean;
   isPerkPick?: boolean;
   floor?: number;
+  biomeId?: BiomeId;
   runCoins?: number;
   rampsThisFloor?: number;
   runnerId?: RunnerId | null;
@@ -86,6 +88,7 @@ export function HUD({
   isPaused,
   isPerkPick = false,
   floor = 1,
+  biomeId = 'scriptorium',
   runCoins = 0,
   rampsThisFloor = 0,
   runnerId = null,
@@ -127,6 +130,12 @@ export function HUD({
             <span className="hud__label">PISO</span>
             <span className="hud__value">
               {floor} ({rampsThisFloor}/{RAMPS_PER_FLOOR})
+            </span>
+          </div>
+          <div className="hud__stat hud__stat--biome">
+            <span className="hud__label">ZONA</span>
+            <span className="hud__value hud__value--biome">
+              {BIOME_CATALOG[biomeId].name}
             </span>
           </div>
           <div className="hud__stat">

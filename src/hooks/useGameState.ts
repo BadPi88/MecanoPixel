@@ -24,9 +24,10 @@ import { wordsPerSecondFromSpawnInterval } from '../utils/intensity';
 import { calculateRunCoinsFromScore } from '../utils/metaCoins';
 import {
   advanceToNextFloor,
+  buildMapPickState,
+  finishRoomToCombat,
   getFloorClearCoins,
   getFloorTierOffset,
-  getPostFloorStatus,
   shouldCompleteFloor,
 } from '../utils/runTransitions';
 import { getInitialLives, getRunnerModifiers } from '../utils/runnerModifiers';
@@ -136,13 +137,9 @@ function enterPostFloor(
   return { status: nextStatus, pendingEvent: null, shopOffers: [] };
 }
 
-/**
- * Completa el piso actual: monedas, limpieza, y reliquia en pisos pares
- * antes de la pantalla de tienda/evento/jefe.
- */
+/** Completa el piso actual: monedas, limpieza y pantalla de mapa. */
 function completeFloor(state: GameState): GameState {
   const coins = scaleRunCoins(getFloorClearCoins(state), state);
-  const nextStatus = getPostFloorStatus(state.floor);
 
   const base: GameState = {
     ...state,
@@ -156,24 +153,77 @@ function completeFloor(state: GameState): GameState {
     backspacesUsedThisWord: 0,
   };
 
-  if (state.floor % 2 === 0) {
-    const choices = pickRelicChoices(
-      state.activeRelics,
-      3,
-      state.relicRerollPending,
-    );
-    if (choices.length > 0) {
+  return { ...base, ...buildMapPickState(base) };
+}
+
+function applyRoomFromMap(state: GameState, roomId: string): GameState {
+  const room = state.mapRoomOptions.find((option) => option.id === roomId);
+  if (!room) return state;
+
+  const cleared: Partial<GameState> = { mapRoomOptions: [] };
+
+  switch (room.type) {
+    case 'shop':
       return {
-        ...base,
+        ...state,
+        ...cleared,
+        status: 'shop',
+        pendingEvent: null,
+        shopOffers: pickShopOffers(state.floor, state.runSeed + state.floor),
+      };
+    case 'event':
+      return {
+        ...state,
+        ...cleared,
+        status: 'event',
+        pendingEvent: pickRandomEvent(state),
+      };
+    case 'treasure': {
+      const choices = pickRelicChoices(
+        state.activeRelics,
+        3,
+        state.relicRerollPending,
+      );
+      if (choices.length === 0) {
+        return {
+          ...state,
+          ...cleared,
+          ...finishRoomToCombat(state, applyNextFloorStartModifiers(state)),
+          runCoins: state.runCoins + 25,
+        };
+      }
+      return {
+        ...state,
+        ...cleared,
         status: 'relicPick',
         pendingRelicChoice: choices,
-        postRelicStatus: nextStatus,
+        postRelicStatus: null,
+        postRelicAdvance: true,
         relicRerollPending: false,
       };
     }
+    case 'rest': {
+      const healed =
+        state.lives < MAX_LIVES ? { lives: state.lives + 1 } : {};
+      return {
+        ...state,
+        ...cleared,
+        ...healed,
+        ...finishRoomToCombat(state, applyNextFloorStartModifiers(state)),
+      };
+    }
+    case 'elite':
+      return {
+        ...state,
+        ...cleared,
+        eliteTierBonus: 1,
+        ...finishRoomToCombat(state, applyNextFloorStartModifiers(state)),
+      };
+    case 'boss':
+      return { ...state, ...cleared, ...enterPostFloor(state, 'boss') };
+    default:
+      return state;
   }
-
-  return { ...base, ...enterPostFloor(base, nextStatus) };
 }
 
 function applyNextFloorStartModifiers(state: GameState): Partial<GameState> {
@@ -349,11 +399,9 @@ function applyEventChoice(state: GameState, choice: 'A' | 'B'): GameState {
     return { ...next, pendingEvent: null };
   }
 
-  const advanced = advanceToNextFloor(next);
   return {
     ...next,
-    ...advanced,
-    ...applyNextFloorStartModifiers(next),
+    ...finishRoomToCombat(next, applyNextFloorStartModifiers(next)),
     noTrapsNextFloor: effect === 'no_traps_next' ? true : next.noTrapsNextFloor,
     pendingEvent: null,
   };
@@ -441,6 +489,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         trapIgnoreRemaining: trapIgnore,
         selectedGlossary: action.payload,
         dailyRun: state.dailyRun,
+        runSeed: (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0,
       };
     }
 
@@ -784,7 +833,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const lifeReward =
           state.lives < MAX_LIVES ? { lives: state.lives + 1 } : {};
 
-        return {
+        const afterBoss: GameState = {
           ...state,
           ...perkPartial,
           ...lifeReward,
@@ -796,6 +845,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           correctChars: state.correctChars + trimmed.length,
           ...advanceToNextFloor(state),
         };
+        return { ...afterBoss, ...buildMapPickState(afterBoss) };
       }
 
       const matchIndex = state.words.findIndex((w) => w.text === trimmed);
@@ -1079,7 +1129,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         relicsHistory: [...state.relicsHistory, relicId],
         pendingRelicChoice: null,
         postRelicStatus: null,
+        postRelicAdvance: false,
       };
+      if (state.postRelicAdvance) {
+        return {
+          ...withRelic,
+          ...finishRoomToCombat(withRelic, applyNextFloorStartModifiers(state)),
+        };
+      }
       return { ...withRelic, ...enterPostFloor(withRelic, nextStatus) };
     }
 
@@ -1101,11 +1158,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SHOP_LEAVE':
       return {
         ...state,
-        ...advanceToNextFloor(state),
-        ...applyNextFloorStartModifiers(state),
-        noTrapsNextFloor: false,
-        shopOffers: [],
+        ...finishRoomToCombat(state, applyNextFloorStartModifiers(state)),
       };
+
+    case 'PICK_ROOM':
+      if (state.status !== 'mapPick') return state;
+      return applyRoomFromMap(state, action.payload);
 
     case 'EVENT_CHOICE':
       return applyEventChoice(state, action.payload);

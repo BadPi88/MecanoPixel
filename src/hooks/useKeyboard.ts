@@ -51,6 +51,18 @@ export function useKeyboard(
         return;
       }
 
+      if (state.status === 'mapPick' && state.mapRoomOptions.length > 0) {
+        const index = Number(event.key) - 1;
+        if (index >= 0 && index < state.mapRoomOptions.length) {
+          event.preventDefault();
+          dispatch({
+            type: 'PICK_ROOM',
+            payload: state.mapRoomOptions[index].id,
+          });
+        }
+        return;
+      }
+
       if (event.key === 'Escape') {
         if (state.status === 'playing' || state.status === 'paused') {
           event.preventDefault();
@@ -99,6 +111,7 @@ export function useKeyboard(
     state.status,
     state.pendingPerkChoice,
     state.pendingRelicChoice,
+    state.mapRoomOptions,
     state.ultimateCharge,
     state.keyRemap,
     dispatch,

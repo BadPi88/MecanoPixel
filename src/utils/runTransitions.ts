@@ -1,18 +1,18 @@
-import { BOSS_EVERY_N_FLOORS, FLOOR_CLEAR_COINS, RAMPS_PER_FLOOR } from '../data/run';
-import type { GameState, GameStatus } from '../types/game';
-import { pickRandomEvent } from '../data/events';
+import { applyBiomeForFloor } from '../data/biomes';
+import { generateMapOptions } from '../data/mapRooms';
+import { FLOOR_CLEAR_COINS, RAMPS_PER_FLOOR } from '../data/run';
+import type { GameState } from '../types/game';
 
 export function getFloorTierOffset(state: GameState): number {
-  return state.difficultyTierOffset + Math.max(0, state.floor - 1);
+  return (
+    state.difficultyTierOffset +
+    Math.max(0, state.floor - 1) +
+    state.eliteTierBonus
+  );
 }
 
 export function shouldCompleteFloor(state: GameState): boolean {
   return state.rampsThisFloor >= RAMPS_PER_FLOOR;
-}
-
-export function getPostFloorStatus(floor: number): GameStatus {
-  if (floor % BOSS_EVERY_N_FLOORS === 0) return 'boss';
-  return floor % 2 === 1 ? 'shop' : 'event';
 }
 
 export function getFloorClearCoins(state: GameState): number {
@@ -21,24 +21,45 @@ export function getFloorClearCoins(state: GameState): number {
   return coins;
 }
 
-export function buildFloorClearState(state: GameState): Partial<GameState> {
-  const coins = getFloorClearCoins(state);
-  const nextStatus = getPostFloorStatus(state.floor);
-
+export function buildMapPickState(state: GameState): Partial<GameState> {
   return {
-    runCoins: state.runCoins + coins,
+    status: 'mapPick',
+    mapRoomOptions: generateMapOptions(state.floor, state.runSeed),
+    eliteTierBonus: 0,
     words: [],
     input: '',
-    status: nextStatus,
-    pendingEvent: nextStatus === 'event' ? pickRandomEvent(state) : null,
+    letterProjectiles: [],
     rampsThisFloor: 0,
     showSpeedNotice: false,
   };
 }
 
-export function advanceToNextFloor(state: GameState): Partial<GameState> {
+export function finishRoomToCombat(
+  state: GameState,
+  startMods: Partial<GameState> = {},
+): Partial<GameState> {
   return {
-    floor: state.floor + 1,
+    ...advanceToNextFloor(state),
+    ...startMods,
+    status: 'playing',
+    noTrapsNextFloor: false,
+    shopOffers: [],
+    mapRoomOptions: [],
+  };
+}
+
+export function advanceToNextFloor(state: GameState): Partial<GameState> {
+  const floor = state.floor + 1;
+  const biome = applyBiomeForFloor(
+    state.biomeId,
+    floor,
+    state.elapsedMs,
+    state.biomeIntroUntilMs,
+  );
+
+  return {
+    floor,
+    ...biome,
     rampsThisFloor: 0,
     status: 'playing',
     bossId: null,

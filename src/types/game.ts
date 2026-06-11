@@ -1,3 +1,5 @@
+import type { BiomeId } from '../data/biomes';
+import type { MapRoomOption } from '../data/mapRooms';
 import type { EventDefinition } from '../data/events';
 import type { ActivePerk, PerkId } from './perks';
 import type { DeathCause, RunnerId, ShopItemId, WordKind } from './run';
@@ -25,6 +27,7 @@ export type GameStatus =
   | 'event'
   | 'boss'
   | 'oraclePick'
+  | 'mapPick'
   | 'gameOver';
 
 export interface FallingWord {
@@ -73,6 +76,10 @@ export interface GameState {
   frozenUntilMs: number;
   rampCount: number;
   floor: number;
+  /** Zona visual actual (cambia cada 3 pisos). */
+  biomeId: BiomeId;
+  /** Hasta este elapsedMs se muestra el banner de entrada al bioma. */
+  biomeIntroUntilMs: number;
   runnerId: RunnerId | null;
   runCoins: number;
   rampsThisFloor: number;
@@ -109,6 +116,14 @@ export interface GameState {
   pendingRelicChoice: RelicId[] | null;
   /** Estado al que volver tras elegir reliquia (shop/event/boss). */
   postRelicStatus: GameStatus | null;
+  /** Tras reliquia de sala tesoro, avanzar piso y volver al combate. */
+  postRelicAdvance: boolean;
+  /** Salas disponibles en la pantalla de mapa. */
+  mapRoomOptions: MapRoomOption[];
+  /** Bonus de tier por sala elite (se limpia al completar el piso). */
+  eliteTierBonus: number;
+  /** Semilla de la run para generar rutas del mapa. */
+  runSeed: number;
   // --- Enemigos especiales ---
   letterProjectiles: LetterProjectile[];
   deflectedLetters: number;
@@ -159,7 +174,8 @@ export type GameAction =
   | { type: 'BOSS_FAIL' }
   | { type: 'CLEAR_POP' }
   | { type: 'HIDE_SPEED_NOTICE' }
-  | { type: 'ORACLE_CHOICE'; payload: 'score' | 'charge' };
+  | { type: 'ORACLE_CHOICE'; payload: 'score' | 'charge' }
+  | { type: 'PICK_ROOM'; payload: string };
 
 export const INITIAL_LIVES = 3;
 
@@ -185,6 +201,8 @@ export const initialGameState: GameState = {
   frozenUntilMs: 0,
   rampCount: 0,
   floor: 1,
+  biomeId: 'scriptorium',
+  biomeIntroUntilMs: 0,
   runnerId: null,
   runCoins: 0,
   rampsThisFloor: 0,
@@ -211,6 +229,10 @@ export const initialGameState: GameState = {
   relicsHistory: [],
   pendingRelicChoice: null,
   postRelicStatus: null,
+  postRelicAdvance: false,
+  mapRoomOptions: [],
+  eliteTierBonus: 0,
+  runSeed: 0,
   letterProjectiles: [],
   deflectedLetters: 0,
   inputBlindedUntilMs: 0,

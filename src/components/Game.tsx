@@ -4,6 +4,7 @@ import type { PerkId } from '../types/perks';
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { RunnerId, ShopItemId } from '../types/run';
 import { findLowestWord, getEffectiveDifficulty } from '../utils/perkModifiers';
+import { BIOME_CATALOG } from '../data/biomes';
 import { getFloorTierOffset } from '../utils/runTransitions';
 import { RELIC_CATALOG } from '../data/relics';
 import { getActiveSynergies, SYNERGY_CATALOG } from '../utils/synergyEngine';
@@ -21,6 +22,7 @@ import { HUD } from './HUD';
 import { PerkPicker } from './PerkPicker';
 import { RelicPicker } from './RelicPicker';
 import { RunnerPicker } from './RunnerPicker';
+import { MapScreen } from './MapScreen';
 import { ShopScreen } from './ShopScreen';
 import { PixelButton } from './PixelButton';
 import { StartScreen } from './StartScreen';
@@ -156,6 +158,16 @@ export function Game() {
         />
       )}
 
+      {state.status === 'mapPick' && (
+        <MapScreen
+          floor={state.floor}
+          options={state.mapRoomOptions}
+          onPick={(roomId) =>
+            dispatch({ type: 'PICK_ROOM', payload: roomId })
+          }
+        />
+      )}
+
       {state.status === 'shop' && (
         <ShopScreen
           runCoins={state.runCoins}
@@ -199,6 +211,7 @@ export function Game() {
             isPaused={state.status === 'paused'}
             isPerkPick={state.status === 'perkPick' || state.status === 'relicPick'}
             floor={state.floor}
+            biomeId={state.biomeId}
             runCoins={state.runCoins}
             rampsThisFloor={state.rampsThisFloor}
             runnerId={state.runnerId}
@@ -211,8 +224,17 @@ export function Game() {
             gameStatus={state.status}
           />
           <div className="game__playfield">
+            {state.status === 'playing' &&
+              state.elapsedMs < state.biomeIntroUntilMs && (
+                <div className="biome-intro" role="status">
+                  <span className="biome-intro__label">
+                    {BIOME_CATALOG[state.biomeId].enterLabel}
+                  </span>
+                </div>
+              )}
             <GameArea
               areaRef={gameAreaRef}
+              biomeId={state.biomeId}
               words={state.status === 'boss' ? [] : state.words}
               projectiles={state.letterProjectiles}
               input={state.input}

@@ -7,8 +7,8 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 1. **Hub** — nombre + perfil PIN opcional (pestañas JUGAR | DESBLOQUEOS | LOGROS | AJUSTES). **DESAFIO DIARIO** con ranking aparte.
 2. **Elige runner** — 8 personajes pixel art; 5 se desbloquean jugando (hitos de runs, palabras, piso).
 3. **Elige glosario** — General; Medico y Tecnico se desbloquean con meta coins.
-4. **Pisos** — cada piso dura 3 subidas de ritmo. Perk cada 3 subidas, **reliquia cada 2 pisos**.
-5. **Entre pisos** — tienda (pisos impares), evento de riesgo (pares), **jefe cada 3 pisos**.
+4. **Pisos** — cada piso dura 3 subidas de ritmo. Perk cada 3 subidas.
+5. **Mapa** — al completar un piso eliges entre 3 salas: tienda, evento, tesoro (reliquia), elite (+dificultad), descanso (+vida) y **jefe** (en pisos 3/6/9…). Teclas 1-2-3.
 6. **Game over** — permadeath con recompensa: meta coins = `piso × 50 + score / 100`.
 
 ## Combate por tipeo
@@ -33,6 +33,19 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 | Espejo Roto | Maldito | Anagramas forzados |
 
 **Sinergias**: preview al elegir reliquia; radar+purga, Ignea+Tecnico, Tinta+Combo Seguro, Vocales+Codificador, doble defensa.
+
+## Biomas (zonas visuales)
+
+Cada 3 pisos cambia la estetica del combate (fondo pixel + suelo):
+
+| Pisos | Zona | Tema |
+|-------|------|------|
+| 1-3 | SCRIPTORIUM | Biblioteca, tonos sepia |
+| 4-6 | FABRICA | Circuitos e industria |
+| 7-9 | ABISMO | Vacio estrellado |
+| 10+ | TRONO | Sala dorada de teclas |
+
+Al entrar en una zona nueva aparece un banner breve y el HUD muestra la zona actual.
 
 ## Villanos (jefes cada 3 pisos)
 
