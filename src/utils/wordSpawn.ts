@@ -76,6 +76,7 @@ export function getWordTextForKind(
   tierOffset: number,
   glossary: GlossaryId = 'general',
   relics: RelicId[] = [],
+  floor = 1,
 ): string {
   if (kind === 'trap') return getRandomTrapWord();
   if (kind === 'oracle') {
@@ -91,6 +92,7 @@ export function getWordTextForKind(
     glossary,
     minLen: constraints.minLen,
     maxLen: constraints.maxLen,
+    floor,
   });
 }
 
@@ -182,12 +184,16 @@ export function morphDisplayText(targetText: string): string {
   return shuffleText(targetText);
 }
 
-export function getBossWord(elapsedMs: number, tierOffset: number): string {
+export function getBossWord(
+  elapsedMs: number,
+  tierOffset: number,
+  floor = 1,
+): string {
   for (let len = 14; len >= 10; len--) {
-    const word = getRandomWord(elapsedMs, tierOffset);
+    const word = getRandomWord(elapsedMs, tierOffset, { floor });
     if (word.length >= len - 2) return word;
   }
-  return getRandomWord(elapsedMs, tierOffset);
+  return getRandomWord(elapsedMs, tierOffset, { floor });
 }
 
 export function getOracleRateMult(biomeId: BiomeId): number {

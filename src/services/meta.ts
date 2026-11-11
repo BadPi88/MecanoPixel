@@ -45,6 +45,22 @@ export interface MetaStats {
   bestRunScore: number;
 }
 
+export interface LearningRun {
+  id: string;
+  date: string;
+  wpm: number;
+  accuracy: number;
+  wordsTyped: number;
+  floor: number;
+  mistakes: number;
+  mistakesByChar: Record<string, number>;
+}
+
+export interface LearningStats {
+  history: LearningRun[];
+  mistakeCounts: Record<string, number>;
+}
+
 export interface DailyMissionState {
   date: string;
   missionId: DailyMissionId;
@@ -62,6 +78,7 @@ export interface MetaProgress {
   seenHints: string[];
   daily: DailyMissionState;
   stats: MetaStats;
+  learning: LearningStats;
   ascensionUnlocked: boolean;
   maxAscension: number;
   cosmetics: MetaCosmetics;
@@ -132,6 +149,7 @@ export function getDefaultMeta(): MetaProgress {
     seenHints: [],
     daily: defaultDailyMission(),
     stats: { runsPlayed: 0, bestFloor: 0, totalWords: 0, bestRunScore: 0 },
+    learning: { history: [], mistakeCounts: {} },
     ascensionUnlocked: false,
     maxAscension: 0,
     cosmetics: defaultCosmetics(),
@@ -185,6 +203,10 @@ export function loadMeta(): MetaProgress {
           }
         : defaultDailyMission(),
       stats: { ...getDefaultMeta().stats, ...parsed.stats },
+      learning: {
+        history: Array.isArray(parsed.learning?.history) ? parsed.learning.history.slice(-30) : [],
+        mistakeCounts: parsed.learning?.mistakeCounts ?? {},
+      },
       ascensionUnlocked: parsed.ascensionUnlocked ?? false,
       maxAscension: parsed.maxAscension ?? 0,
       cosmetics: {
@@ -233,6 +255,9 @@ export function saveMeta(meta: MetaProgress): void {
     localStorage.setItem(META_KEY, JSON.stringify(meta));
   } catch {
     // ignore
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('keyrunner:meta-changed', { detail: meta }));
   }
 }
 
@@ -323,6 +348,10 @@ export function recordRunEnd(
   metaCoinsEarned: number,
   runStats: Omit<RunAchievementStats, 'floor' | 'wordsTyped'> & {
     reachedBoss: boolean;
+    wpm?: number;
+    accuracy?: number;
+    mistakes?: number;
+    mistakesByChar?: Record<string, number>;
   },
 ): RunEndResult {
   let meta = loadMeta();
@@ -331,6 +360,27 @@ export function recordRunEnd(
   meta.stats.bestFloor = Math.max(meta.stats.bestFloor, floor);
   meta.stats.totalWords += wordsTyped;
   meta.stats.bestRunScore = Math.max(meta.stats.bestRunScore, runStats.score);
+  const runDate = new Date().toISOString();
+  meta.learning.history = [
+    ...meta.learning.history,
+    {
+      id: `${runDate}-${runStats.score}-${wordsTyped}`,
+      date: runDate,
+      wpm: Math.round(runStats.wpm ?? 0),
+      accuracy: Math.round(runStats.accuracy ?? 100),
+      wordsTyped,
+      floor,
+      mistakes: runStats.mistakes ?? 0,
+      mistakesByChar: { ...(runStats.mistakesByChar ?? {}) },
+    },
+  ].slice(-30);
+  meta.learning.mistakeCounts = {};
+  for (const run of meta.learning.history) {
+    for (const [char, count] of Object.entries(run.mistakesByChar)) {
+      const safeChar = char.slice(0, 2);
+      meta.learning.mistakeCounts[safeChar] = (meta.learning.mistakeCounts[safeChar] ?? 0) + count;
+    }
+  }
 
   const achievementRun: RunAchievementStats = {
     floor,
@@ -500,6 +550,7 @@ export function mergeMetaProgress(
       totalWords: Math.max(a.stats.totalWords, b.stats.totalWords),
       bestRunScore: Math.max(a.stats.bestRunScore, b.stats.bestRunScore),
     },
+    learning: mergeLearning(a.learning, b.learning),
     ascensionUnlocked: a.ascensionUnlocked || b.ascensionUnlocked,
     maxAscension: Math.max(a.maxAscension, b.maxAscension),
     cosmetics: {
@@ -537,4 +588,16 @@ export function mergeMetaProgress(
   };
   merged.unlockedRunners.push(...evaluateRunnerUnlocks(merged));
   return ensureDailyMission(merged);
+}
+
+function mergeLearning(a: LearningStats, b: LearningStats): LearningStats {
+  const history = [...new Map([...a.history, ...b.history].map((run) => [run.id, run])).values()]
+    .sort((x, y) => x.date.localeCompare(y.date)).slice(-30);
+  const mistakeCounts: Record<string, number> = {};
+  for (const run of history) {
+    for (const [char, count] of Object.entries(run.mistakesByChar ?? {})) {
+      mistakeCounts[char] = (mistakeCounts[char] ?? 0) + count;
+    }
+  }
+  return { history, mistakeCounts };
 }

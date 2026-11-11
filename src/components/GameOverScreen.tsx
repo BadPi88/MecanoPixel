@@ -9,6 +9,7 @@ import type { DeathCause, RunnerId } from '../types/run';
 import { recordRunEnd } from '../services/meta';
 import { syncMetaToProfile } from '../services/profile';
 import { submitDailyScore } from '../services/daily';
+import { fetchWeeklyLeaderboard, submitWeeklyScore } from '../services/weekly';
 import { formatPeakIntensity } from '../utils/intensity';
 import { getAscensionMetaCoinsMult } from '../utils/ascensionModifiers';
 import { calculateMetaCoinsEarned } from '../utils/metaCoins';
@@ -41,6 +42,11 @@ interface GameOverScreenProps {
   deflectedLetters: number;
   synergyNames: string[];
   dailyRun: boolean;
+  weeklyRun: boolean;
+  challengeWeek: string | null;
+  mistakes: number;
+  mistakesByChar: Record<string, number>;
+  correctKeyPresses: number;
   reachedBoss: boolean;
   bossSkipMetaMult?: number;
   ascensionLevel?: number;
@@ -74,6 +80,11 @@ export function GameOverScreen({
   deflectedLetters,
   synergyNames,
   dailyRun,
+  weeklyRun,
+  challengeWeek,
+  mistakes,
+  mistakesByChar,
+  correctKeyPresses,
   reachedBoss,
   bossSkipMetaMult = 1,
   ascensionLevel = 0,
@@ -81,6 +92,9 @@ export function GameOverScreen({
   onHome,
 }: GameOverScreenProps) {
   const wpm = calculateWpm(correctChars, elapsedMs);
+  const accuracy = correctKeyPresses + mistakes > 0
+    ? Math.round((correctKeyPresses / (correctKeyPresses + mistakes)) * 100)
+    : 100;
   const peakIntensity = formatPeakIntensity(maxWordsPerSecond);
   const metaCoinsEarned = useMemo(
     () =>
@@ -184,6 +198,7 @@ export function GameOverScreen({
     'saving' | 'saved' | 'error' | 'skipped'
   >('saving');
   const [newRank, setNewRank] = useState<number | null>(null);
+  const [weeklyRank, setWeeklyRank] = useState<number | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const [runEnd] = useState(() =>
     recordRunEnd(floor, wordsTyped, metaCoinsEarned, {
@@ -195,6 +210,9 @@ export function GameOverScreen({
       dailyRun,
       deathCause,
       reachedBoss,
+      accuracy,
+      mistakes,
+      mistakesByChar,
     }),
   );
   const newRunners = runEnd.newlyUnlockedRunners;
@@ -221,6 +239,18 @@ export function GameOverScreen({
       }
 
       try {
+        if (weeklyRun && challengeWeek) {
+          try {
+            await submitWeeklyScore({
+              playerName: playerName.trim(), week: challengeWeek, score, wpm,
+              wordsTyped, elapsedMs, floorReached: floor, runnerId: runnerId ?? undefined,
+            });
+            const board = await fetchWeeklyLeaderboard(playerName.trim(), challengeWeek);
+            if (!cancelled) setWeeklyRank(board.playerRank);
+          } catch {
+            if (!cancelled) setWeeklyRank(null);
+          }
+        }
         if (dailyRun) {
           await submitDailyScore({
             playerName: playerName.trim(),
@@ -278,6 +308,8 @@ export function GameOverScreen({
     floor,
     runnerId,
     dailyRun,
+    weeklyRun,
+    challengeWeek,
   ]);
 
   const handleCopy = async () => {
@@ -420,6 +452,10 @@ export function GameOverScreen({
             <span className="screen__stat-value">{ultimatesUsed}</span>
           </div>
           <div className="screen__stat">
+            <span className="screen__stat-label">PRECISION</span>
+            <span className="screen__stat-value">{accuracy}%</span>
+          </div>
+          <div className="screen__stat">
             <span className="screen__stat-label">DESVIOS</span>
             <span className="screen__stat-value">{deflectedLetters}</span>
           </div>
@@ -439,6 +475,11 @@ export function GameOverScreen({
         </div>
 
         <div className="screen__panel pixel-panel">
+          {weeklyRun && (
+            <p className="screen__status screen__status--highlight">
+              RETO SEMANAL {challengeWeek}: {weeklyRank ? `PUESTO #${weeklyRank}` : 'PUNTUACION ENVIADA'}
+            </p>
+          )}
           <Leaderboard
             top10={leaderboard?.top10 ?? []}
             playerRank={leaderboard?.playerRank ?? newRank}

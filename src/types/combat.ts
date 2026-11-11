@@ -18,7 +18,13 @@ export type RelicId =
   | 'moneda_ardiente'
   | 'contrato_sangriento'
   | 'teclado_espejo'
-  | 'maldicion_prisa';
+  | 'maldicion_prisa'
+  | 'marca_agua'
+  | 'colofon'
+  | 'glosa_acentuada'
+  | 'separador'
+  | 'pluma_de_eco'
+  | 'borrador_compasivo';
 
 /** Modificadores visuales/mentales de palabras enemigas. */
 export type WordModifier = 'anagram' | 'shifting' | 'vowelless' | 'reversed';
@@ -71,6 +77,7 @@ export type BossId =
   | 'devoratexto'
   | 'hilandera'
   | 'corrector'
+  | 'indexadora'
   | 'mini_guardian';
 
 /** Ataques de interfaz del jefe segun catalogo. */

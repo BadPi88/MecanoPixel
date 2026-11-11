@@ -85,13 +85,14 @@ const ADJ_SUFFIXES = ['oso', 'osa', 'ble', 'ivo', 'iva', 'al', 'il', 'az', 'ico'
 
 /** Devuelve la categoria gramatical de una palabra (manual o heuristica). */
 export function getWordPOS(word: string): WordPOS {
-  const manual = MANUAL_POS[word];
+  const normalized = word.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const manual = MANUAL_POS[word] ?? MANUAL_POS[normalized];
   if (manual) return manual;
 
-  if (word.length >= 4 && VERB_SUFFIXES.some((s) => word.endsWith(s))) {
+  if (normalized.length >= 4 && VERB_SUFFIXES.some((s) => normalized.endsWith(s))) {
     return 'verb';
   }
-  if (ADJ_SUFFIXES.some((s) => word.endsWith(s))) {
+  if (ADJ_SUFFIXES.some((s) => normalized.endsWith(s))) {
     return 'adj';
   }
   return 'noun';

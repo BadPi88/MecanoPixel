@@ -75,13 +75,13 @@ const LAYOUT_OVERRIDES: Record<
   },
 };
 
-const LETTER_RE = /^[a-zñ]$/;
+const LETTER_RE = /^[a-zñáéíóúü]$/;
+const LITERAL_ACCENT_CHAR_RE = /^[áéíóúü]$/;
 
 function normalizeChar(char: string): string {
-  return char
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+  const normalized = char.toLowerCase().normalize('NFC');
+  if (LITERAL_ACCENT_CHAR_RE.test(normalized)) return normalized;
+  return normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 /**
@@ -92,17 +92,20 @@ export function resolveTypedChar(
   event: KeyboardEvent,
   layout: KeyboardLayoutId,
 ): string | null {
+  const literalChar = event.key.toLowerCase().normalize('NFC');
+  if (LITERAL_ACCENT_CHAR_RE.test(literalChar)) return literalChar;
+
   let char: string;
 
   if (layout === 'qwerty') {
-    if (event.key.length !== 1) return null;
-    char = normalizeChar(event.key);
+    if (literalChar.length !== 1) return null;
+    char = normalizeChar(literalChar);
   } else {
     const override = LAYOUT_OVERRIDES[layout][event.code];
     if (override !== undefined) {
       char = override;
-    } else if (event.key.length === 1) {
-      char = normalizeChar(event.key);
+    } else if (literalChar.length === 1) {
+      char = normalizeChar(literalChar);
     } else {
       return null;
     }

@@ -63,6 +63,9 @@ export interface GameState {
   combo: number;
   correctChars: number;
   wordsTyped: number;
+  mistakes: number;
+  mistakesByChar: Record<string, number>;
+  correctKeyPresses: number;
   words: FallingWord[];
   input: string;
   startTime: number | null;
@@ -99,7 +102,7 @@ export interface GameState {
   bossId: BossId | null;
   /** Palabra activa del jefe (objetivo actual de tipeo). */
   bossWord: FallingWord | null;
-  /** Todas las palabras del encuentro (1 o 2 en Tiranotipo). */
+  /** Objetivos secuenciales del encuentro (una o dos palabras). */
   bossWords: FallingWord[];
   /** Fase del jefe: 0 = primera palabra, 1 = segunda en dual. */
   bossPhase: number;
@@ -169,6 +172,9 @@ export interface GameState {
   inputBlindedUntilMs: number;
   keyRemap: Record<string, string> | null;
   bossAttack: BossAttackState | null;
+  /** Zona avisada antes del siguiente proyectil de La Indexadora. */
+  bossTelegraphX: number | null;
+  bossTelegraphUntilMs: number;
   // --- Glosarios y POS ---
   selectedGlossary: GlossaryId;
   tempoBuffUntilMs: number;
@@ -177,6 +183,8 @@ export interface GameState {
   flowStats: FlowStats;
   /** Run del desafio diario (runner/glosario fijados por fecha UTC). */
   dailyRun: boolean;
+  weeklyRun: boolean;
+  challengeWeek: string | null;
   /** Llego a al menos un combate de jefe en esta run. */
   reachedBoss: boolean;
   /** Palabra oraculo pendiente de recompensa (score vs carga). */
@@ -186,7 +194,7 @@ export interface GameState {
 export type GameAction =
   | {
       type: 'BEGIN_RUN';
-      payload?: { dailyRun?: boolean; ascensionLevel?: number };
+      payload?: { dailyRun?: boolean; weeklyRun?: boolean; ascensionLevel?: number };
     }
   | { type: 'GO_HOME' }
   | { type: 'RETRY' }
@@ -212,6 +220,7 @@ export type GameAction =
   | { type: 'SHOP_LEAVE' }
   | { type: 'EVENT_CHOICE'; payload: 'A' | 'B' }
   | { type: 'BOSS_TICK'; payload: { deltaMs: number } }
+  | { type: 'BOSS_TELEGRAPH'; payload: { x: number; untilMs: number } }
   | { type: 'BOSS_FAIL' }
   | { type: 'CLEAR_POP' }
   | { type: 'HIDE_SPEED_NOTICE' }
@@ -230,6 +239,9 @@ export const initialGameState: GameState = {
   combo: 0,
   correctChars: 0,
   wordsTyped: 0,
+  mistakes: 0,
+  mistakesByChar: {},
+  correctKeyPresses: 0,
   words: [],
   input: '',
   startTime: null,
@@ -300,11 +312,15 @@ export const initialGameState: GameState = {
   inputBlindedUntilMs: 0,
   keyRemap: null,
   bossAttack: null,
+  bossTelegraphX: null,
+  bossTelegraphUntilMs: 0,
   selectedGlossary: 'general',
   tempoBuffUntilMs: 0,
   lastPosEffectAtMs: 0,
   flowStats: INITIAL_FLOW_STATS,
   dailyRun: false,
+  weeklyRun: false,
+  challengeWeek: null,
   reachedBoss: false,
   oracleRewardWord: null,
 };

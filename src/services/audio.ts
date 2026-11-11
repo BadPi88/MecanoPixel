@@ -109,6 +109,38 @@ export function playBossIntro(): void {
   ]);
 }
 
+export function playIndexadoraIntro(): void {
+  playSequence([
+    { frequency: 196, duration: 0.12, type: 'triangle', volume: 0.07 },
+    { frequency: 392, duration: 0.18, delay: 0.13, volume: 0.06 },
+    { frequency: 587, duration: 0.24, delay: 0.31, type: 'triangle', volume: 0.05 },
+  ]);
+}
+
+export function playBossTelegraph(): void {
+  playSequence([
+    { frequency: 740, duration: 0.055, type: 'square', volume: 0.045 },
+    { frequency: 494, duration: 0.09, delay: 0.07, type: 'triangle', volume: 0.055 },
+  ]);
+}
+
+export function playIndexadoraPhase(): void {
+  playSequence([
+    { frequency: 262, duration: 0.08, volume: 0.065 },
+    { frequency: 392, duration: 0.09, delay: 0.08, volume: 0.06 },
+    { frequency: 784, duration: 0.17, delay: 0.18, type: 'triangle', volume: 0.07 },
+  ]);
+}
+
+export function playIndexadoraDefeat(): void {
+  playSequence([
+    { frequency: 659, duration: 0.08, volume: 0.06 },
+    { frequency: 523, duration: 0.1, delay: 0.1, volume: 0.055 },
+    { frequency: 392, duration: 0.16, delay: 0.22, type: 'triangle', volume: 0.065 },
+    { frequency: 196, duration: 0.22, delay: 0.4, type: 'triangle', volume: 0.05 },
+  ]);
+}
+
 export function playBossDefeat(): void {
   playSequence([
     { frequency: 523, duration: 0.1, volume: 0.07 },

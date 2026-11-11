@@ -5,7 +5,7 @@ import { PixelButton } from './PixelButton';
 const STEPS = [
   {
     title: 'ESCRIBE PALABRAS',
-    body: 'Las palabras caen: teclealas antes de que toquen el suelo. Sin tildes.',
+    body: 'Las palabras caen: teclealas antes de que toquen el suelo. Desde el piso 7, algunas llevan tildes que debes escribir.',
   },
   {
     title: 'TIPOS ESPECIALES',

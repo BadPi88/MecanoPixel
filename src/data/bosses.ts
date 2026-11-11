@@ -29,6 +29,13 @@ export interface BossDefinition {
   };
   /** Multiplicador del intervalo de spawn de proyectiles (<1 = mas frecuentes). */
   projectileIntervalMult: number;
+  telegraphMs: number;
+  telegraphLabel: string;
+  phases?: Array<{
+    label: string;
+    fallSpeedMult: number;
+    projectileIntervalMult: number;
+  }>;
 }
 
 export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
@@ -43,6 +50,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 80,
     attacks: { blind: true, remap: false, projectiles: false },
     projectileIntervalMult: 1,
+    telegraphMs: 1000,
+    telegraphLabel: 'ARCHIVO: IMPACTO',
   },
   saboteador: {
     id: 'saboteador',
@@ -55,6 +64,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 120,
     attacks: { blind: false, remap: true, projectiles: true },
     projectileIntervalMult: 0.65,
+    telegraphMs: 1100,
+    telegraphLabel: 'SABOTAJE: IMPACTO',
   },
   perforador: {
     id: 'perforador',
@@ -67,6 +78,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 160,
     attacks: { blind: false, remap: false, projectiles: true },
     projectileIntervalMult: 1,
+    telegraphMs: 1050,
+    telegraphLabel: 'PERFORACION: IMPACTO',
   },
   tiranotipo: {
     id: 'tiranotipo',
@@ -79,6 +92,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 200,
     attacks: { blind: true, remap: true, projectiles: true },
     projectileIntervalMult: 0.8,
+    telegraphMs: 1000,
+    telegraphLabel: 'DECRETO: IMPACTO',
   },
   cronista: {
     id: 'cronista',
@@ -91,6 +106,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 140,
     attacks: { blind: true, remap: false, projectiles: false },
     projectileIntervalMult: 1,
+    telegraphMs: 1000,
+    telegraphLabel: 'CRONICA: IMPACTO',
   },
   devoratexto: {
     id: 'devoratexto',
@@ -103,6 +120,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 180,
     attacks: { blind: false, remap: false, projectiles: true },
     projectileIntervalMult: 0.9,
+    telegraphMs: 1050,
+    telegraphLabel: 'MORDISCO: IMPACTO',
   },
   hilandera: {
     id: 'hilandera',
@@ -115,6 +134,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 150,
     attacks: { blind: false, remap: true, projectiles: true },
     projectileIntervalMult: 0.8,
+    telegraphMs: 1100,
+    telegraphLabel: 'HILO TENSO: IMPACTO',
   },
   corrector: {
     id: 'corrector',
@@ -127,6 +148,26 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 190,
     attacks: { blind: true, remap: false, projectiles: true },
     projectileIntervalMult: 0.85,
+    telegraphMs: 1100,
+    telegraphLabel: 'CORRECCION: IMPACTO',
+  },
+  indexadora: {
+    id: 'indexadora',
+    name: 'LA INDEXADORA',
+    floorMin: 15,
+    theme: 'palimpsesto',
+    quote: 'Toda palabra deja una marca. Ninguna escapa al indice.',
+    fallSpeed: 27,
+    dualWords: true,
+    bonusCoins: 260,
+    attacks: { blind: true, remap: false, projectiles: true },
+    projectileIntervalMult: 1.1,
+    telegraphMs: 1200,
+    telegraphLabel: 'INDICE: ZONA MARCADA',
+    phases: [
+      { label: 'FASE 1 — CATALOGAR', fallSpeedMult: 1, projectileIntervalMult: 1.1 },
+      { label: 'FASE 2 — REESCRIBIR', fallSpeedMult: 1.25, projectileIntervalMult: 0.65 },
+    ],
   },
   mini_guardian: {
     id: 'mini_guardian',
@@ -139,6 +180,8 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     bonusCoins: 40,
     attacks: { blind: false, remap: false, projectiles: false },
     projectileIntervalMult: 1,
+    telegraphMs: 0,
+    telegraphLabel: '',
   },
 };
 
@@ -173,9 +216,10 @@ export function getMiniBoss(): BossDefinition {
   return BOSS_CATALOG.mini_guardian;
 }
 
-export function getBossFallSpeed(bossId: BossId | null): number {
+export function getBossFallSpeed(bossId: BossId | null, phase = 0): number {
   if (!bossId) return 25;
-  return BOSS_CATALOG[bossId].fallSpeed;
+  const boss = BOSS_CATALOG[bossId];
+  return boss.fallSpeed * (boss.phases?.[phase]?.fallSpeedMult ?? 1);
 }
 
 /** Configura ataques de UI del jefe desde el catalogo. */
@@ -214,16 +258,17 @@ export function initBossWords(
   elapsedMs: number,
   tierOffset: number,
   createId: () => string,
+  floor = 1,
 ): FallingWord[] {
-  const first = getBossWord(elapsedMs, tierOffset);
+  const first = getBossWord(elapsedMs, tierOffset, floor);
   if (!boss.dualWords) {
     return [makeBossFallingWord(first, 120, createId())];
   }
 
-  let second = getBossWord(elapsedMs + 1_000, tierOffset);
+  let second = getBossWord(elapsedMs + 1_000, tierOffset, floor);
   let attempts = 0;
   while (second === first && attempts < 8) {
-    second = getBossWord(elapsedMs + 2_000 + attempts * 500, tierOffset);
+    second = getBossWord(elapsedMs + 2_000 + attempts * 500, tierOffset, floor);
     attempts += 1;
   }
 
@@ -233,9 +278,13 @@ export function initBossWords(
   ];
 }
 
-export function getBossProjectileIntervalMult(bossId: BossId | null): number {
+export function getBossProjectileIntervalMult(
+  bossId: BossId | null,
+  phase = 0,
+): number {
   if (!bossId) return 1;
-  return BOSS_CATALOG[bossId].projectileIntervalMult;
+  const boss = BOSS_CATALOG[bossId];
+  return boss.phases?.[phase]?.projectileIntervalMult ?? boss.projectileIntervalMult;
 }
 
 /** Progreso de HP del jefe (0-100) segun input y fase dual. */

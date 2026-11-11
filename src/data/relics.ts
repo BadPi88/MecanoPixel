@@ -113,6 +113,42 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
     archetype: 'Maldito',
     cursed: true,
   },
+  marca_agua: {
+    id: 'marca_agua',
+    name: 'MARCA DE AGUA',
+    description: 'Palabra perfecta: +2 carga ultimate extra',
+    archetype: 'Caligrafa',
+  },
+  colofon: {
+    id: 'colofon',
+    name: 'COLOFON',
+    description: 'Palabras de 8+ letras: +8 run coins',
+    archetype: 'Erudito',
+  },
+  glosa_acentuada: {
+    id: 'glosa_acentuada',
+    name: 'GLOSA ACENTUADA',
+    description: 'Palabras con tilde: +25% score',
+    archetype: 'Acentuacion',
+  },
+  separador: {
+    id: 'separador',
+    name: 'SEPARADOR',
+    description: '+1 carga anti-trampa al inicio de cada piso',
+    archetype: 'Defensa',
+  },
+  pluma_de_eco: {
+    id: 'pluma_de_eco',
+    name: 'PLUMA DE ECO',
+    description: 'Palabra perfecta de 8+ letras: +5 carga ultimate',
+    archetype: 'Caligrafa',
+  },
+  borrador_compasivo: {
+    id: 'borrador_compasivo',
+    name: 'BORRADOR COMPASIVO',
+    description: 'Backspace resta 5 de carga ultimate en vez de 15',
+    archetype: 'Control',
+  },
 };
 
 export const RELIC_IDS = Object.keys(RELIC_CATALOG) as RelicId[];

@@ -32,6 +32,12 @@ export const DEFAULT_UNLOCKED_RELICS: RelicId[] = [
   'diccionario_erudito',
   'teclado_cortocircuitado',
   'tinta_toxica',
+  'marca_agua',
+  'colofon',
+  'glosa_acentuada',
+  'separador',
+  'pluma_de_eco',
+  'borrador_compasivo',
 ];
 
 export const RELIC_UNLOCKS: RelicUnlockEntry[] = [

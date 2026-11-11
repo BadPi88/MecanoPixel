@@ -3,6 +3,7 @@ import { loadMeta } from '../services/meta';
 import type { PerkId } from '../types/perks';
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { RunnerId, ShopItemId } from '../types/run';
+import type { BossId } from '../types/combat';
 import { findLowestWord, getEffectiveDifficulty } from '../utils/perkModifiers';
 import { BIOME_CATALOG } from '../data/biomes';
 import { getFloorTierOffset } from '../utils/runTransitions';
@@ -13,6 +14,7 @@ import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameState } from '../hooks/useGameState';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { loadPlayerName, savePlayerName } from '../services/leaderboard';
+import { syncMetaToProfile } from '../services/profile';
 import { BossScreen } from './BossScreen';
 import { EventScreen } from './EventScreen';
 import { GameArea } from './GameArea';
@@ -31,6 +33,7 @@ import { VictoryScreen } from './VictoryScreen';
 import { PixelButton } from './PixelButton';
 import { StartScreen } from './StartScreen';
 import { TutorialOverlay } from './TutorialOverlay';
+import { BossSprite } from '../assets/bossSprites';
 
 export function Game() {
   const { state, dispatch } = useGameState();
@@ -42,10 +45,53 @@ export function Game() {
 
   const [areaShake, setAreaShake] = useState(false);
   const prevLivesRef = useRef(state.lives);
+  const previousBossRef = useRef({ status: state.status, bossId: state.bossId });
+  const bossOutroTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [bossDefeatEffect, setBossDefeatEffect] = useState<BossId | null>(null);
+
+  useEffect(() => {
+    const previous = previousBossRef.current;
+    previousBossRef.current = { status: state.status, bossId: state.bossId };
+    if (
+      previous.status === 'boss' &&
+      state.status !== 'boss' &&
+      state.status !== 'gameOver' &&
+      previous.bossId
+    ) {
+      setBossDefeatEffect(previous.bossId);
+      if (bossOutroTimerRef.current) clearTimeout(bossOutroTimerRef.current);
+      bossOutroTimerRef.current = setTimeout(() => {
+        setBossDefeatEffect(null);
+        bossOutroTimerRef.current = null;
+      }, 1_350);
+    }
+  }, [state.status, state.bossId]);
+
+  useEffect(
+    () => () => {
+      if (bossOutroTimerRef.current) clearTimeout(bossOutroTimerRef.current);
+    },
+    [],
+  );
 
   useGameLoop(state, dispatch, gameAreaRef);
   useKeyboard(state, dispatch);
   useGameAudio(state);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const sync = (event: Event) => {
+      const meta = (event as CustomEvent<ReturnType<typeof loadMeta>>).detail;
+      if (!meta) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void syncMetaToProfile(meta), 400);
+    };
+    window.addEventListener('keyrunner:meta-changed', sync);
+    return () => {
+      window.removeEventListener('keyrunner:meta-changed', sync);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (state.lives < prevLivesRef.current) {
@@ -76,6 +122,11 @@ export function Game() {
   const handleDailyStart = useCallback(() => {
     savePlayerName(playerName.trim());
     dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } });
+  }, [dispatch, playerName]);
+
+  const handleWeeklyStart = useCallback(() => {
+    savePlayerName(playerName.trim());
+    dispatch({ type: 'BEGIN_RUN', payload: { weeklyRun: true } });
   }, [dispatch, playerName]);
 
   const handleRunnerSelect = useCallback(
@@ -141,12 +192,23 @@ export function Game() {
 
   return (
     <div className="game">
+      {bossDefeatEffect && (
+        <div
+          className={`boss-defeat boss-defeat--${bossDefeatEffect}`}
+          aria-live="polite"
+          aria-label="Jefe derrotado"
+        >
+          <BossSprite bossId={bossDefeatEffect} size={160} />
+          <span>JEFE DERROTADO</span>
+        </div>
+      )}
       {state.status === 'idle' && (
         <StartScreen
           playerName={playerName}
           onPlayerNameChange={handlePlayerNameChange}
           onStart={handleStart}
           onDailyStart={handleDailyStart}
+          onWeeklyStart={handleWeeklyStart}
           ascensionLevel={ascensionLevel}
           onAscensionChange={setAscensionLevel}
         />
@@ -186,6 +248,15 @@ export function Game() {
           runnerId={state.runnerId}
           relics={state.relicsHistory}
           elapsedMs={state.elapsedMs}
+          correctChars={state.correctChars}
+          correctKeyPresses={state.correctKeyPresses}
+          mistakes={state.mistakes}
+          mistakesByChar={state.mistakesByChar}
+          wordsTyped={state.wordsTyped}
+          ultimatesUsed={state.ultimatesUsed}
+          deflectedLetters={state.deflectedLetters}
+          reachedBoss={state.reachedBoss}
+          ascensionLevel={state.ascensionLevel}
           onContinueEndless={() => dispatch({ type: 'CONTINUE_ENDLESS' })}
           onHome={() => dispatch({ type: 'VICTORY_HOME' })}
         />
@@ -290,6 +361,8 @@ export function Game() {
                 areaRef={gameAreaRef}
                 bossAttack={state.bossAttack}
                 remapActive={state.keyRemap !== null}
+                telegraphX={state.bossTelegraphX}
+                elapsedMs={state.elapsedMs}
               />
             )}
           </div>
@@ -333,6 +406,14 @@ export function Game() {
             hintId="word_oracle"
             message="Oraculo (?): elige recompensa al completar"
             visible={state.words.some((w) => w.kind === 'oracle')}
+          />
+          <ContextualHint
+            hintId="word_accent"
+            message="Tilde: escribe tambien el acento que aparece en la palabra"
+            visible={
+              state.words.some((w) => /[áéíóúü]/i.test(w.text)) ||
+              state.bossWords.some((w) => /[áéíóúü]/i.test(w.text))
+            }
           />
           <ContextualHint
             hintId="boss_intro"
@@ -391,12 +472,19 @@ export function Game() {
           deflectedLetters={state.deflectedLetters}
           synergyNames={synergyNames}
           dailyRun={state.dailyRun}
+          weeklyRun={state.weeklyRun}
+          challengeWeek={state.challengeWeek}
+          mistakes={state.mistakes}
+          mistakesByChar={state.mistakesByChar}
+          correctKeyPresses={state.correctKeyPresses}
           reachedBoss={state.reachedBoss}
           bossSkipMetaMult={state.bossSkipMetaMult}
           ascensionLevel={state.ascensionLevel}
           onRetry={() =>
             state.dailyRun
               ? dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } })
+              : state.weeklyRun
+                ? dispatch({ type: 'BEGIN_RUN', payload: { weeklyRun: true } })
               : dispatch({ type: 'RETRY' })
           }
           onHome={() => dispatch({ type: 'GO_HOME' })}

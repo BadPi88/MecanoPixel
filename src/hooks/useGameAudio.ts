@@ -11,6 +11,10 @@ import {
   playUltimateFire,
   playUltimateReady,
   playWordComplete,
+  playBossTelegraph,
+  playIndexadoraDefeat,
+  playIndexadoraIntro,
+  playIndexadoraPhase,
 } from '../services/audio';
 
 const COMBO_MILESTONES = [5, 10, 15] as const;
@@ -42,6 +46,8 @@ export function useGameAudio(state: GameState): void {
     ultimatesUsed: state.ultimatesUsed,
     input: state.input,
     bossId: state.bossId,
+    bossPhase: state.bossPhase,
+    bossTelegraphX: state.bossTelegraphX,
   });
 
   useEffect(() => {
@@ -90,7 +96,23 @@ export function useGameAudio(state: GameState): void {
     }
 
     if (prev.status !== 'boss' && state.status === 'boss') {
-      playBossIntro();
+      if (state.bossId === 'indexadora') playIndexadoraIntro();
+      else playBossIntro();
+    }
+
+    if (
+      state.status === 'boss' &&
+      state.bossId === 'indexadora' &&
+      state.bossPhase > prev.bossPhase
+    ) {
+      playIndexadoraPhase();
+    }
+
+    if (
+      state.bossTelegraphX !== null &&
+      state.bossTelegraphX !== prev.bossTelegraphX
+    ) {
+      playBossTelegraph();
     }
 
     if (
@@ -98,7 +120,8 @@ export function useGameAudio(state: GameState): void {
       state.status !== 'boss' &&
       state.status !== 'gameOver'
     ) {
-      playBossDefeat();
+      if (prev.bossId === 'indexadora') playIndexadoraDefeat();
+      else playBossDefeat();
     }
 
     if (prev.status !== 'gameOver' && state.status === 'gameOver') {
@@ -114,6 +137,8 @@ export function useGameAudio(state: GameState): void {
       ultimatesUsed: state.ultimatesUsed,
       input: state.input,
       bossId: state.bossId,
+      bossPhase: state.bossPhase,
+      bossTelegraphX: state.bossTelegraphX,
     };
   }, [
     state.status,
@@ -124,6 +149,8 @@ export function useGameAudio(state: GameState): void {
     state.ultimatesUsed,
     state.input,
     state.bossId,
+    state.bossPhase,
+    state.bossTelegraphX,
     state.bossWord,
     state.words,
   ]);

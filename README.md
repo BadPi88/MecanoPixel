@@ -9,7 +9,7 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 3. **Elige glosario** — General; Medico y Tecnico se desbloquean con meta coins.
 4. **Pisos** — cada piso dura 3 subidas de ritmo. Perk cada 3 subidas.
 5. **Mapa en árbol** — tras cada piso eliges entre dos rutas por acto de 5 capas (preview `?` a 2 nodos). La última capa ofrece una sala elite; puedes tomar el atajo al jefe. Salas: tienda, evento, tesoro, elite (+50% coins + modificador), descanso, jefe. Evitar al jefe penaliza (debuff + boss obligatorio; meta coins ×0.7).
-6. **Victoria / endless** — derrotar a La Tiranotipo en piso 12+ da victoria; puedes continuar en modo endless o volver al hub. Desbloquea ascensiones (0–5).
+6. **Victoria / endless** — derrotar a La Tiranotipo en el piso 12 da victoria; puedes continuar en modo endless por El Palimpsesto (piso 13+) o volver al hub. Desbloquea ascensiones (0–5).
 7. **Game over** — permadeath: meta coins = `(piso × 50 + score / 100) × mult` (ascensión 5: ×1.25; evitar jefe: ×0.7).
 
 ## Combate por tipeo
@@ -35,6 +35,8 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 
 **Sinergias**: preview al elegir reliquia; radar+purga, Ignea+Tecnico, Tinta+Combo Seguro, Vocales+Codificador, doble defensa.
 
+En endless se incorporan **Marca de Agua** (carga ultimate por palabras perfectas) y **Colofon** (run coins por palabras largas).
+
 ## Biomas (zonas visuales)
 
 Cada 3 pisos cambia la estetica del combate (fondo pixel + suelo):
@@ -45,6 +47,7 @@ Cada 3 pisos cambia la estetica del combate (fondo pixel + suelo):
 | 4-6 | FABRICA | Circuitos e industria |
 | 7-9 | ABISMO | Vacio estrellado |
 | 10+ | TRONO | Sala dorada de teclas |
+| 13+ | PALIMPSESTO | Paginas borradas y tinta espectral (solo endless) |
 
 Al entrar en una zona nueva aparece un banner breve y el HUD muestra la zona actual. Cada bioma altera el combate (anagramas, bombas, oráculos, remap teclas, mini-jefe en trono).
 
@@ -59,7 +62,8 @@ Cada jefe tiene sprite pixel, fondo tematico y ataques propios:
 | 3 | EL ARCHIVISTA | Biblioteca | Ceguera periodica |
 | 6 | EL SABOTEADOR | Fabrica | Remap teclas + proyectiles |
 | 9 | EL PERFORADOR | Vacio | Caida rapida + proyectiles |
-| 12+ | LA TIRANOTIPO | Trono | Todos los ataques + **dos palabras alternadas** |
+| 12 | LA TIRANOTIPO | Trono | Todos los ataques + **dos palabras alternadas** |
+| 15 | LA INDEXADORA | Palimpsesto | Dos fases; proyectiles telegrafiados y ceguera anunciada (endless) |
 
 ## Enemigos que desafian la mente
 
@@ -79,51 +83,29 @@ Cada 10 s el juego calcula tu WPM y tasa de error (medias móviles) y ajusta sua
 - **Movimiento reducido** (también respeta `prefers-reduced-motion`).
 - Tipos de palabra identificables por símbolo (`!`, `*`, `+`, `V·`, `A·`, `S·`), no solo por color.
 
-Las palabras no llevan tildes: escribe `tecnologia`, no `tecnología`.
+Desde el piso 7 aparecen gradualmente palabras con tildes: al principio escribe `tecnologia`; en pisos avanzados también puede aparecer `tecnología` y tendrás que escribir la tilde.
 
-## Dónde se almacenan los datos
+## Cuentas, progreso y rankings en la nube
 
-| Qué | Dónde |
-|-----|--------|
-| **Puntuaciones globales** | **Upstash Redis** (integrada en Vercel) |
-| **API** | Funciones serverless en `/api` (Vercel) |
-| **Nombre, meta-progresión y ajustes** | `localStorage` (`keyrunner:playerName`, `keyrunner:meta`, `keyrunner:settings`) |
+Supabase centraliza autenticacion por correo, perfiles, progreso y rankings en un proyecto Postgres. El navegador conserva una copia local para que la partida siga disponible sin conexion; al iniciar sesion, el progreso se sincroniza con el perfil remoto.
 
-### Estructura en Redis
+### Configurar Supabase
 
-- `keyrunner:leaderboard:best` — sorted set con la **mejor puntuación de cada jugador**.
-- `keyrunner:player:{nombre}` — metadatos (WPM, palabras, tiempo, piso alcanzado, runner, fecha).
+1. Crea un proyecto en Supabase y habilita confirmacion de correo en **Authentication → Providers → Email**.
+2. Ejecuta `supabase/migrations/20261111000000_keyrunner_accounts_and_scores.sql` en el SQL Editor del proyecto.
+3. Copia `.env.example` a `.env.local` y configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` desde **Project Settings → API**.
+4. Añade esas mismas variables en Vercel para Production, Preview y Development; despues vuelve a desplegar.
+5. En **Authentication → URL Configuration**, configura la URL del juego y sus redirecciones permitidas para confirmacion y recuperacion de contrasena.
 
-El frontend **no** escribe directo en Redis. Siempre pasa por:
+El cliente solo usa la clave publica/anonima. Las politicas RLS limitan el perfil al usuario autenticado; las funciones SQL de puntuaciones asocian cada resultado a su usuario y exponen al ranking solo nombre visible y metricas de la run. No pongas claves `service_role` en variables `VITE_*`.
 
-- `GET /api/leaderboard` — top 10 + tu posición
-- `POST /api/scores` — guardar tu mejor score al terminar la run
-
-## Configurar Redis en Vercel (obligatorio para el ranking)
-
-1. En tu proyecto de Vercel: **Storage → Create Database → Upstash Redis**.
-2. Conecta la base al proyecto `MecanoPixel`.
-3. Vercel añade automáticamente `KV_REST_API_URL` y `KV_REST_API_TOKEN`.
-4. Redeploy el proyecto.
-
-Sin Redis, el juego funciona pero el leaderboard muestra vacío y no guarda puntuaciones.
-
-### Desarrollo local con API
-
-```bash
-npm i -g vercel
-vercel login
-vercel link
-vercel env pull .env.local
-npm run vercel:dev
-```
+Sin las variables de Supabase, el modo local sigue funcionando, pero las cuentas y rankings online no estaran disponibles.
 
 ## Desarrollo
 
 ```bash
 npm install
 npm run dev          # solo frontend
-npm run vercel:dev   # frontend + API + Redis
 npm run build
 ```
 
@@ -132,12 +114,11 @@ npm run build
 Repo: [BadPi88/MecanoPixel](https://github.com/BadPi88/MecanoPixel).
 
 1. Importa el repo en [vercel.com](https://vercel.com).
-2. Añade **Upstash Redis** desde Storage.
+2. Configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Environment Variables.
 3. Deploy. Comparte la URL con tus amigos.
 
 ## Stack
 
 - React + TypeScript + Vite
-- Vercel Serverless Functions (`/api`)
-- Upstash Redis (leaderboard)
+- Supabase Auth + Postgres (cuentas, progreso y rankings)
 - CSS pixel art (Press Start 2P) + temas de accesibilidad

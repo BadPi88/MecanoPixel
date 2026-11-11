@@ -223,9 +223,30 @@ const WORDS: string[] = [
   'zorro', 'zumo', 'zurdo',
 ];
 
+const ACCENTED_WORDS = [
+  'águila', 'ángel', 'árbol', 'ánimo', 'época', 'espía', 'fábrica', 'fácil',
+  'frío', 'música', 'médico', 'índice', 'océano', 'único', 'unión', 'vacío',
+  'volcán', 'razón', 'también', 'canción', 'camión', 'corazón', 'acción',
+  'decisión', 'dirección', 'atención', 'opción', 'opinión', 'educación',
+  'situación', 'lección', 'misión', 'tradición', 'función', 'presión',
+  'tensión', 'versión', 'reunión', 'nación', 'región', 'jabón', 'jamás',
+  'jardín', 'menú', 'sofá', 'después', 'además', 'quizá', 'país', 'raíz',
+  'maíz', 'caído', 'oído', 'río', 'todavía', 'alegría', 'energía', 'poesía',
+  'héroe', 'héroes', 'aéreo', 'vehículo', 'espíritu', 'murciélago',
+  'teléfono', 'pájaro', 'lágrima', 'máquina', 'cámara', 'sábado', 'rápido',
+  'último', 'número', 'círculo', 'público', 'código', 'política', 'práctica',
+  'química', 'biología', 'economía', 'tecnología', 'mecánica', 'electrónico',
+  'página', 'párrafo', 'mármol', 'brújula', 'césped', 'túnel', 'carácter',
+  'lápiz', 'líder', 'inglés', 'francés', 'alemán', 'vergüenza', 'pingüino',
+  'lingüística',
+];
+
 const normalizedWords = [...new Set(WORDS.map((w) => normalizeWord(w)))].filter(
   (w) => w.length >= 3,
 );
+
+const accentedWords = [...new Set(ACCENTED_WORDS.map(normalizeAccentedWord))]
+  .filter((word) => word.length >= 5 && /[áéíóúü]/.test(word));
 
 function normalizeWord(word: string): string {
   return word
@@ -233,6 +254,13 @@ function normalizeWord(word: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z]/g, '');
+}
+
+function normalizeAccentedWord(word: string): string {
+  return word
+    .toLowerCase()
+    .normalize('NFC')
+    .replace(/[^a-zñáéíóúü]/g, '');
 }
 
 const normalizedGlossaries: Record<string, string[]> = Object.fromEntries(
@@ -244,6 +272,8 @@ const normalizedGlossaries: Record<string, string[]> = Object.fromEntries(
 
 export interface WordFilter {
   glossary?: GlossaryId;
+  /** Piso de la run: las palabras con tildes se introducen progresivamente. */
+  floor?: number;
   /** Forzar rango de longitud (ej. Teclado Cortocircuitado: 3-4). */
   minLen?: number;
   maxLen?: number;
@@ -266,6 +296,12 @@ export function getRandomWord(
     }
   }
 
+  const floor = filter.floor ?? 1;
+  const accentChance =
+    floor < 7 ? 0 : floor < 10 ? 0.1 : floor < 13 ? 0.22 : 0.35;
+  const useAccentedPool = Math.random() < accentChance;
+  if (useAccentedPool) basePool = [...basePool, ...accentedWords];
+
   const candidates = basePool.filter(
     (w) => w.length >= minLen && w.length <= maxLen,
   );
@@ -280,5 +316,5 @@ export function getRandomWord(
 }
 
 export function getWordCount(): number {
-  return normalizedWords.length;
+  return normalizedWords.length + accentedWords.length;
 }

@@ -96,5 +96,27 @@ export function BiomeBackground({
           <rect x="0" y="106" width="160" height="14" fill="#2b1f14" />
         </svg>
       );
+    case 'palimpsesto':
+      return (
+        <svg
+          className={baseClass}
+          viewBox="0 0 160 120"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+        >
+          <rect width="160" height="120" fill="#17101d" />
+          <path d="M0 20H160M0 96H160" stroke="#6b435c" strokeWidth="3" />
+          {[18, 48, 78, 108, 138].map((x, i) => (
+            <g key={x} className="palimpsest-script" style={{ animationDelay: `${i * -0.8}s` }}>
+              <rect x={x} y="10" width="2" height="82" fill="#b56b83" opacity="0.5" />
+              <rect x={x - 8} y="30" width="18" height="3" fill="#e8bd80" opacity="0.55" />
+              <rect x={x - 5} y="43" width="12" height="2" fill="#d9b9d2" opacity="0.4" />
+              <rect x={x - 8} y="55" width="18" height="2" fill="#d9b9d2" opacity="0.3" />
+            </g>
+          ))}
+          <path className="palimpsest-ink" d="M12 84C38 68 49 104 77 82S119 66 148 87" fill="none" stroke="#73eff7" strokeWidth="2" opacity="0.35" />
+          <rect x="0" y="104" width="160" height="16" fill="#100b14" />
+        </svg>
+      );
   }
 }

@@ -10,6 +10,22 @@ export interface ProfileMetaStats {
   bestRunScore: number;
 }
 
+export interface ProfileLearningRun {
+  id: string;
+  date: string;
+  wpm: number;
+  accuracy: number;
+  wordsTyped: number;
+  floor: number;
+  mistakes: number;
+  mistakesByChar?: Record<string, number>;
+}
+
+export interface ProfileLearningStats {
+  history: ProfileLearningRun[];
+  mistakeCounts: Record<string, number>;
+}
+
 export interface ProfileDailyMission {
   date: string;
   missionId: string;
@@ -41,24 +57,10 @@ export interface ProfileMeta {
   seenHints: string[];
   daily: ProfileDailyMission;
   stats: ProfileMetaStats;
+  learning?: ProfileLearningStats;
   ascensionUnlocked: boolean;
   maxAscension: number;
   cosmetics: ProfileCosmetics;
   hubUpgrades: ProfileHubUpgrades;
 }
 
-export type ProfileAction = 'auth' | 'save';
-
-export interface ProfilePayload {
-  playerName: string;
-  pin: string;
-  action: ProfileAction;
-  /** Meta a guardar (action 'save') o semilla al registrar (action 'auth'). */
-  meta?: ProfileMeta;
-}
-
-export interface ProfileResponse {
-  /** true si el perfil se acaba de crear en esta peticion. */
-  created: boolean;
-  meta: ProfileMeta | null;
-}

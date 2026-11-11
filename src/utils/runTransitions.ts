@@ -72,12 +72,18 @@ export function finishRoomToCombat(
 
 export function advanceToNextFloor(state: GameState): Partial<GameState> {
   const floor = state.floor + 1;
-  const biome = applyBiomeForFloor(
-    state.biomeId,
-    floor,
-    state.elapsedMs,
-    state.biomeIntroUntilMs,
-  );
+  const biome =
+    floor <= 12 || state.endlessMode
+      ? applyBiomeForFloor(
+          state.biomeId,
+          floor,
+          state.elapsedMs,
+          state.biomeIntroUntilMs,
+        )
+      : {
+          biomeId: state.biomeId,
+          biomeIntroUntilMs: state.biomeIntroUntilMs,
+        };
 
   return {
     floor,
@@ -90,6 +96,8 @@ export function advanceToNextFloor(state: GameState): Partial<GameState> {
     bossPhase: 0,
     activeBossWordIndex: 0,
     bossAttack: null,
+    bossTelegraphX: null,
+    bossTelegraphUntilMs: 0,
     keyRemap: null,
     inputBlindedUntilMs: 0,
     letterProjectiles: [],

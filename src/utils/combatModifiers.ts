@@ -1,6 +1,7 @@
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { FallingWord, GameState } from '../types/game';
 import { getBiomeBonusScoreMult } from './biomeModifiers';
+import { hasSynergy } from './synergyEngine';
 
 export interface SpawnConstraints {
   minLen?: number;
@@ -44,7 +45,7 @@ export function getShopPriceMult(relics: RelicId[]): number {
 }
 
 export function stripVowels(text: string): string {
-  const stripped = text.replace(/[aeiou]/g, '');
+  const stripped = text.replace(/[aeiouáéíóú]/gi, '');
   return stripped.length > 0 ? stripped : text;
 }
 
@@ -76,6 +77,31 @@ export function applyRelicOnSubmit(
 
   if (relics.includes('sello_maldito')) scoreMult *= 2;
   if (relics.includes('contrato_sangriento')) scoreMult *= 1.5;
+
+  if (
+    relics.includes('marca_agua') &&
+    state.backspacesUsedThisWord === 0
+  ) {
+    extraUltimateCharge += 2;
+  }
+
+  if (relics.includes('colofon') && len >= 8) bonusRunCoins += 8;
+
+  if (relics.includes('glosa_acentuada') && /[áéíóúü]/i.test(word.text)) {
+    scoreMult *= 1.25;
+  }
+  if (
+    relics.includes('pluma_de_eco') &&
+    len >= 8 &&
+    state.backspacesUsedThisWord === 0
+  ) {
+    extraUltimateCharge += 5;
+  }
+  if (
+    hasSynergy(state, 'glosa_perfecta') &&
+    state.backspacesUsedThisWord === 0 &&
+    /[áéíóúü]/i.test(word.text)
+  ) extraUltimateCharge += 5;
 
   if (relics.includes('dados_caoticos')) {
     scoreMult *= 0.7 + Math.random() * 1.1;
@@ -171,5 +197,10 @@ export function applyRelicOnMiss(state: GameState): MissRelicResult {
 }
 
 export function getTrapShieldOnFloorStart(relics: RelicId[]): number {
-  return relics.includes('escudo_runico') ? 2 : 0;
+  return (relics.includes('escudo_runico') ? 2 : 0) +
+    (relics.includes('separador') ? 1 : 0);
+}
+
+export function getBackspaceChargePenalty(relics: RelicId[]): number {
+  return relics.includes('borrador_compasivo') ? 5 : 15;
 }

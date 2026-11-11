@@ -3,6 +3,7 @@ import type { RelicId } from '../types/combat';
 import type { GameState } from '../types/game';
 import {
   previewSynergiesIfRelic,
+  previewPotentialSynergiesIfRelic,
   SYNERGY_CATALOG,
 } from '../utils/synergyEngine';
 
@@ -26,6 +27,7 @@ export function RelicPicker({ choices, state, onSelect }: RelicPickerProps) {
           {choices.map((id) => {
             const relic = getRelicDefinition(id);
             const previewSynergies = previewSynergiesIfRelic(state, id);
+            const potentialSynergies = previewPotentialSynergiesIfRelic(state, id);
             return (
               <button
                 key={id}
@@ -48,6 +50,11 @@ export function RelicPicker({ choices, state, onSelect }: RelicPickerProps) {
                     ))}
                   </span>
                 )}
+                {potentialSynergies.map(({ id: synergyId, missing }) => (
+                  <span key={synergyId} className="relic-card__synergy-next">
+                    Completa {SYNERGY_CATALOG[synergyId].name}: {missing}
+                  </span>
+                ))}
               </button>
             );
           })}

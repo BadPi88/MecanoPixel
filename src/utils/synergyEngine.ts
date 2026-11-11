@@ -9,7 +9,8 @@ export type SynergyId =
   | 'vocal_codificada'
   | 'sangre_toxica'
   | 'caos_maldito'
-  | 'mercader_dorado';
+  | 'mercader_dorado'
+  | 'glosa_perfecta';
 
 export interface SynergyDefinition {
   id: SynergyId;
@@ -57,6 +58,11 @@ export const SYNERGY_CATALOG: Record<SynergyId, SynergyDefinition> = {
     id: 'mercader_dorado',
     name: 'MERCADER DORADO',
     description: 'Moneda ardiente x2 run coins en bonus',
+  },
+  glosa_perfecta: {
+    id: 'glosa_perfecta',
+    name: 'GLOSA PERFECTA',
+    description: 'Palabras con tilde perfectas: +5 carga ultimate',
   },
 };
 
@@ -109,6 +115,11 @@ export function getActiveSynergies(state: GameState): SynergyId[] {
     result.push('mercader_dorado');
   }
 
+  if (
+    state.activeRelics.includes('glosa_acentuada') &&
+    state.activeRelics.includes('marca_agua')
+  ) result.push('glosa_perfecta');
+
   return result;
 }
 
@@ -129,4 +140,40 @@ export function previewSynergiesIfRelic(
       : [...state.activeRelics, relicId],
   };
   return getActiveSynergies(withRelic).filter((id) => !current.includes(id));
+}
+
+/** Sinergias que esta reliquia acerca, con el requisito restante resumido. */
+export function previewPotentialSynergiesIfRelic(
+  state: GameState,
+  relicId: RelicId,
+): Array<{ id: SynergyId; missing: string }> {
+  const withRelic: GameState = {
+    ...state,
+    activeRelics: state.activeRelics.includes(relicId)
+      ? state.activeRelics
+      : [...state.activeRelics, relicId],
+  };
+  const active = new Set(getActiveSynergies(withRelic));
+  const candidates: Array<{ id: SynergyId; missing: string }> = [];
+  const relics = withRelic.activeRelics;
+  const has = (id: RelicId) => relics.includes(id);
+  const add = (id: SynergyId, ready: boolean, missing: string) => {
+    if (!ready && !active.has(id)) candidates.push({ id, missing });
+  };
+
+  add('fuego_electrico', has('reliquia_ignea') && withRelic.selectedGlossary === 'tecnico',
+    has('reliquia_ignea') ? 'glosario tecnico' : 'Reliquia Ignea');
+  add('tinta_segura', has('tinta_toxica') && withRelic.activePerks.some((p) => p.id === 'combo_safe'),
+    has('tinta_toxica') ? 'perk Combo Seguro' : 'Tinta Toxica');
+  add('vocal_codificada', has('afinacion_vocales') && withRelic.runnerId === 'codificador',
+    has('afinacion_vocales') ? 'runner Codificador' : 'Afinacion de Vocales');
+  add('sangre_toxica', has('contrato_sangriento') && has('tinta_toxica'),
+    has('contrato_sangriento') ? 'Tinta Toxica' : 'Contrato Sangriento');
+  add('caos_maldito', has('dados_caoticos') && has('sello_maldito'),
+    has('dados_caoticos') ? 'Sello Maldito' : 'Dados Caoticos');
+  add('mercader_dorado', has('moneda_ardiente') && has('bolsa_mercader'),
+    has('moneda_ardiente') ? 'Bolsa Mercader' : 'Moneda Ardiente');
+  add('glosa_perfecta', has('glosa_acentuada') && has('marca_agua'),
+    has('glosa_acentuada') ? 'Marca de Agua' : 'Glosa Acentuada');
+  return candidates.slice(0, 2);
 }

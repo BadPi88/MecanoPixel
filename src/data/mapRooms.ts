@@ -46,37 +46,37 @@ const ROOM_META: Record<
   shop: {
     type: 'shop',
     label: 'TIENDA',
-    description: 'Compra mejoras con run coins',
+    description: 'Compra una mejora; el precio se muestra antes de entrar',
     icon: '$',
   },
   event: {
     type: 'event',
     label: 'EVENTO',
-    description: 'Decision con riesgo o recompensa',
+    description: 'Evento: compara sus dos efectos antes de elegir',
     icon: '?',
   },
   treasure: {
     type: 'treasure',
     label: 'TESORO',
-    description: 'Elige una reliquia',
+    description: 'Elige 1 reliquia para cambiar tu build',
     icon: '*',
   },
   elite: {
     type: 'elite',
     label: 'ELITE',
-    description: 'Combate duro: +50% coins y modificador',
+    description: 'Combate de riesgo alto; +50% monedas y modificador',
     icon: '!',
   },
   rest: {
     type: 'rest',
     label: 'DESCANSO',
-    description: 'Recupera 1 vida si hay hueco',
+    description: 'Recupera 1 vida si no estas al maximo',
     icon: '+',
   },
   boss: {
     type: 'boss',
     label: 'JEFE',
-    description: 'Enfrenta al villano del tramo',
+    description: 'Jefe obligatorio del acto; gran recompensa',
     icon: 'X',
   },
 };
@@ -202,7 +202,9 @@ export function nodeToOption(
     layer: node.layer,
     type: node.type,
     label: meta.label,
-    description,
+    description: node.previewHidden && !revealPreview
+      ? 'Ruta oculta hasta llegar a esa bifurcacion'
+      : description,
     icon: meta.icon,
     eliteModifier: node.eliteModifier,
     previewHidden: node.previewHidden && !revealPreview,

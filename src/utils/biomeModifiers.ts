@@ -48,6 +48,15 @@ const BIOME_MODS: Record<BiomeId, BiomeGameplayMod> = {
     fabricaRemap: false,
     tronoMiniBossChance: 0.15,
   },
+  palimpsesto: {
+    anagramRateMult: 1.2,
+    bombRateMult: 0.8,
+    oracleRateMult: 1.5,
+    speedMult: 1.04,
+    bonusScoreMult: 1.5,
+    fabricaRemap: false,
+    tronoMiniBossChance: 0,
+  },
 };
 
 export function getBiomeGameplayMod(biomeId: BiomeId): BiomeGameplayMod {
@@ -64,6 +73,8 @@ export function getBiomeModifierLabel(biomeId: BiomeId): string {
       return '+oraculos, caida +10%';
     case 'trono':
       return 'bonus x2, mini-jefes';
+    case 'palimpsesto':
+      return '+anagramas/oraculos, caida +4%, bonus x1.5';
     default:
       return '';
   }

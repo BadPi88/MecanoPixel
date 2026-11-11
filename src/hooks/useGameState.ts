@@ -16,7 +16,6 @@ import type { ShopItemId } from '../types/run';
 import {
   MAX_LETTER_PROJECTILES,
   POS_EFFECT_COOLDOWN_MS,
-  ULTIMATE_BACKSPACE_PENALTY,
   ULTIMATE_CLEAN_WORD_BONUS,
   ULTIMATE_MAX_CHARGE,
 } from '../types/combat';
@@ -53,6 +52,7 @@ import {
   getShopPriceMult,
   getTrapShieldOnFloorStart,
   getUltimateChargePerChar,
+  getBackspaceChargePenalty,
 } from '../utils/combatModifiers';
 import { getNodeById } from '../data/mapRooms';
 import { hasSynergy } from '../utils/synergyEngine';
@@ -72,6 +72,7 @@ import {
 } from '../utils/perkModifiers';
 import { calculateMissPenalty } from '../utils/scoring';
 import { getDailyChallengeConfig } from '../utils/dailySeed';
+import { getWeeklyChallengeConfig } from '../utils/weeklySeed';
 import { createWordId } from './useGameStateHelpers';
 
 export { createWordId } from './useGameStateHelpers';
@@ -101,6 +102,8 @@ function clearBossEncounter(): Partial<GameState> {
     bossPhase: 0,
     activeBossWordIndex: 0,
     bossAttack: null,
+    bossTelegraphX: null,
+    bossTelegraphUntilMs: 0,
     keyRemap: null,
     inputBlindedUntilMs: 0,
   };
@@ -109,11 +112,9 @@ function clearBossEncounter(): Partial<GameState> {
 /** Partial de estado al entrar en shop/event/boss tras un piso o reliquia. */
 function enterBossFight(
   state: GameState,
-  boss = getBossForFloor(
-    state.floor,
-    state.ascensionLevel,
-    state.runSeed,
-  ),
+  boss = state.endlessMode && state.floor === 15
+    ? BOSS_CATALOG.indexadora
+    : getBossForFloor(state.floor, state.ascensionLevel, state.runSeed),
 ): Partial<GameState> {
     const tierOffset = getFloorTierOffset(state);
     const bossWords = initBossWords(
@@ -121,6 +122,7 @@ function enterBossFight(
       state.elapsedMs,
       tierOffset,
       createWordId,
+      state.floor,
     );
     const bossAttack = initBossAttackFromCatalog(boss, state.elapsedMs);
     return {
@@ -132,6 +134,8 @@ function enterBossFight(
       bossPhase: 0,
       activeBossWordIndex: 0,
       bossAttack,
+      bossTelegraphX: null,
+      bossTelegraphUntilMs: 0,
       keyRemap: bossAttack.remap ? { ...BOSS_REMAP_TABLE } : null,
       pendingEvent: null,
       bossSkippedPending: false,
@@ -542,15 +546,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'BEGIN_RUN': {
       const dailyRun = action.payload?.dailyRun ?? false;
+      const weeklyRun = action.payload?.weeklyRun ?? false;
       const ascensionLevel = action.payload?.ascensionLevel ?? 0;
-      if (!dailyRun) {
+      if (!dailyRun && !weeklyRun) {
         return {
           ...initialGameState,
           status: 'runnerPick',
           ascensionLevel,
         };
       }
-      const challenge = getDailyChallengeConfig();
+      const weeklyChallenge = weeklyRun ? getWeeklyChallengeConfig() : null;
+      const challenge = weeklyChallenge ?? getDailyChallengeConfig();
       const runnerId = challenge.runnerId;
       const lives = getInitialLives(runnerId);
       const trapIgnore = getRunnerModifiers(runnerId).trapIgnoreCharges;
@@ -562,7 +568,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         runnerId,
         trapIgnoreRemaining: trapIgnore,
         selectedGlossary: challenge.glossaryId,
-        dailyRun: true,
+        runSeed: challenge.seed,
+        dailyRun,
+        weeklyRun,
+        endlessMode: weeklyRun,
+        challengeWeek: weeklyChallenge?.week ?? null,
+        ascensionLevel: weeklyChallenge?.ascensionLevel ?? 0,
       };
     }
 
@@ -731,7 +742,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'BOSS_TICK': {
       if (state.status !== 'boss' || state.bossWords.length === 0) return state;
       const deltaSec = action.payload.deltaMs / 1000;
-      const fallSpeed = getBossFallSpeed(state.bossId);
+      const fallSpeed = getBossFallSpeed(
+        state.bossId,
+        state.activeBossWordIndex,
+      );
       const bossWords = state.bossWords.map((w) => ({
         ...w,
         y: w.y + fallSpeed * deltaSec,
@@ -743,6 +757,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       let inputBlindedUntilMs = state.inputBlindedUntilMs;
       let bossAttack = state.bossAttack;
       let keyRemap = state.keyRemap;
+      const bossTelegraphX =
+        state.bossTelegraphX !== null &&
+        newElapsed >= state.bossTelegraphUntilMs
+          ? null
+          : state.bossTelegraphX;
 
       if (bossAttack) {
         if (bossAttack.blind && newElapsed >= bossAttack.nextBlindAtMs) {
@@ -789,6 +808,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         inputBlindedUntilMs,
         bossAttack,
         keyRemap,
+        bossTelegraphX,
         lives,
         letterProjectiles: surviving,
       };
@@ -806,8 +826,24 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         letterProjectiles: [...state.letterProjectiles, action.payload],
+        bossTelegraphX:
+          state.status === 'boss' && state.bossId === 'indexadora'
+            ? null
+            : state.bossTelegraphX,
+        bossTelegraphUntilMs:
+          state.status === 'boss' && state.bossId === 'indexadora'
+            ? 0
+            : state.bossTelegraphUntilMs,
       };
     }
+
+    case 'BOSS_TELEGRAPH':
+      if (state.status !== 'boss') return state;
+      return {
+        ...state,
+        bossTelegraphX: action.payload.x,
+        bossTelegraphUntilMs: action.payload.untilMs,
+      };
 
     case 'TYPE_CHAR': {
       if (state.status !== 'playing' && state.status !== 'boss') return state;
@@ -850,6 +886,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         return {
           ...state,
           input: newInput,
+          correctKeyPresses: state.correctKeyPresses + 1,
           wordStartedAtMs:
             state.input === '' ? state.elapsedMs : state.wordStartedAtMs,
           precisionStreak: state.precisionStreak + 1,
@@ -874,6 +911,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         input: newInput,
         precisionStreak: 0,
+        mistakes: state.mistakes + 1,
+        mistakesByChar: {
+          ...state.mistakesByChar,
+          [char]: (state.mistakesByChar[char] ?? 0) + 1,
+        },
         flowStats: {
           ...state.flowStats,
           windowErrors: state.flowStats.windowErrors + 1,
@@ -889,9 +931,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         input: state.input.slice(0, -1),
         precisionStreak: 0,
         ultimateCharge: clampCharge(
-          state.ultimateCharge - ULTIMATE_BACKSPACE_PENALTY,
+          state.ultimateCharge - getBackspaceChargePenalty(state.activeRelics),
         ),
         backspacesUsedThisWord: state.backspacesUsedThisWord + 1,
+        mistakes: state.mistakes + 1,
         flowStats: {
           ...state.flowStats,
           windowErrors: state.flowStats.windowErrors + 1,
@@ -935,6 +978,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             precisionStreak: 0,
             backspacesUsedThisWord: 0,
             score: Math.max(0, state.score - calculateMissPenalty()),
+            mistakes: state.mistakes + 1,
             flowStats: {
               ...state.flowStats,
               windowErrors: state.flowStats.windowErrors + 2,
@@ -1401,13 +1445,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'CONTINUE_ENDLESS': {
       if (state.status !== 'victory') return state;
-      const continued: GameState = {
-        ...state,
-        endlessMode: true,
-        status: 'mapPick',
-        ...buildMapPickState({ ...state, endlessMode: true, floor: state.floor }),
+      const continued = { ...state, endlessMode: true };
+      return {
+        ...continued,
+        ...finishRoomToCombat(
+          continued,
+          applyNextFloorStartModifiers(continued),
+        ),
       };
-      return continued;
     }
 
     case 'VICTORY_HOME':

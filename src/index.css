@@ -527,6 +527,29 @@ body {
   --biome-ground-dark: #7a5a08;
 }
 
+.game-area[data-biome='palimpsesto'] {
+  --biome-ground: #9a617b;
+  --biome-ground-dark: #57334d;
+}
+
+.biome-bg--palimpsesto .palimpsest-script {
+  animation: palimpsest-fade 5s steps(4) infinite alternate;
+}
+
+.biome-bg--palimpsesto .palimpsest-ink {
+  animation: palimpsest-ink-flow 7s ease-in-out infinite alternate;
+}
+
+@keyframes palimpsest-fade {
+  from { opacity: 0.35; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(-2px); }
+}
+
+@keyframes palimpsest-ink-flow {
+  from { transform: translateX(-3px); opacity: 0.2; }
+  to { transform: translateX(3px); opacity: 0.55; }
+}
+
 .game-area[data-biome] .game-area__ground-bricks {
   background-color: var(--biome-ground, var(--color-ground));
   background-image:
@@ -1299,6 +1322,37 @@ body {
   animation: boss-intro 0.6s steps(6) forwards;
 }
 
+.boss-overlay--indexadora .boss-header {
+  border-bottom-color: #b13e53;
+  box-shadow: 0 5px 22px rgba(177, 62, 83, 0.24);
+  animation: indexadora-arrival 0.85s steps(7) both;
+}
+
+.boss-defeat {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: radial-gradient(ellipse, rgba(18, 12, 25, 0.84), rgba(5, 6, 16, 0.12) 68%, transparent 78%);
+  color: #ffcd75;
+  font-size: 10px;
+  text-align: center;
+  text-shadow: 3px 3px #1a0e14, 0 0 16px #ffcd75;
+  pointer-events: none;
+  animation: boss-defeat-out 1.35s steps(9) both;
+}
+
+.boss-defeat .boss-sprite {
+  width: clamp(96px, 24vw, 180px);
+  height: auto;
+  filter: drop-shadow(0 0 18px #ffcd75);
+  animation: boss-defeat-sprite 1.35s steps(8) both;
+}
+
 @keyframes boss-intro {
   from {
     opacity: 0;
@@ -1308,6 +1362,26 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes indexadora-arrival {
+  from { transform: translateY(-24px); filter: brightness(2.2); }
+  60% { transform: translateY(4px); filter: brightness(1.6); }
+  to { transform: translateY(0); filter: brightness(1); }
+}
+
+@keyframes boss-defeat-out {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes boss-defeat-sprite {
+  0% { transform: translateY(18px) scale(0.72); opacity: 0; }
+  18% { transform: translateY(-5px) scale(1.08); opacity: 1; }
+  35%, 72% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-28px) scale(0.82); opacity: 0; }
 }
 
 .boss-bg {
@@ -1366,7 +1440,8 @@ body {
 }
 
 .boss-overlay--perforador .boss-specter,
-.boss-overlay--hilandera .boss-specter {
+.boss-overlay--hilandera .boss-specter,
+.boss-overlay--indexadora .boss-specter {
   --specter-glow: #b080ff;
 }
 
@@ -1419,6 +1494,104 @@ body {
   animation: boss-maw-breathe 3.8s ease-in-out infinite alternate;
 }
 
+.boss-bg__page-turn {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: boss-page-turn 3.6s steps(5) infinite alternate;
+}
+
+.boss-overlay--phase-two .boss-specter {
+  animation:
+    boss-phase-impact 0.7s steps(5),
+    boss-specter-float 5.2s ease-in-out 0.7s infinite;
+}
+
+.boss-header__phase {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 4px 8px;
+  border: 1px solid #b13e53;
+  color: #ffcd75;
+  font-size: 7px;
+  animation: boss-phase-label 0.7s steps(5);
+}
+
+.boss-telegraph {
+  position: absolute;
+  z-index: 3;
+  top: 124px;
+  bottom: 8px;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, #ffcd75 0 4px, transparent 4px 9px);
+  background-size: 2px 9px;
+  opacity: 0.82;
+  animation: boss-telegraph 0.8s steps(4) both;
+  pointer-events: none;
+}
+
+.boss-telegraph span {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: min(180px, 50vw);
+  height: auto;
+  padding: 5px 7px;
+  background: #e43b44;
+  border: 2px solid #ffcd75;
+  color: #fff;
+  font: 6px var(--font-pixel);
+  white-space: nowrap;
+  text-align: center;
+  box-shadow: 0 0 12px #e43b44;
+}
+
+.learning-history {
+  height: 74px;
+  display: flex;
+  align-items: end;
+  gap: 5px;
+  padding: 7px 8px;
+  margin: 10px 0 4px;
+  border: 1px solid rgba(255, 205, 117, 0.35);
+  background: rgba(10, 8, 18, 0.65);
+}
+
+.learning-history__run {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: end;
+}
+
+.learning-history__bar {
+  display: block;
+  width: 100%;
+  min-height: 4px;
+  background: linear-gradient(to top, #7552c7, #ffcd75);
+}
+
+.boss-blind-telegraph {
+  position: absolute;
+  z-index: 4;
+  top: 122px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 2px solid #ffcd75;
+  background: rgba(26, 14, 20, 0.94);
+  color: #ffcd75;
+  font-size: 8px;
+  text-align: center;
+  white-space: nowrap;
+  animation: boss-warning-pulse 0.3s steps(2) infinite alternate;
+}
+
 @keyframes boss-bg-drift {
   from { transform: scale(1.04) translateX(-0.6%); }
   to { transform: scale(1.08) translateX(0.6%); }
@@ -1464,6 +1637,50 @@ body {
   to { transform: scale(1.06); opacity: 1; }
 }
 
+@keyframes boss-page-turn {
+  from { opacity: 0.38; transform: translateX(-2px) scaleX(0.94); }
+  to { opacity: 0.95; transform: translateX(2px) scaleX(1.04); }
+}
+
+@keyframes boss-phase-impact {
+  0%, 100% { transform: translate(0, 0) scale(1); filter: drop-shadow(0 0 18px #b080ff); }
+  20% { transform: translate(-8px, -4px) scale(1.06); filter: drop-shadow(0 0 28px #ffcd75); }
+  45% { transform: translate(7px, 2px) scale(0.98); }
+  70% { transform: translate(-3px, 0) scale(1.03); }
+}
+
+@keyframes boss-phase-label {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes boss-telegraph {
+  from { opacity: 0.08; }
+  to { opacity: 0.9; }
+}
+
+@keyframes boss-warning-pulse {
+  from { filter: brightness(0.85); }
+  to { filter: brightness(1.35); }
+}
+
+@media (max-width: 640px) {
+  .boss-specter {
+    right: -8vw;
+    bottom: -28px;
+    width: min(70vw, 340px);
+    opacity: 0.12;
+  }
+
+  .boss-telegraph {
+    top: 150px;
+  }
+
+  .boss-blind-telegraph {
+    top: 150px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .boss-bg,
   .boss-specter,
@@ -1473,6 +1690,16 @@ body {
   .boss-bg__type,
   .boss-bg__debris,
   .boss-bg__maw {
+    animation: none;
+  }
+
+  .boss-bg__page-turn {
+    animation: none;
+  }
+
+  .boss-telegraph,
+  .boss-blind-telegraph,
+  .boss-header__phase {
     animation: none;
   }
 }
@@ -1567,6 +1794,12 @@ body {
 .falling-word--boss-inactive {
   opacity: 0.55;
   filter: grayscale(0.4);
+}
+
+.falling-word--boss-complete {
+  opacity: 0;
+  transform: scale(0.82);
+  pointer-events: none;
 }
 
 .meta-shop {

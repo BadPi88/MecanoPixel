@@ -158,6 +158,29 @@ export function BossBackground({ bossId, className = '' }: BossBackgroundProps) 
           <path d="M0 84H160" stroke="#ffcd75" strokeWidth="2" opacity="0.5" />
         </svg>
       );
+    case 'indexadora':
+      return (
+        <svg
+          className={`boss-bg boss-bg--indexadora ${className}`.trim()}
+          viewBox="0 0 160 90"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+        >
+          <rect width="160" height="90" fill="#17101d" />
+          <rect x="0" y="12" width="160" height="5" fill="#6b435c" />
+          <rect x="0" y="74" width="160" height="7" fill="#6b435c" />
+          {[12, 34, 56, 78, 100, 122, 144].map((x, i) => (
+            <g key={x} className="boss-bg__page-turn" style={{ animationDelay: `${i * -0.6}s` }}>
+              <path d={`M${x} 20h12v42h-12z`} fill={i % 2 ? '#3e2731' : '#4d2f46'} opacity="0.75" />
+              <path d={`M${x + 3} 28h6M${x + 3} 35h7M${x + 3} 42h5M${x + 3} 49h7`} stroke="#ffcd75" strokeWidth="1" opacity="0.6" />
+            </g>
+          ))}
+          <ellipse cx="80" cy="48" rx="28" ry="22" fill="#7a4ccd" opacity="0.3" />
+          <circle cx="80" cy="48" r="12" fill="#17101d" stroke="#73eff7" strokeWidth="2" />
+          <circle cx="80" cy="48" r="4" fill="#f2c79b" />
+          <path d="M0 86H160" stroke="#b13e53" strokeWidth="2" opacity="0.8" />
+        </svg>
+      );
     case 'mini_guardian':
       return (
         <svg

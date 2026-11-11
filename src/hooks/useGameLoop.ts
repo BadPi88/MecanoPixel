@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Dispatch } from 'react';
 import type { GameAction, GameState } from '../types/game';
+import { BOSS_CATALOG } from '../data/bosses';
 import { getDifficultyTier } from '../utils/difficulty';
 import {
   getEffectiveDifficulty,
@@ -195,10 +196,15 @@ export function useGameLoop(
 
       const areaHeight =
         gameAreaRef.current?.clientHeight ?? window.innerHeight - 48;
-      const fallSpeed = getBossFallSpeed(current.bossId);
+      const fallSpeed = getBossFallSpeed(
+        current.bossId,
+        current.activeBossWordIndex,
+      );
       const deltaSec = deltaMs / 1000;
       const anyHitsGround = current.bossWords.some(
-        (w) => w.y + fallSpeed * deltaSec >= areaHeight - BOSS_WORD_HEIGHT,
+        (w, index) =>
+          index >= current.activeBossWordIndex &&
+          w.y + fallSpeed * deltaSec >= areaHeight - BOSS_WORD_HEIGHT,
       );
       if (anyHitsGround) {
         dispatch({ type: 'BOSS_FAIL' });
@@ -268,6 +274,7 @@ export function useGameLoop(
         tierOffset,
         current.selectedGlossary,
         current.activeRelics,
+        current.floor,
       );
       const devoratexto = current.bossId === 'devoratexto';
       const decoration = decorateSpawn(
@@ -313,47 +320,72 @@ export function useGameLoop(
 
     let timeoutId: ReturnType<typeof setTimeout>;
 
+    const stillActive = (current: GameState) =>
+      (current.status === 'playing' && current.floor >= 2) ||
+      (current.status === 'boss' && current.bossAttack?.projectiles);
+
     const scheduleProjectile = () => {
       const current = stateRef.current;
-      const stillActive =
-        (current.status === 'playing' && current.floor >= 2) ||
-        (current.status === 'boss' && current.bossAttack?.projectiles);
-      if (!stillActive) return;
+      if (!stillActive(current)) return;
 
       const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
+      const x = MIN_X_PADDING + Math.random() * (areaWidth - MIN_X_PADDING * 2);
       const char =
         PROJECTILE_CHARS[Math.floor(Math.random() * PROJECTILE_CHARS.length)];
+      const telegraph = current.status === 'boss' && current.bossId !== null;
 
-      dispatch({
-        type: 'SPAWN_PROJECTILE',
-        payload: {
-          id: createWordId(),
-          char,
-          x: MIN_X_PADDING + Math.random() * (areaWidth - MIN_X_PADDING * 2),
-          y: -24,
-          vy: 60 + Math.random() * 30,
-        },
-      });
+      const launch = () => {
+        if (!stillActive(stateRef.current)) return;
+        dispatch({
+          type: 'SPAWN_PROJECTILE',
+          payload: {
+            id: createWordId(),
+            char,
+            x,
+            y: -24,
+            vy: 60 + Math.random() * 30,
+          },
+        });
 
-      let intervalMult =
-        current.status === 'boss'
-          ? getBossProjectileIntervalMult(current.bossId)
-          : 1;
-      if (current.status === 'boss') {
-        intervalMult *= getAscensionBossAttackMult(current.ascensionLevel);
+        const active = stateRef.current;
+        let intervalMult =
+          active.status === 'boss'
+            ? getBossProjectileIntervalMult(
+                active.bossId,
+                active.activeBossWordIndex,
+              )
+            : 1;
+        if (active.status === 'boss') {
+          intervalMult *= getAscensionBossAttackMult(active.ascensionLevel);
+        }
+        const baseInterval =
+          PROJECTILE_MIN_INTERVAL +
+          Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
+        timeoutId = setTimeout(scheduleProjectile, baseInterval * intervalMult);
+      };
+
+      if (telegraph && current.status === 'boss') {
+        const warningMs = current.bossId
+          ? BOSS_CATALOG[current.bossId].telegraphMs
+          : 0;
+        dispatch({
+          type: 'BOSS_TELEGRAPH',
+          payload: { x, untilMs: current.elapsedMs + warningMs },
+        });
+        timeoutId = setTimeout(launch, warningMs);
+      } else {
+        launch();
       }
-      const baseInterval =
-        PROJECTILE_MIN_INTERVAL +
-        Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
-
-      timeoutId = setTimeout(
-        scheduleProjectile,
-        baseInterval * intervalMult,
-      );
     };
 
     timeoutId = setTimeout(scheduleProjectile, PROJECTILE_MIN_INTERVAL);
 
     return () => clearTimeout(timeoutId);
-  }, [state.status, state.bossAttack?.projectiles, dispatch, gameAreaRef]);
+  }, [
+    state.status,
+    state.floor,
+    state.bossAttack?.projectiles,
+    dispatch,
+    gameAreaRef,
+  ]);
 }

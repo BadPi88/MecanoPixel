@@ -66,4 +66,12 @@ export type EventId =
   | 'biblioteca'
   | 'mercader_oscuro'
   | 'combo_ofrenda'
-  | 'reliquia_espejismo';
+  | 'reliquia_espejismo'
+  | 'margen_roto'
+  | 'tinta_dorada'
+  | 'margen_protegido'
+  | 'borrador_vivo'
+  | 'eco_de_tinta'
+  | 'pagina_inestable'
+  | 'nota_deudora'
+  | 'glosa_perdida';

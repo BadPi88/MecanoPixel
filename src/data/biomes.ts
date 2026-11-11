@@ -1,5 +1,5 @@
 /** Zonas visuales de la run (cada 3 pisos). */
-export type BiomeId = 'scriptorium' | 'fabrica' | 'abismo' | 'trono';
+export type BiomeId = 'scriptorium' | 'fabrica' | 'abismo' | 'trono' | 'palimpsesto';
 
 export const FLOORS_PER_BIOME = 3;
 
@@ -36,9 +36,21 @@ export const BIOME_CATALOG: Record<BiomeId, BiomeDefinition> = {
     enterLabel: 'TRONO — la tirania de las teclas',
     floorMin: 10,
   },
+  palimpsesto: {
+    id: 'palimpsesto',
+    name: 'EL PALIMPSESTO',
+    enterLabel: 'PALIMPSESTO — las palabras borradas regresan',
+    floorMin: 13,
+  },
 };
 
-const BIOME_ORDER: BiomeId[] = ['scriptorium', 'fabrica', 'abismo', 'trono'];
+const BIOME_ORDER: BiomeId[] = [
+  'scriptorium',
+  'fabrica',
+  'abismo',
+  'trono',
+  'palimpsesto',
+];
 
 export function getBiomeForFloor(floor: number): BiomeId {
   const index = Math.min(

@@ -11,8 +11,7 @@
     "vercel:dev": "vercel dev"
   },
   "dependencies": {
-    "@upstash/redis": "^1.38.0",
-    "@vercel/node": "^5.8.15",
+    "@supabase/supabase-js": "^2.119.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
