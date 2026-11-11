@@ -1,5 +1,6 @@
 import type { EliteModifierId } from './eliteModifiers';
 import { FLOORS_PER_BIOME } from './biomes';
+import { createSeededRandom } from '../utils/random';
 
 export type MapRoomType =
   | 'shop'
@@ -83,14 +84,6 @@ const ROOM_META: Record<
 
 const ELITE_MODIFIERS: EliteModifierId[] = ['fog', 'storm', 'cascade'];
 
-function seededRandom(seed: number): () => number {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 0xffffffff;
-  };
-}
-
 function pickOne<T>(arr: T[], rand: () => number): T {
   return arr[Math.floor(rand() * arr.length)];
 }
@@ -101,7 +94,7 @@ export function getActIndexForFloor(floor: number): number {
 
 /** Genera un arbol ramificado de 5 capas por acto (capas 0-3 salas, capa 4 jefe). */
 export function generateActMap(actIndex: number, runSeed: number): ActMapGraph {
-  const rand = seededRandom((runSeed + actIndex * 9973) >>> 0);
+  const rand = createSeededRandom((runSeed + actIndex * 9973) >>> 0);
   const nodes: ActMapNode[] = [];
   const fillerTypes: MapRoomType[] = [
     'shop',

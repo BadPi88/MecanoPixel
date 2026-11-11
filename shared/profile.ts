@@ -19,6 +19,13 @@ export interface ProfileLearningRun {
   floor: number;
   mistakes: number;
   mistakesByChar?: Record<string, number>;
+  ascensionLevel?: number;
+  deathCause?: string | null;
+  reachedBoss?: boolean;
+  runnerId?: string | null;
+  relics?: string[];
+  weeklyRun?: boolean;
+  runSeed?: number;
 }
 
 export interface ProfileLearningStats {

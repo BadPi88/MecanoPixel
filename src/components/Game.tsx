@@ -34,10 +34,13 @@ import { PixelButton } from './PixelButton';
 import { StartScreen } from './StartScreen';
 import { TutorialOverlay } from './TutorialOverlay';
 import { BossSprite } from '../assets/bossSprites';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 export function Game() {
   const { state, dispatch } = useGameState();
   const gameAreaRef = useRef<HTMLDivElement>(null);
+  const oracleDialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(oracleDialogRef, state.status === 'oraclePick');
   const [playerName, setPlayerName] = useState(loadPlayerName);
   const [showTutorial, setShowTutorial] = useState(
     () => !loadMeta().tutorialComplete,
@@ -257,6 +260,7 @@ export function Game() {
           deflectedLetters={state.deflectedLetters}
           reachedBoss={state.reachedBoss}
           ascensionLevel={state.ascensionLevel}
+          runSeed={state.runSeed}
           onContinueEndless={() => dispatch({ type: 'CONTINUE_ENDLESS' })}
           onHome={() => dispatch({ type: 'VICTORY_HOME' })}
         />
@@ -334,6 +338,10 @@ export function Game() {
                     <br />
                     <span className="biome-intro__mod">
                       {getBiomeModifierLabel(state.biomeId)}
+                    </span>
+                    <br />
+                    <span className="biome-intro__story">
+                      {BIOME_CATALOG[state.biomeId].story}
                     </span>
                   </span>
                 </div>
@@ -421,9 +429,9 @@ export function Game() {
             visible={state.status === 'boss'}
           />
           {state.status === 'oraclePick' && state.oracleRewardWord && (
-            <div className="oracle-overlay" role="dialog" aria-modal="true">
+            <div className="oracle-overlay" role="dialog" aria-modal="true" aria-labelledby="oracle-title" ref={oracleDialogRef}>
               <div className="oracle-overlay__panel pixel-panel">
-                <h2 className="oracle-overlay__title">ORACULO</h2>
+                <h2 className="oracle-overlay__title" id="oracle-title">ORACULO</h2>
                 <p className="oracle-overlay__word">
                   {state.oracleRewardWord.text}
                 </p>
@@ -480,6 +488,7 @@ export function Game() {
           reachedBoss={state.reachedBoss}
           bossSkipMetaMult={state.bossSkipMetaMult}
           ascensionLevel={state.ascensionLevel}
+          runSeed={state.runSeed}
           onRetry={() =>
             state.dailyRun
               ? dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } })

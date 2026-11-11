@@ -14,6 +14,7 @@ export function useKeyboard(
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const modal = document.querySelector('[role="dialog"][aria-modal="true"]');
 
       if (event.key === 'Escape') {
         if (state.showBuildOverlay) {
@@ -21,12 +22,15 @@ export function useKeyboard(
           dispatch({ type: 'TOGGLE_BUILD_OVERLAY' });
           return;
         }
+        if (modal) return;
         if (state.status === 'playing' || state.status === 'paused') {
           event.preventDefault();
           dispatch({ type: 'TOGGLE_PAUSE' });
         }
         return;
       }
+
+      if (state.showBuildOverlay || modal) return;
 
       if (state.status !== 'playing' && state.status !== 'boss') return;
 

@@ -1,6 +1,6 @@
 import type { AchievementId } from '../data/achievements';
 import type { GlossaryId, RelicId } from '../types/combat';
-import type { RunnerId } from '../types/run';
+import type { DeathCause, RunnerId } from '../types/run';
 import type { ProfileMeta } from '../types/profile';
 import { pickMissionForDate } from '../data/dailyMissions';
 import { getUtcDateString } from '../utils/dailySeed';
@@ -110,6 +110,9 @@ function fromProfileMeta(meta: ProfileMeta): MetaProgress {
     learning: {
       history: [...(meta.learning?.history ?? defaults.learning.history)].slice(-30).map((run) => ({
         ...run,
+        deathCause: run.deathCause as DeathCause | null | undefined,
+        runnerId: run.runnerId as RunnerId | null | undefined,
+        relics: run.relics as RelicId[] | undefined,
         mistakesByChar: { ...(run.mistakesByChar ?? {}) },
       })),
       mistakeCounts: { ...defaults.learning.mistakeCounts, ...(meta.learning?.mistakeCounts ?? {}) },
@@ -182,7 +185,7 @@ export async function loginOrRegister(
       email: email.trim().toLowerCase(),
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/login`,
         data: { display_name: playerName.trim(), initial_meta: toProfileMeta(local) },
       },
     });

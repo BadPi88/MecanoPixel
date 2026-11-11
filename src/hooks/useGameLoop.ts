@@ -31,6 +31,7 @@ import {
 } from '../data/bosses';
 import { getAscensionBossAttackMult } from '../utils/ascensionModifiers';
 import { createWordId } from './useGameStateHelpers';
+import { createSeededRandom } from '../utils/random';
 
 const WORD_HEIGHT = 36;
 const MIN_X_PADDING = 16;
@@ -40,9 +41,9 @@ const PROJECTILE_CHARS = ['q', 'x', 'j', 'z', 'k', 'w', 'b', 'v'];
 const PROJECTILE_MIN_INTERVAL = 8_000;
 const PROJECTILE_MAX_INTERVAL = 12_000;
 
-function randomX(areaWidth: number, wordWidth: number): number {
+function randomX(areaWidth: number, wordWidth: number, random: () => number): number {
   const maxX = Math.max(MIN_X_PADDING, areaWidth - wordWidth - MIN_X_PADDING);
-  return MIN_X_PADDING + Math.random() * (maxX - MIN_X_PADDING);
+  return MIN_X_PADDING + random() * (maxX - MIN_X_PADDING);
 }
 
 function estimateWordWidth(text: string): number {
@@ -53,11 +54,12 @@ function findSpawnX(
   areaWidth: number,
   text: string,
   existingWords: { x: number; text: string }[],
+  random: () => number,
 ): number {
   const wordWidth = estimateWordWidth(text);
 
   for (let attempt = 0; attempt < 12; attempt++) {
-    const x = randomX(areaWidth, wordWidth);
+    const x = randomX(areaWidth, wordWidth, random);
     const overlaps = existingWords.some((w) => {
       const wWidth = estimateWordWidth(w.text);
       return Math.abs(w.x - x) < MIN_WORD_GAP + (wWidth + wordWidth) / 4;
@@ -65,7 +67,7 @@ function findSpawnX(
     if (!overlaps) return x;
   }
 
-  return randomX(areaWidth, wordWidth);
+  return randomX(areaWidth, wordWidth, random);
 }
 
 function getCombatExtras(state: GameState): CombatExtras {
@@ -263,10 +265,14 @@ export function useGameLoop(
       );
       rates.bonus += getRunnerModifiers(current.runnerId).bonusChanceBonus;
       const chaosMode = current.chaosRollRemaining > 0;
+      const random = createSeededRandom(
+        (current.runSeed + Math.imul(current.spawnCount + 1, 0x9e3779b9)) >>> 0,
+      );
       const kind = rollWordKind(
         rates,
         getOracleRateMult(current.biomeId),
         chaosMode,
+        random,
       );
       const text = getWordTextForKind(
         kind,
@@ -275,6 +281,7 @@ export function useGameLoop(
         current.selectedGlossary,
         current.activeRelics,
         current.floor,
+        random,
       );
       const devoratexto = current.bossId === 'devoratexto';
       const decoration = decorateSpawn(
@@ -285,9 +292,10 @@ export function useGameLoop(
         current.activeRelics,
         current.biomeId,
         devoratexto,
+        random,
       );
       const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
-      const x = findSpawnX(areaWidth, text, current.words);
+      const x = findSpawnX(areaWidth, text, current.words, random);
 
       dispatch({
         type: 'SPAWN_WORD',
@@ -329,9 +337,12 @@ export function useGameLoop(
       if (!stillActive(current)) return;
 
       const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
-      const x = MIN_X_PADDING + Math.random() * (areaWidth - MIN_X_PADDING * 2);
+      const random = createSeededRandom(
+        (current.runSeed + Math.imul(current.projectileCount + 1, 0x85ebca6b)) >>> 0,
+      );
+      const x = MIN_X_PADDING + random() * (areaWidth - MIN_X_PADDING * 2);
       const char =
-        PROJECTILE_CHARS[Math.floor(Math.random() * PROJECTILE_CHARS.length)];
+        PROJECTILE_CHARS[Math.min(PROJECTILE_CHARS.length - 1, Math.floor(random() * PROJECTILE_CHARS.length))];
       const telegraph = current.status === 'boss' && current.bossId !== null;
 
       const launch = () => {
@@ -343,7 +354,7 @@ export function useGameLoop(
             char,
             x,
             y: -24,
-            vy: 60 + Math.random() * 30,
+            vy: 60 + random() * 30,
           },
         });
 
@@ -360,7 +371,7 @@ export function useGameLoop(
         }
         const baseInterval =
           PROJECTILE_MIN_INTERVAL +
-          Math.random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
+          random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
         timeoutId = setTimeout(scheduleProjectile, baseInterval * intervalMult);
       };
 

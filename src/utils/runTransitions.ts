@@ -5,6 +5,7 @@ import { getEffectiveAscensionTierOffset } from './ascensionModifiers';
 import { getEliteCoinMult, getEliteTierBonus } from './eliteModifiers';
 import { buildActMapChoices, initActMapIfNeeded } from './mapAct';
 import { getBiomeGameplayMod } from './biomeModifiers';
+import { createSeededRandom } from './random';
 
 export function getFloorTierOffset(state: GameState): number {
   return (
@@ -33,10 +34,13 @@ export function buildMapPickState(state: GameState): Partial<GameState> {
   const { mapRoomOptions, actMap } = buildActMapChoices(merged);
 
   const tronoMod = getBiomeGameplayMod(merged.biomeId);
+  const random = createSeededRandom(
+    (merged.runSeed + Math.imul(merged.floor, 0x27d4eb2d)) >>> 0,
+  );
   const pendingMiniBoss =
     tronoMod.tronoMiniBossChance > 0 &&
     merged.floor % 3 !== 0 &&
-    Math.random() < tronoMod.tronoMiniBossChance;
+    random() < tronoMod.tronoMiniBossChance;
 
   return {
     ...actInit,

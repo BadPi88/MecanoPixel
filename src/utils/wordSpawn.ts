@@ -53,14 +53,15 @@ export function rollWordKind(
   rates: SpawnRates,
   oracleMult = 1,
   chaosMode = false,
+  random: () => number = Math.random,
 ): WordKind {
   if (chaosMode) {
     const kinds: WordKind[] = ['normal', 'trap', 'bomb', 'bonus', 'oracle'];
-    return kinds[Math.floor(Math.random() * kinds.length)];
+    return kinds[Math.min(kinds.length - 1, Math.floor(random() * kinds.length))];
   }
 
   const oracleRate = ORACLE_SPAWN_RATE * oracleMult;
-  const roll = Math.random();
+  const roll = random();
   if (roll < oracleRate) return 'oracle';
   if (roll < oracleRate + rates.trap) return 'trap';
   if (roll < oracleRate + rates.trap + rates.bomb) return 'bomb';
@@ -77,15 +78,16 @@ export function getWordTextForKind(
   glossary: GlossaryId = 'general',
   relics: RelicId[] = [],
   floor = 1,
+  random: () => number = Math.random,
 ): string {
-  if (kind === 'trap') return getRandomTrapWord();
+  if (kind === 'trap') return getRandomTrapWord(random);
   if (kind === 'oracle') {
     const oracleWords = ['oraculo', 'vision', 'augurio', 'profecia', 'destino'];
-    return oracleWords[Math.floor(Math.random() * oracleWords.length)];
+    return oracleWords[Math.min(oracleWords.length - 1, Math.floor(random() * oracleWords.length))];
   }
   if (kind === 'bonus') {
     const words = ['oro', 'gema', 'luck', 'premio', 'bonus'];
-    return words[Math.floor(Math.random() * words.length)];
+    return words[Math.min(words.length - 1, Math.floor(random() * words.length))];
   }
   const constraints = getSpawnConstraints(relics);
   return getRandomWord(elapsedMs, tierOffset, {
@@ -93,17 +95,17 @@ export function getWordTextForKind(
     minLen: constraints.minLen,
     maxLen: constraints.maxLen,
     floor,
-  });
+  }, random);
 }
 
-function shuffleText(text: string): string {
+function shuffleText(text: string, random: () => number): string {
   const chars = text.split('');
   for (let i = chars.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [chars[i], chars[j]] = [chars[j], chars[i]];
   }
   const result = chars.join('');
-  return result === text && text.length > 1 ? shuffleText(text) : result;
+  return result === text && text.length > 1 ? shuffleText(text, random) : result;
 }
 
 export interface SpawnDecoration {
@@ -135,6 +137,7 @@ export function decorateSpawn(
   relics: RelicId[],
   biomeId: BiomeId = 'scriptorium',
   devoratextoBoss = false,
+  random: () => number = Math.random,
 ): SpawnDecoration {
   const pos = getWordPOS(text);
 
@@ -157,13 +160,13 @@ export function decorateSpawn(
   const anagramRate = getAnagramRate(floor, biomeId);
   const shiftingRate = getShiftingRate(floor, devoratextoBoss);
 
-  const roll = Math.random();
+  const roll = random();
   if (forceAnagram || roll < anagramRate) {
     modifiers.push('anagram');
-    displayText = shuffleText(text);
+    displayText = shuffleText(text, random);
   } else if (roll < anagramRate + shiftingRate) {
     modifiers.push('shifting');
-    displayText = shuffleText(text);
+    displayText = shuffleText(text, random);
     morphAtMs = elapsedMs + (devoratextoBoss ? 1_500 : 3_000);
   }
 
@@ -180,20 +183,21 @@ export function decorateSpawn(
   };
 }
 
-export function morphDisplayText(targetText: string): string {
-  return shuffleText(targetText);
+export function morphDisplayText(targetText: string, random: () => number = Math.random): string {
+  return shuffleText(targetText, random);
 }
 
 export function getBossWord(
   elapsedMs: number,
   tierOffset: number,
   floor = 1,
+  random: () => number = Math.random,
 ): string {
   for (let len = 14; len >= 10; len--) {
-    const word = getRandomWord(elapsedMs, tierOffset, { floor });
+    const word = getRandomWord(elapsedMs, tierOffset, { floor }, random);
     if (word.length >= len - 2) return word;
   }
-  return getRandomWord(elapsedMs, tierOffset, { floor });
+  return getRandomWord(elapsedMs, tierOffset, { floor }, random);
 }
 
 export function getOracleRateMult(biomeId: BiomeId): number {

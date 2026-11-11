@@ -66,6 +66,7 @@ export function applyRelicOnSubmit(
   word: FallingWord,
   basePoints: number,
   burnPropagates: boolean,
+  random: () => number = Math.random,
 ): SubmitRelicResult {
   const relics = state.activeRelics;
   const len = word.text.length;
@@ -104,7 +105,7 @@ export function applyRelicOnSubmit(
   ) extraUltimateCharge += 5;
 
   if (relics.includes('dados_caoticos')) {
-    scoreMult *= 0.7 + Math.random() * 1.1;
+    scoreMult *= 0.7 + random() * 1.1;
   }
 
   if (relics.includes('diccionario_erudito')) {

@@ -170,13 +170,17 @@ export function pickRelicChoices(
   activeRelics: RelicId[],
   count = 3,
   bonusReroll = false,
+  random: () => number = Math.random,
 ): RelicId[] {
   if (activeRelics.length >= MAX_ACTIVE_RELICS) return [];
 
   const pool = getUnlockedRelicPool();
   const available = pool.filter((id) => !activeRelics.includes(id));
-  const shuffled = [...available].sort(() => Math.random() - 0.5);
-  if (bonusReroll) shuffled.sort(() => Math.random() - 0.5);
+  const shuffled = [...available];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.min(i, Math.floor(random() * (i + 1)));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   const pickCount = bonusReroll
     ? Math.min(count + 1, shuffled.length)
     : Math.min(count, shuffled.length);

@@ -41,7 +41,30 @@ export function loadSettings(): GameSettings {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw) as Partial<GameSettings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    const keyboardLayouts: KeyboardLayoutId[] = ['qwerty', 'azerty', 'qwertz', 'dvorak', 'colemak'];
+    const fonts: FontMode[] = ['pixel', 'opendyslexic', 'system'];
+    const themes: ThemeId[] = ['default', 'highContrast', 'protanopia', 'deuteranopia', 'tritanopia'];
+    const scales: FontScale[] = [1, 1.25, 1.5];
+    return {
+      keyboardLayout: keyboardLayouts.includes(parsed.keyboardLayout as KeyboardLayoutId)
+        ? parsed.keyboardLayout as KeyboardLayoutId
+        : DEFAULT_SETTINGS.keyboardLayout,
+      fontMode: fonts.includes(parsed.fontMode as FontMode)
+        ? parsed.fontMode as FontMode
+        : DEFAULT_SETTINGS.fontMode,
+      theme: themes.includes(parsed.theme as ThemeId)
+        ? parsed.theme as ThemeId
+        : DEFAULT_SETTINGS.theme,
+      fontScale: scales.includes(parsed.fontScale as FontScale)
+        ? parsed.fontScale as FontScale
+        : DEFAULT_SETTINGS.fontScale,
+      reducedMotion: typeof parsed.reducedMotion === 'boolean'
+        ? parsed.reducedMotion
+        : DEFAULT_SETTINGS.reducedMotion,
+      soundEnabled: typeof parsed.soundEnabled === 'boolean'
+        ? parsed.soundEnabled
+        : DEFAULT_SETTINGS.soundEnabled,
+    };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

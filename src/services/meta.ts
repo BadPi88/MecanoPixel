@@ -1,5 +1,5 @@
 import type { GlossaryId, RelicId } from '../types/combat';
-import type { RunnerId } from '../types/run';
+import type { DeathCause, RunnerId } from '../types/run';
 import { RUNNER_CATALOG } from '../data/runners';
 import {
   ACHIEVEMENT_IDS,
@@ -54,6 +54,14 @@ export interface LearningRun {
   floor: number;
   mistakes: number;
   mistakesByChar: Record<string, number>;
+  /** Dimensiones de run para analisis de balance junto al progreso del perfil. */
+  ascensionLevel?: number;
+  deathCause?: DeathCause | null;
+  reachedBoss?: boolean;
+  runnerId?: RunnerId | null;
+  relics?: RelicId[];
+  weeklyRun?: boolean;
+  runSeed?: number;
 }
 
 export interface LearningStats {
@@ -352,6 +360,11 @@ export function recordRunEnd(
     accuracy?: number;
     mistakes?: number;
     mistakesByChar?: Record<string, number>;
+    ascensionLevel?: number;
+    runnerId?: RunnerId | null;
+    relics?: RelicId[];
+    weeklyRun?: boolean;
+    runSeed?: number;
   },
 ): RunEndResult {
   let meta = loadMeta();
@@ -372,6 +385,13 @@ export function recordRunEnd(
       floor,
       mistakes: runStats.mistakes ?? 0,
       mistakesByChar: { ...(runStats.mistakesByChar ?? {}) },
+      ascensionLevel: runStats.ascensionLevel ?? 0,
+      deathCause: runStats.deathCause,
+      reachedBoss: runStats.reachedBoss,
+      runnerId: runStats.runnerId ?? null,
+      relics: [...(runStats.relics ?? [])],
+      weeklyRun: runStats.weeklyRun ?? false,
+      runSeed: runStats.runSeed,
     },
   ].slice(-30);
   meta.learning.mistakeCounts = {};

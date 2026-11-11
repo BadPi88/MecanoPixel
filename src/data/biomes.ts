@@ -8,6 +8,8 @@ export interface BiomeDefinition {
   name: string;
   /** Texto del banner al entrar en la zona. */
   enterLabel: string;
+  /** Frase narrativa breve para situar el acto. */
+  story: string;
   floorMin: number;
 }
 
@@ -16,30 +18,35 @@ export const BIOME_CATALOG: Record<BiomeId, BiomeDefinition> = {
     id: 'scriptorium',
     name: 'SCRIPTORIUM',
     enterLabel: 'SCRIPTORIUM — archivos del primer piso',
+    story: 'La primera glosa sigue intacta bajo el polvo.',
     floorMin: 1,
   },
   fabrica: {
     id: 'fabrica',
     name: 'FABRICA',
     enterLabel: 'FABRICA — maquinas y circuitos',
+    story: 'La fabrica imprime palabras que nadie recuerda haber escrito.',
     floorMin: 4,
   },
   abismo: {
     id: 'abismo',
     name: 'ABISMO',
     enterLabel: 'ABISMO — el vacio perfora',
+    story: 'En el vacio, cada error abre una grieta en el texto.',
     floorMin: 7,
   },
   trono: {
     id: 'trono',
     name: 'TRONO',
     enterLabel: 'TRONO — la tirania de las teclas',
+    story: 'La Tiranotipo reescribe la historia desde su trono.',
     floorMin: 10,
   },
   palimpsesto: {
     id: 'palimpsesto',
     name: 'EL PALIMPSESTO',
     enterLabel: 'PALIMPSESTO — las palabras borradas regresan',
+    story: 'Las palabras tachadas regresan para reclamar su lugar.',
     floorMin: 13,
   },
 };

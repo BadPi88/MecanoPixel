@@ -1,5 +1,7 @@
+import { useRef } from 'react';
 import { getPerkDefinition } from '../data/perks';
 import type { PerkId } from '../types/perks';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 interface PerkPickerProps {
   choices: PerkId[];
   onSelect: (id: PerkId) => void;
@@ -13,10 +15,12 @@ const CATEGORY_CLASS: Record<string, string> = {
 };
 
 export function PerkPicker({ choices, onSelect }: PerkPickerProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   return (
-    <div className="perk-picker-overlay" role="dialog" aria-modal="true">
+    <div className="perk-picker-overlay" role="dialog" aria-modal="true" aria-labelledby="perk-picker-title" ref={dialogRef}>
       <div className="perk-picker pixel-panel">
-        <h2 className="perk-picker__title">¡MAS RAPIDO!</h2>
+        <h2 className="perk-picker__title" id="perk-picker-title">¡MAS RAPIDO!</h2>
         <p className="perk-picker__subtitle">3 subidas de ritmo — elige un perk</p>
         <div className="perk-picker__grid">
           {choices.map((id) => {

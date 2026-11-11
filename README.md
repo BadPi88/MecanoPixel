@@ -106,7 +106,10 @@ Sin las variables de Supabase, el modo local sigue funcionando, pero las cuentas
 ```bash
 npm install
 npm run dev          # solo frontend
+npm run test         # pruebas unitarias y de interfaz
+npm run test:watch   # pruebas en modo watch
 npm run build
+npm run lint
 ```
 
 ## Deploy en Vercel

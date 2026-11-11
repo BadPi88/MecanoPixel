@@ -44,10 +44,10 @@ export function updateFlowStats(
   let spawnMult = stats.spawnMult;
   let speedMult = stats.speedMult;
 
-  if (emaErrorRate < 0.05) {
+  if (emaErrorRate < 0.05 && emaWpm >= 45) {
     spawnMult *= SPAWN_STEP_DOWN;
     speedMult *= SPEED_STEP_UP;
-  } else if (emaErrorRate > 0.2) {
+  } else if (emaErrorRate > 0.2 || (emaWpm < 25 && emaErrorRate > 0.12)) {
     spawnMult *= SPAWN_STEP_UP;
     speedMult *= SPEED_STEP_DOWN;
   }

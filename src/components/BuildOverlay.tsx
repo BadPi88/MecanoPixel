@@ -10,6 +10,7 @@ import type { RelicId } from '../types/combat';
 import type { ActivePerk, PerkId } from '../types/perks';
 import { SYNERGY_CATALOG, type SynergyId } from '../utils/synergyEngine';
 import { PixelButton } from './PixelButton';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 interface BuildOverlayProps {
   activeRelics: RelicId[];
@@ -34,10 +35,12 @@ export function BuildOverlay({
   bossSkippedPending,
   onClose,
 }: BuildOverlayProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   return (
-    <div className="build-overlay" role="dialog" aria-modal="true">
+    <div className="build-overlay" role="dialog" aria-modal="true" aria-labelledby="build-overlay-title" ref={dialogRef}>
       <div className="build-overlay__panel pixel-panel">
-        <h2 className="build-overlay__title">TU BUILD</h2>
+        <h2 className="build-overlay__title" id="build-overlay-title">TU BUILD</h2>
 
         <section className="build-overlay__section">
           <h3>RELIQUIAS</h3>
@@ -105,3 +108,4 @@ export function BuildOverlay({
     </div>
   );
 }
+import { useRef } from 'react';

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { markTutorialComplete } from '../services/meta';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import { PixelButton } from './PixelButton';
 
 const STEPS = [
@@ -31,6 +32,8 @@ interface TutorialOverlayProps {
 
 export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
   const [step, setStep] = useState(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, step);
   const current = STEPS[step];
   const isLast = step >= STEPS.length - 1;
 
@@ -40,12 +43,12 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
   };
 
   return (
-    <div className="tutorial-overlay" role="dialog" aria-modal="true">
+    <div className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" ref={dialogRef}>
       <div className="tutorial-overlay__panel pixel-panel">
         <p className="tutorial-overlay__step">
           {step + 1} / {STEPS.length}
         </p>
-        <h2 className="tutorial-overlay__title">{current.title}</h2>
+        <h2 className="tutorial-overlay__title" id="tutorial-title">{current.title}</h2>
         <p className="tutorial-overlay__body">{current.body}</p>
         <div className="tutorial-overlay__actions">
           {!isLast ? (

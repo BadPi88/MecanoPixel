@@ -129,6 +129,9 @@ export interface GameState {
   eliteTierBonus: number;
   /** Semilla de la run para generar rutas del mapa. */
   runSeed: number;
+  /** Contador monotono para que cada spawn use una secuencia reproducible. */
+  spawnCount: number;
+  projectileCount: number;
   /** Indice de acto actual (0 = pisos 1-3). */
   actIndex: number;
   /** Arbol de mapa del acto actual. */
@@ -194,7 +197,13 @@ export interface GameState {
 export type GameAction =
   | {
       type: 'BEGIN_RUN';
-      payload?: { dailyRun?: boolean; weeklyRun?: boolean; ascensionLevel?: number };
+      payload?: {
+        dailyRun?: boolean;
+        weeklyRun?: boolean;
+        ascensionLevel?: number;
+        /** Semilla opcional para reproducir una run en pruebas de balance. */
+        runSeed?: number;
+      };
     }
   | { type: 'GO_HOME' }
   | { type: 'RETRY' }
@@ -289,6 +298,8 @@ export const initialGameState: GameState = {
   mapRoomOptions: [],
   eliteTierBonus: 0,
   runSeed: 0,
+  spawnCount: 0,
+  projectileCount: 0,
   actIndex: 0,
   actMap: null,
   actMapNodeId: null,

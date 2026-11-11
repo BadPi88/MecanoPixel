@@ -283,6 +283,7 @@ export function getRandomWord(
   elapsedMs: number,
   tierOffset = 0,
   filter: WordFilter = {},
+  random: () => number = Math.random,
 ): string {
   const { wordLengthRange } = getDifficultyTier(elapsedMs, tierOffset);
   const minLen = filter.minLen ?? wordLengthRange[0];
@@ -291,7 +292,7 @@ export function getRandomWord(
   let basePool = normalizedWords;
   const glossary = filter.glossary ?? 'general';
   if (glossary !== 'general' && normalizedGlossaries[glossary]) {
-    if (Math.random() < GLOSSARY_MIX_RATIO) {
+    if (random() < GLOSSARY_MIX_RATIO) {
       basePool = normalizedGlossaries[glossary];
     }
   }
@@ -299,7 +300,7 @@ export function getRandomWord(
   const floor = filter.floor ?? 1;
   const accentChance =
     floor < 7 ? 0 : floor < 10 ? 0.1 : floor < 13 ? 0.22 : 0.35;
-  const useAccentedPool = Math.random() < accentChance;
+  const useAccentedPool = random() < accentChance;
   if (useAccentedPool) basePool = [...basePool, ...accentedWords];
 
   const candidates = basePool.filter(
@@ -312,7 +313,7 @@ export function getRandomWord(
       : basePool.length > 0
         ? basePool
         : normalizedWords;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }
 
 export function getWordCount(): number {

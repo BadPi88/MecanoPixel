@@ -144,8 +144,8 @@ const LEGENDARY_IDS: PerkId[] = [
   'chaos_roll',
 ];
 
-function pickOne<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function pickOne<T>(arr: T[], random: () => number): T {
+  return arr[Math.min(arr.length - 1, Math.floor(random() * arr.length))];
 }
 
 function isPerkBlocked(id: PerkId, active: ActivePerk[]): boolean {
@@ -157,6 +157,7 @@ export function pickPerkChoices(
   count = 3,
   floor = 1,
   ascensionLevel = 0,
+  random: () => number = Math.random,
 ): PerkId[] {
   const chosen = new Set<PerkId>();
   const canLegendary = floor >= 6 || ascensionLevel >= 2;
@@ -180,18 +181,18 @@ export function pickPerkChoices(
     return (['shield', 'breath', 'purge'] as PerkId[]).slice(0, count);
   }
 
-  if (availableLegendary.length > 0 && Math.random() < 0.12) {
-    chosen.add(pickOne(availableLegendary));
-  } else if (availableRare.length > 0 && Math.random() < 0.2) {
-    chosen.add(pickOne(availableRare));
-  } else if (availableUncommon.length > 0 && Math.random() < 0.35) {
-    chosen.add(pickOne(availableUncommon));
+  if (availableLegendary.length > 0 && random() < 0.12) {
+    chosen.add(pickOne(availableLegendary, random));
+  } else if (availableRare.length > 0 && random() < 0.2) {
+    chosen.add(pickOne(availableRare, random));
+  } else if (availableUncommon.length > 0 && random() < 0.35) {
+    chosen.add(pickOne(availableUncommon, random));
   }
 
   while (chosen.size < count) {
     const candidates = pool.filter((id) => !chosen.has(id));
     if (candidates.length === 0) break;
-    chosen.add(pickOne(candidates));
+    chosen.add(pickOne(candidates, random));
   }
 
   return Array.from(chosen).slice(0, count);

@@ -259,16 +259,17 @@ export function initBossWords(
   tierOffset: number,
   createId: () => string,
   floor = 1,
+  random: () => number = Math.random,
 ): FallingWord[] {
-  const first = getBossWord(elapsedMs, tierOffset, floor);
+  const first = getBossWord(elapsedMs, tierOffset, floor, random);
   if (!boss.dualWords) {
     return [makeBossFallingWord(first, 120, createId())];
   }
 
-  let second = getBossWord(elapsedMs + 1_000, tierOffset, floor);
+  let second = getBossWord(elapsedMs + 1_000, tierOffset, floor, random);
   let attempts = 0;
   while (second === first && attempts < 8) {
-    second = getBossWord(elapsedMs + 2_000 + attempts * 500, tierOffset, floor);
+    second = getBossWord(elapsedMs + 2_000 + attempts * 500, tierOffset, floor, random);
     attempts += 1;
   }
 

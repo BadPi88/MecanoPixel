@@ -57,6 +57,7 @@ export function StartScreen({
   const [loadingLb, setLoadingLb] = useState(true);
   const [nameError, setNameError] = useState('');
   const [session, setSession] = useState<ProfileSession | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [recoveryMode, setRecoveryMode] = useState(() => new URLSearchParams(window.location.search).has('password-reset'));
@@ -72,7 +73,10 @@ export function StartScreen({
       .then((restored) => {
         if (cancelled) return;
         setSession(restored);
-        if (restored?.playerName) onPlayerNameChange(restored.playerName);
+        if (restored?.playerName) {
+          onPlayerNameChange(restored.playerName);
+          if (window.location.pathname === '/login') window.history.replaceState({}, '', '/');
+        }
       })
       .catch(() => { if (!cancelled) setSession(null); });
     return () => { cancelled = true; };
@@ -192,6 +196,9 @@ export function StartScreen({
         : result.created
           ? 'Cuenta creada: tu progreso ya se guarda en la nube'
           : 'Sesion iniciada: progreso sincronizado desde la nube');
+      if (result.session && window.location.pathname === '/login') {
+        window.history.replaceState({}, '', '/');
+      }
     } catch (err) {
       setProfileError(
         err instanceof Error ? err.message : 'No se pudo conectar',
@@ -244,12 +251,12 @@ export function StartScreen({
 
   if (window.location.pathname === '/recover-password') {
     return (
-      <main className="screen screen--start">
-        <h1 className="screen__title">KEY RUNNER</h1>
-        <p className="screen__subtitle">RECUPERAR CONTRASENA</p>
-        <section className="screen__panel pixel-panel screen__column">
-          <h2 className="screen__panel-title">NUEVA CONTRASENA</h2>
-          <p className="profile-box__hint">Elige una contrasena nueva para tu cuenta.</p>
+      <main className="auth-screen">
+        <a className="auth-screen__brand" href="/">KEY RUNNER</a>
+        <section className="auth-card pixel-panel">
+          <p className="auth-card__eyebrow">RECUPERACION DE CUENTA</p>
+          <h1 className="auth-card__title">Crea una nueva contrasena</h1>
+          <p className="auth-card__description">Escribe una contrasena nueva para volver a tu cuenta.</p>
           <input
             type="password"
             className="pixel-input"
@@ -273,7 +280,85 @@ export function StartScreen({
           </PixelButton>
           {profileStatus && <p className="screen__status screen__status--highlight">{profileStatus}</p>}
           {profileError && <p className="screen__error">{profileError}</p>}
-          <a className="profile-box__hint" href="/">Volver al inicio</a>
+          <a className="auth-card__link" href="/login">Volver a iniciar sesion</a>
+        </section>
+      </main>
+    );
+  }
+
+  if (window.location.pathname === '/login') {
+    const registering = authMode === 'register';
+    return (
+      <main className="auth-screen">
+        <a className="auth-screen__brand" href="/">KEY RUNNER</a>
+        <section className="auth-card pixel-panel">
+          <p className="auth-card__eyebrow">CUENTA KEY RUNNER</p>
+          <h1 className="auth-card__title">{registering ? 'Crea tu cuenta' : 'Inicia sesion'}</h1>
+          <p className="auth-card__description">
+            {registering
+              ? 'Guarda tu progreso y continua jugando desde otros dispositivos.'
+              : 'Entra para sincronizar tu progreso y tus desbloqueos.'}
+          </p>
+          {registering && (
+            <input
+              type="text"
+              className="pixel-input"
+              value={playerName}
+              onChange={(event) => { onPlayerNameChange(event.target.value); setNameError(''); }}
+              placeholder="Nombre de jugador"
+              maxLength={16}
+              autoComplete="username"
+              aria-label="Nombre de jugador"
+            />
+          )}
+          {registering && nameError && <p className="screen__error">{nameError}</p>}
+          <input
+            type="email"
+            className="pixel-input"
+            value={email}
+            onChange={(event) => { setEmail(event.target.value); setProfileError(''); }}
+            placeholder="Correo electronico"
+            autoComplete="email"
+            aria-label="Correo electronico"
+          />
+          <input
+            type="password"
+            className="pixel-input"
+            value={password}
+            onChange={(event) => { setPassword(event.target.value.slice(0, 128)); setProfileError(''); }}
+            onKeyDown={(event) => { if (event.key === 'Enter') void handleAccountAuth(registering ? 'register' : 'login'); }}
+            placeholder={registering ? 'Contrasena (10 caracteres minimo)' : 'Contrasena'}
+            autoComplete={registering ? 'new-password' : 'current-password'}
+            aria-label="Contrasena"
+          />
+          {registering && (
+            <input
+              type="password"
+              className="pixel-input"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value.slice(0, 128))}
+              placeholder="Repite la contrasena"
+              autoComplete="new-password"
+              aria-label="Repite la contrasena"
+            />
+          )}
+          <PixelButton disabled={profileBusy} onClick={() => void handleAccountAuth(registering ? 'register' : 'login')}>
+            {profileBusy ? 'CONECTANDO...' : registering ? 'CREAR CUENTA' : 'INICIAR SESION'}
+          </PixelButton>
+          {!registering && (
+            <button className="auth-card__link-button" type="button" disabled={profileBusy} onClick={() => void handlePasswordReset()}>
+              Olvide mi contrasena
+            </button>
+          )}
+          {profileStatus && <p className="screen__status screen__status--highlight">{profileStatus}</p>}
+          {profileError && <p className="screen__error">{profileError}</p>}
+          <p className="auth-card__switch">
+            {registering ? 'Ya tienes cuenta?' : 'Aun no tienes cuenta?'}{' '}
+            <button className="auth-card__link-button" type="button" disabled={profileBusy} onClick={() => { setAuthMode(registering ? 'login' : 'register'); setProfileError(''); setProfileStatus(''); }}>
+              {registering ? 'Inicia sesion' : 'Registrate'}
+            </button>
+          </p>
+          <a className="auth-card__link" href="/">Volver al juego</a>
         </section>
       </main>
     );
@@ -385,36 +470,9 @@ export function StartScreen({
               ) : (
                 <div className="profile-box">
                   <p className="profile-box__hint">
-                    Crea una cuenta con nombre unico y contrasena para sincronizar tu progreso entre ordenadores.
+                    Inicia sesion o crea una cuenta para sincronizar tu progreso entre dispositivos.
                   </p>
-                  <div className="profile-box__row profile-box__row--stacked">
-                    <input type="email" className="pixel-input" value={email} onChange={(e) => { setEmail(e.target.value); setProfileError(''); }} placeholder="Correo electronico" autoComplete="email" />
-                    <input
-                      type="password"
-                      className="pixel-input"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value.slice(0, 128));
-                        setProfileError('');
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') void handleAccountAuth('login');
-                      }}
-                      placeholder="Contrasena (10 caracteres minimo)"
-                      autoComplete="current-password"
-                      aria-label="Contrasena"
-                    />
-                    <input type="password" className="pixel-input" value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value.slice(0, 128))}
-                      placeholder="Repite para crear cuenta" autoComplete="new-password" />
-                    <PixelButton disabled={profileBusy} onClick={() => void handleAccountAuth('register')}>
-                      {profileBusy ? '...' : 'CREAR CUENTA'}
-                    </PixelButton>
-                    <PixelButton variant="secondary" disabled={profileBusy} onClick={() => void handleAccountAuth('login')}>
-                      INICIAR SESION
-                    </PixelButton>
-                    <PixelButton variant="secondary" disabled={profileBusy} onClick={() => void handlePasswordReset()}>OLVIDE MI CONTRASENA</PixelButton>
-                  </div>
+                  <a className="auth-card__action" href="/login">INICIAR SESION / CREAR CUENTA</a>
                 </div>
               )}
               {profileStatus && (

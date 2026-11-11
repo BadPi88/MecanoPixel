@@ -25,6 +25,7 @@ interface VictoryScreenProps {
   deflectedLetters: number;
   reachedBoss: boolean;
   ascensionLevel: number;
+  runSeed: number;
   onContinueEndless: () => void;
   onHome: () => void;
 }
@@ -44,6 +45,7 @@ export function VictoryScreen({
   deflectedLetters,
   reachedBoss,
   ascensionLevel,
+  runSeed,
   onContinueEndless,
   onHome,
 }: VictoryScreenProps) {
@@ -63,11 +65,15 @@ export function VictoryScreen({
       mistakes, mistakesByChar, ultimatesUsed, deflectedLetters,
       relicsCollected: relics.length, dailyRun: false, deathCause: null,
       reachedBoss,
+      ascensionLevel,
+      runnerId,
+      relics,
+      runSeed,
     });
     void syncMetaToProfile(result.meta);
   }, [
-    ascensionLevel, correctChars, correctKeyPresses, deflectedLetters, elapsedMs,
-    floor, mistakes, mistakesByChar, reachedBoss, relics.length, score,
+    ascensionLevel, correctChars, correctKeyPresses, deflectedLetters, elapsedMs, runSeed,
+    floor, mistakes, mistakesByChar, reachedBoss, relics, relics.length, runnerId, score,
     ultimatesUsed, wordsTyped,
   ]);
 

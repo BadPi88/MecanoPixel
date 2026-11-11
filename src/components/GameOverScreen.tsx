@@ -50,6 +50,7 @@ interface GameOverScreenProps {
   reachedBoss: boolean;
   bossSkipMetaMult?: number;
   ascensionLevel?: number;
+  runSeed: number;
   onRetry: () => void;
   onHome: () => void;
 }
@@ -88,6 +89,7 @@ export function GameOverScreen({
   reachedBoss,
   bossSkipMetaMult = 1,
   ascensionLevel = 0,
+  runSeed,
   onRetry,
   onHome,
 }: GameOverScreenProps) {
@@ -213,6 +215,11 @@ export function GameOverScreen({
       accuracy,
       mistakes,
       mistakesByChar,
+      ascensionLevel,
+      runnerId,
+      relics,
+      weeklyRun,
+      runSeed,
     }),
   );
   const newRunners = runEnd.newlyUnlockedRunners;

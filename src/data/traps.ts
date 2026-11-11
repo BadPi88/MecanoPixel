@@ -4,6 +4,6 @@ export const TRAP_WORDS: string[] = [
   'iluso', 'vano', 'nulo', 'void', 'spam', 'junk', 'basura', 'ruido',
 ];
 
-export function getRandomTrapWord(): string {
-  return TRAP_WORDS[Math.floor(Math.random() * TRAP_WORDS.length)];
+export function getRandomTrapWord(random: () => number = Math.random): string {
+  return TRAP_WORDS[Math.min(TRAP_WORDS.length - 1, Math.floor(random() * TRAP_WORDS.length))];
 }

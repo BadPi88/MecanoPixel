@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { getRelicDefinition } from '../data/relics';
 import type { RelicId } from '../types/combat';
 import type { GameState } from '../types/game';
@@ -6,6 +7,7 @@ import {
   previewPotentialSynergiesIfRelic,
   SYNERGY_CATALOG,
 } from '../utils/synergyEngine';
+import { useDialogFocus } from '../hooks/useDialogFocus';
 
 interface RelicPickerProps {
   choices: RelicId[];
@@ -14,10 +16,12 @@ interface RelicPickerProps {
 }
 
 export function RelicPicker({ choices, state, onSelect }: RelicPickerProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef);
   return (
-    <div className="perk-picker-overlay" role="dialog" aria-modal="true">
+    <div className="perk-picker-overlay" role="dialog" aria-modal="true" aria-labelledby="relic-picker-title" ref={dialogRef}>
       <div className="perk-picker pixel-panel">
-        <h2 className="perk-picker__title perk-picker__title--relic">
+        <h2 className="perk-picker__title perk-picker__title--relic" id="relic-picker-title">
           RELIQUIA
         </h2>
         <p className="perk-picker__subtitle">

@@ -237,11 +237,14 @@ export const EVENT_CATALOG: EventDefinition[] = [
   },
 ];
 
-export function pickRandomEvent(state: GameState): EventDefinition {
+export function pickRandomEvent(
+  state: GameState,
+  random: () => number = Math.random,
+): EventDefinition {
   const eligible = EVENT_CATALOG.filter((e) => e.canAppear(state));
   const pool = eligible.length > 0 ? eligible : EVENT_CATALOG;
   const totalWeight = pool.reduce((sum, e) => sum + e.weight, 0);
-  let roll = Math.random() * totalWeight;
+  let roll = random() * totalWeight;
   for (const event of pool) {
     roll -= event.weight;
     if (roll <= 0) return event;

@@ -74,6 +74,7 @@ import { calculateMissPenalty } from '../utils/scoring';
 import { getDailyChallengeConfig } from '../utils/dailySeed';
 import { getWeeklyChallengeConfig } from '../utils/weeklySeed';
 import { createWordId } from './useGameStateHelpers';
+import { createSeededRandom } from '../utils/random';
 
 export { createWordId } from './useGameStateHelpers';
 
@@ -89,6 +90,16 @@ const PROJECTILE_HEIGHT = 24;
 const ORACLE_SCORE_BASE = 50;
 const ORACLE_SCORE_PER_CHAR = 10;
 const ORACLE_CHARGE_REWARD = 35;
+
+function randomFor(state: GameState, channel: number): () => number {
+  return createSeededRandom(
+    (state.runSeed ^ Math.imul(state.floor + 1, 0x9e3779b9) ^ Math.imul(state.wordsTyped + 1, 0x85ebca6b) ^ channel) >>> 0,
+  );
+}
+
+function createRunSeed(): number {
+  return (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
+}
 
 function clampCharge(value: number): number {
   return Math.min(ULTIMATE_MAX_CHARGE, Math.max(0, value));
@@ -123,6 +134,7 @@ function enterBossFight(
       tierOffset,
       createWordId,
       state.floor,
+      randomFor(state, 0x501),
     );
     const bossAttack = initBossAttackFromCatalog(boss, state.elapsedMs);
     return {
@@ -151,7 +163,7 @@ function enterPostFloor(
     return enterBossFight(state);
   }
   if (nextStatus === 'event') {
-    return { status: 'event', pendingEvent: pickRandomEvent(state) };
+    return { status: 'event', pendingEvent: pickRandomEvent(state, randomFor(state, 0x101)) };
   }
   if (nextStatus === 'shop') {
     return {
@@ -241,13 +253,14 @@ function applyRoomFromMap(state: GameState, roomId: string): GameState {
         ...cleared,
         ...skipPenalty,
         status: 'event',
-        pendingEvent: pickRandomEvent(state),
+        pendingEvent: pickRandomEvent(state, randomFor(state, 0x102)),
       };
     case 'treasure': {
       const choices = pickRelicChoices(
         state.activeRelics,
         3,
         state.relicRerollPending,
+        randomFor(state, 0x201),
       );
       if (choices.length === 0) {
         return {
@@ -349,6 +362,7 @@ function applyShopItem(state: GameState, itemId: ShopItemId): GameState | null {
         1,
         next.floor,
         next.ascensionLevel,
+        randomFor(next, 0x301),
       );
       if (choices.length === 0) return null;
       const perkPartial = applyPerkSelection(next, choices[0]);
@@ -391,7 +405,7 @@ function applyShopItem(state: GameState, itemId: ShopItemId): GameState | null {
 }
 
 function applyEventChoice(state: GameState, choice: 'A' | 'B'): GameState {
-  const event = state.pendingEvent ?? pickRandomEvent(state);
+  const event = state.pendingEvent ?? pickRandomEvent(state, randomFor(state, 0x103));
   const effect = choice === 'A' ? event.effectA : event.effectB;
   let next: GameState = { ...state };
 
@@ -471,6 +485,7 @@ function applyEventChoice(state: GameState, choice: 'A' | 'B'): GameState {
           1,
           next.floor,
           next.ascensionLevel,
+          randomFor(next, 0x302),
         );
         if (rare[0]) {
           const p = applyPerkSelection(next, rare[0]);
@@ -542,7 +557,7 @@ function applyPosEffect(state: GameState, word: FallingWord): Partial<GameState>
   }
 }
 
-function gameReducer(state: GameState, action: GameAction): GameState {
+export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'BEGIN_RUN': {
       const dailyRun = action.payload?.dailyRun ?? false;
@@ -553,6 +568,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           ...initialGameState,
           status: 'runnerPick',
           ascensionLevel,
+          runSeed: action.payload?.runSeed ?? createRunSeed(),
         };
       }
       const weeklyChallenge = weeklyRun ? getWeeklyChallengeConfig() : null;
@@ -568,7 +584,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         runnerId,
         trapIgnoreRemaining: trapIgnore,
         selectedGlossary: challenge.glossaryId,
-        runSeed: challenge.seed,
+        runSeed: action.payload?.runSeed ?? challenge.seed,
         dailyRun,
         weeklyRun,
         endlessMode: weeklyRun,
@@ -605,13 +621,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         selectedGlossary: action.payload,
         dailyRun: state.dailyRun,
         ascensionLevel,
-        runSeed: (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0,
+        runSeed: state.runSeed,
         wordStartedAtMs: 0,
       };
     }
 
     case 'RETRY':
-      return { ...initialGameState, status: 'runnerPick' };
+      return { ...initialGameState, status: 'runnerPick', runSeed: createRunSeed() };
 
     case 'GO_HOME':
       return { ...initialGameState };
@@ -667,7 +683,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ) {
           next = {
             ...next,
-            displayText: morphDisplayText(next.text),
+            displayText: morphDisplayText(
+              next.text,
+              randomFor(state, 0x502 ^ Math.floor(next.morphAtMs ?? 0)),
+            ),
             morphAtMs: newElapsed + 3_000,
           };
         }
@@ -816,7 +835,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SPAWN_WORD':
       if (state.status !== 'playing') return state;
-      return { ...state, words: [...state.words, action.payload] };
+      return {
+        ...state,
+        spawnCount: state.spawnCount + 1,
+        words: [...state.words, action.payload],
+      };
 
     case 'SPAWN_PROJECTILE': {
       const inBossWithProjectiles =
@@ -825,6 +848,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.letterProjectiles.length >= MAX_LETTER_PROJECTILES) return state;
       return {
         ...state,
+        projectileCount: state.projectileCount + 1,
         letterProjectiles: [...state.letterProjectiles, action.payload],
         bossTelegraphX:
           state.status === 'boss' && state.bossId === 'indexadora'
@@ -1011,6 +1035,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           1,
           state.floor,
           state.ascensionLevel,
+          randomFor(state, 0x401),
         );
         const rare = rareChoices[0];
         const perkPartial = rare ? applyPerkSelection(state, rare) : {};
@@ -1191,6 +1216,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         matched,
         points,
         hasSynergy(state, 'fuego_electrico'),
+        randomFor(state, 0x601),
       );
       let scoreMult = relicResult.scoreMult;
       if (
@@ -1346,6 +1372,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
               3,
               state.floor,
               state.ascensionLevel,
+              randomFor(state, 0x402),
             )
           : null,
       };
