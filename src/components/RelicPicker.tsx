@@ -23,7 +23,7 @@ export function RelicPicker({ choices, state, onSelect }: RelicPickerProps) {
           Piso completado — elige una reliquia de build
         </p>
         <div className="perk-picker__grid">
-          {choices.map((id, index) => {
+          {choices.map((id) => {
             const relic = getRelicDefinition(id);
             const previewSynergies = previewSynergiesIfRelic(state, id);
             return (
@@ -33,7 +33,6 @@ export function RelicPicker({ choices, state, onSelect }: RelicPickerProps) {
                 className={`perk-card relic-card ${relic.cursed ? 'relic-card--cursed' : ''}`}
                 onClick={() => onSelect(id)}
               >
-                <span className="perk-card__key">{index + 1}</span>
                 <span className="perk-card__name">{relic.name}</span>
                 <span className="relic-card__archetype">
                   {relic.cursed ? 'MALDITA — ' : ''}
@@ -54,7 +53,7 @@ export function RelicPicker({ choices, state, onSelect }: RelicPickerProps) {
           })}
         </div>
         <p className="perk-picker__hint">
-          Pulsa {choices.map((_, i) => i + 1).join(', ')}
+          Usa Tab para recorrer las opciones y Enter para elegir, o haz clic.
         </p>
       </div>
     </div>

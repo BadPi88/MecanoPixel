@@ -14,6 +14,7 @@ import { formatWordsPerSecond } from '../utils/intensity';
 import { calculateWpm, formatTime } from '../utils/wpm';
 import { RunnerSprite } from '../assets/runnerSprites';
 import { PerkBar } from './PerkBar';
+import { PixelButton } from './PixelButton';
 
 interface HUDProps {
   playerName?: string;
@@ -43,6 +44,7 @@ interface HUDProps {
   selectedGlossary?: GlossaryId;
   gameStatus?: GameStatus;
   eliteModifierId?: EliteModifierId | null;
+  onToggleBuild?: () => void;
 }
 
 function HeartIcon({ filled }: { filled: boolean }) {
@@ -105,6 +107,7 @@ export function HUD({
   selectedGlossary = 'general',
   gameStatus = 'playing',
   eliteModifierId = null,
+  onToggleBuild,
 }: HUDProps) {
   const glossaryFloorNotice =
     selectedGlossary === 'medico' && floor % 2 === 0
@@ -188,6 +191,16 @@ export function HUD({
               <HeartIcon key={i} filled={i < lives} />
             ))}
           </div>
+          {onToggleBuild && (
+            <PixelButton
+              variant="secondary"
+              className="hud__build-button"
+              onClick={onToggleBuild}
+              aria-haspopup="dialog"
+            >
+              VER BUILD
+            </PixelButton>
+          )}
         </div>
 
         <PerkBar activePerks={activePerks} elapsedMs={elapsedMs} />

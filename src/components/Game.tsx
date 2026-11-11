@@ -246,6 +246,13 @@ export function Game() {
             selectedGlossary={state.selectedGlossary}
             gameStatus={state.status}
             eliteModifierId={state.eliteModifierId}
+            onToggleBuild={
+              state.status === 'playing' ||
+              state.status === 'paused' ||
+              state.status === 'boss'
+                ? () => dispatch({ type: 'TOGGLE_BUILD_OVERLAY' })
+                : undefined
+            }
           />
           <div className="game__playfield">
             {state.status === 'playing' &&
@@ -346,7 +353,7 @@ export function Game() {
                       dispatch({ type: 'ORACLE_CHOICE', payload: 'score' })
                     }
                   >
-                    1 — +PUNTOS
+                    +PUNTOS
                   </PixelButton>
                   <PixelButton
                     variant="secondary"
@@ -354,9 +361,12 @@ export function Game() {
                       dispatch({ type: 'ORACLE_CHOICE', payload: 'charge' })
                     }
                   >
-                    2 — +CARGA ULTIMATE
+                    +CARGA ULTIMATE
                   </PixelButton>
                 </div>
+                <p className="oracle-overlay__hint">
+                  Usa Tab para recorrer las opciones y Enter para elegir, o haz clic.
+                </p>
               </div>
             </div>
           )}

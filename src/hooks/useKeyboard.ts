@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import type { Dispatch } from 'react';
 import type { GameAction, GameState } from '../types/game';
-import type { PerkId } from '../types/perks';
 import { loadSettings } from '../services/settings';
 import { resolveTypedChar } from '../utils/keyboardLayout';
 import { ULTIMATE_MAX_CHARGE } from '../types/combat';
@@ -15,67 +14,6 @@ export function useKeyboard(
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
-
-      if (state.status === 'perkPick' && state.pendingPerkChoice) {
-        const index = Number(event.key) - 1;
-        if (index >= 0 && index < state.pendingPerkChoice.length) {
-          event.preventDefault();
-          dispatch({
-            type: 'SELECT_PERK',
-            payload: state.pendingPerkChoice[index] as PerkId,
-          });
-        }
-        return;
-      }
-
-      if (state.status === 'oraclePick') {
-        if (event.key === '1' || event.key.toLowerCase() === 'a') {
-          event.preventDefault();
-          dispatch({ type: 'ORACLE_CHOICE', payload: 'score' });
-        } else if (event.key === '2' || event.key.toLowerCase() === 'b') {
-          event.preventDefault();
-          dispatch({ type: 'ORACLE_CHOICE', payload: 'charge' });
-        }
-        return;
-      }
-
-      if (state.status === 'relicPick' && state.pendingRelicChoice) {
-        const index = Number(event.key) - 1;
-        if (index >= 0 && index < state.pendingRelicChoice.length) {
-          event.preventDefault();
-          dispatch({
-            type: 'SELECT_RELIC',
-            payload: state.pendingRelicChoice[index],
-          });
-        }
-        return;
-      }
-
-      if (state.status === 'mapPick' && state.mapRoomOptions.length > 0) {
-        const index = Number(event.key) - 1;
-        if (index >= 0 && index < state.mapRoomOptions.length) {
-          event.preventDefault();
-          dispatch({
-            type: 'PICK_ROOM',
-            payload: state.mapRoomOptions[index].id,
-          });
-        }
-        return;
-      }
-
-      if (event.key === 'i' || event.key === 'I') {
-        if (
-          state.status === 'playing' ||
-          state.status === 'paused' ||
-          state.status === 'boss' ||
-          state.status === 'perkPick' ||
-          state.status === 'relicPick'
-        ) {
-          event.preventDefault();
-          dispatch({ type: 'TOGGLE_BUILD_OVERLAY' });
-        }
-        return;
-      }
 
       if (event.key === 'Escape') {
         if (state.showBuildOverlay) {
@@ -128,9 +66,6 @@ export function useKeyboard(
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [
     state.status,
-    state.pendingPerkChoice,
-    state.pendingRelicChoice,
-    state.mapRoomOptions,
     state.showBuildOverlay,
     state.ultimateCharge,
     state.keyRemap,

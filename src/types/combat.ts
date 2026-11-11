@@ -69,6 +69,8 @@ export type BossId =
   | 'tiranotipo'
   | 'cronista'
   | 'devoratexto'
+  | 'hilandera'
+  | 'corrector'
   | 'mini_guardian';
 
 /** Ataques de interfaz del jefe segun catalogo. */

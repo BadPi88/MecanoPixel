@@ -19,7 +19,7 @@ export function PerkPicker({ choices, onSelect }: PerkPickerProps) {
         <h2 className="perk-picker__title">¡MAS RAPIDO!</h2>
         <p className="perk-picker__subtitle">3 subidas de ritmo — elige un perk</p>
         <div className="perk-picker__grid">
-          {choices.map((id, index) => {
+          {choices.map((id) => {
             const perk = getPerkDefinition(id);
             return (
               <button
@@ -28,7 +28,6 @@ export function PerkPicker({ choices, onSelect }: PerkPickerProps) {
                 className={`perk-card ${CATEGORY_CLASS[perk.category] ?? ''} perk-card--${perk.rarity}`}
                 onClick={() => onSelect(id)}
               >
-                <span className="perk-card__key">{index + 1}</span>
                 <span className="perk-card__name">
                   {perk.name}
                   {perk.rarity === 'legendary' && (
@@ -40,7 +39,7 @@ export function PerkPicker({ choices, onSelect }: PerkPickerProps) {
             );
           })}
         </div>
-        <p className="perk-picker__hint">Pulsa 1, 2 o 3</p>
+        <p className="perk-picker__hint">Usa Tab para recorrer las opciones y Enter para elegir, o haz clic.</p>
       </div>
     </div>
   );

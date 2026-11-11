@@ -21,7 +21,7 @@ const STEPS = [
   },
   {
     title: 'BIOMAS Y BUILD',
-    body: 'Cada 3 pisos cambia la zona y sus reglas. Pulsa I para ver reliquias, perks y sinergias.',
+    body: 'Cada 3 pisos cambia la zona y sus reglas. Usa el boton VER BUILD para consultar reliquias, perks y sinergias.',
   },
 ];
 

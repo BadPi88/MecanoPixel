@@ -8,7 +8,7 @@ Roguelike de mecanografía con estética pixel art arcade. Palabras en español 
 2. **Elige runner** — 8 personajes pixel art; 5 se desbloquean jugando (hitos de runs, palabras, piso).
 3. **Elige glosario** — General; Medico y Tecnico se desbloquean con meta coins.
 4. **Pisos** — cada piso dura 3 subidas de ritmo. Perk cada 3 subidas.
-5. **Mapa en árbol** — tras cada piso eliges ruta en un acto de 5 capas (preview `?` a 2 nodos). Salas: tienda, evento, tesoro, elite (+50% coins + modificador), descanso, jefe. Evitar al jefe penaliza (debuff + boss obligatorio; meta coins ×0.7).
+5. **Mapa en árbol** — tras cada piso eliges entre dos rutas por acto de 5 capas (preview `?` a 2 nodos). La última capa ofrece una sala elite; puedes tomar el atajo al jefe. Salas: tienda, evento, tesoro, elite (+50% coins + modificador), descanso, jefe. Evitar al jefe penaliza (debuff + boss obligatorio; meta coins ×0.7).
 6. **Victoria / endless** — derrotar a La Tiranotipo en piso 12+ da victoria; puedes continuar en modo endless o volver al hub. Desbloquea ascensiones (0–5).
 7. **Game over** — permadeath: meta coins = `(piso × 50 + score / 100) × mult` (ascensión 5: ×1.25; evitar jefe: ×0.7).
 
@@ -48,7 +48,7 @@ Cada 3 pisos cambia la estetica del combate (fondo pixel + suelo):
 
 Al entrar en una zona nueva aparece un banner breve y el HUD muestra la zona actual. Cada bioma altera el combate (anagramas, bombas, oráculos, remap teclas, mini-jefe en trono).
 
-Pulsa **I** en combate para ver tu build (reliquias, perks, sinergias, modificadores activos).
+Usa el boton **VER BUILD** en el HUD para consultar tu build (reliquias, perks, sinergias y modificadores activos). Las elecciones durante la run se pueden recorrer con Tab y confirmar con Enter; tambien puedes hacer clic.
 
 ## Villanos (jefes cada 3 pisos)
 

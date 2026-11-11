@@ -99,7 +99,7 @@ export function getActIndexForFloor(floor: number): number {
   return Math.floor((Math.max(floor, 1) - 1) / FLOORS_PER_BIOME);
 }
 
-/** Genera un arbol de 5 capas por acto (capas 0-3 salas, capa 4 jefe). */
+/** Genera un arbol ramificado de 5 capas por acto (capas 0-3 salas, capa 4 jefe). */
 export function generateActMap(actIndex: number, runSeed: number): ActMapGraph {
   const rand = seededRandom((runSeed + actIndex * 9973) >>> 0);
   const nodes: ActMapNode[] = [];
@@ -125,39 +125,44 @@ export function generateActMap(actIndex: number, runSeed: number): ActMapGraph {
 
   for (let layer = 1; layer <= 3; layer++) {
     const nextLayerIds: string[] = [];
-    const branchCount = layer === 3 ? 2 : prevLayerIds.length;
-
-    for (let b = 0; b < branchCount; b++) {
-      const parentIdx =
-        layer === 3
-          ? b % prevLayerIds.length
-          : Math.min(b, prevLayerIds.length - 1);
+    for (let parentIdx = 0; parentIdx < prevLayerIds.length; parentIdx++) {
       const parentId = prevLayerIds[parentIdx];
       const parent = nodes.find((n) => n.id === parentId)!;
+      const siblingTypes =
+        layer === 3
+          ? ['elite', pickOne(fillerTypes.filter((type) => type !== 'elite'), rand)] as const
+          : (() => {
+              const first = pickOne(fillerTypes, rand);
+              const second = pickOne(
+                fillerTypes.filter((type) => type !== first),
+                rand,
+              );
+              return [first, second] as const;
+            })();
 
-      let type = pickOne(fillerTypes, rand);
-      if (layer === 3 && b === 1) type = 'elite';
+      for (let branch = 0; branch < 2; branch++) {
+        const type = siblingTypes[branch];
 
-      const nodeId = `act${actIndex}-L${layer}-${b}`;
-      const eliteModifier =
-        type === 'elite'
+        const nodeId = `act${actIndex}-L${layer}-${parentIdx}-${branch}`;
+        const eliteModifier = type === 'elite'
           ? pickOne(ELITE_MODIFIERS, rand)
           : undefined;
 
-      const previewHidden = layer >= 2;
+        const previewHidden = layer >= 2;
 
-      nodes.push({
-        id: nodeId,
-        layer,
-        type,
-        children: [],
-        parentId,
-        eliteModifier,
-        previewHidden,
-      });
+        nodes.push({
+          id: nodeId,
+          layer,
+          type,
+          children: [],
+          parentId,
+          eliteModifier,
+          previewHidden,
+        });
 
-      parent.children.push(nodeId);
-      nextLayerIds.push(nodeId);
+        parent.children.push(nodeId);
+        nextLayerIds.push(nodeId);
+      }
     }
 
     prevLayerIds = nextLayerIds;

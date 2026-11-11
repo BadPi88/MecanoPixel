@@ -315,7 +315,7 @@ export function StartScreen({
               <ul className="screen__instructions">
                 <li>Elige runner y glosario; 3 subidas por piso de combate</li>
                 <li>Mapa con rutas: tienda, tesoro, elite, descanso, jefe</li>
-                <li>ULTIMATE con TAB; tecla I para ver tu build</li>
+                <li>ULTIMATE con TAB; boton VER BUILD para consultar tu build</li>
                 <li>Biomas cambian las reglas cada 3 pisos</li>
                 <li>Sin tildes: escribe tecnologia, no tecnología</li>
               </ul>

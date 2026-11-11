@@ -18,12 +18,13 @@ export function EventScreen({ event, floor, onChoice }: EventScreenProps) {
         <p className="event-panel__desc">{event.description}</p>
         <div className="event-panel__choices">
           <PixelButton onClick={() => onChoice('A')}>
-            A — {event.optionA}
+            {event.optionA}
           </PixelButton>
           <PixelButton variant="secondary" onClick={() => onChoice('B')}>
-            B — {event.optionB}
+            {event.optionB}
           </PixelButton>
         </div>
+        <p className="screen__subtitle">Usa Tab para recorrer las opciones y Enter para elegir, o haz clic.</p>
       </div>
     </div>
   );

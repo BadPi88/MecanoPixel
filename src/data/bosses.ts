@@ -104,6 +104,30 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     attacks: { blind: false, remap: false, projectiles: true },
     projectileIntervalMult: 0.9,
   },
+  hilandera: {
+    id: 'hilandera',
+    name: 'LA HILANDERA',
+    floorMin: 6,
+    theme: 'telar',
+    quote: 'Cada hilo termina en una tecla.',
+    fallSpeed: 29,
+    dualWords: false,
+    bonusCoins: 150,
+    attacks: { blind: false, remap: true, projectiles: true },
+    projectileIntervalMult: 0.8,
+  },
+  corrector: {
+    id: 'corrector',
+    name: 'EL CORRECTOR',
+    floorMin: 9,
+    theme: 'imprenta',
+    quote: 'No hay error que no pueda reescribir.',
+    fallSpeed: 33,
+    dualWords: false,
+    bonusCoins: 190,
+    attacks: { blind: true, remap: false, projectiles: true },
+    projectileIntervalMult: 0.85,
+  },
   mini_guardian: {
     id: 'mini_guardian',
     name: 'GUARDIAN',
@@ -131,12 +155,16 @@ export function getBossForFloor(
   ascensionLevel = 0,
   runSeed = 0,
 ): BossDefinition {
-  if (ascensionLevel >= 3) {
-    const roll = ((runSeed + floor * 31337) >>> 0) % 100;
-    if (roll < 25) {
-      if (floor >= 9) return BOSS_CATALOG.devoratexto;
-      if (floor >= 6) return BOSS_CATALOG.cronista;
-    }
+  const roll = ((runSeed + floor * 31337) >>> 0) % 100;
+  if (roll < 25 && floor >= 9 && floor < BOSS_CATALOG.tiranotipo.floorMin) {
+    return ascensionLevel >= 3
+      ? BOSS_CATALOG.devoratexto
+      : BOSS_CATALOG.corrector;
+  }
+  if (roll < 25 && floor >= 6 && floor < BOSS_CATALOG.perforador.floorMin) {
+    return ascensionLevel >= 3
+      ? BOSS_CATALOG.cronista
+      : BOSS_CATALOG.hilandera;
   }
   return getStandardBossForFloor(floor);
 }

@@ -100,7 +100,7 @@ export function BuildOverlay({
           </ul>
         </section>
 
-        <PixelButton onClick={onClose}>CERRAR (I)</PixelButton>
+        <PixelButton onClick={onClose}>CERRAR</PixelButton>
       </div>
     </div>
   );

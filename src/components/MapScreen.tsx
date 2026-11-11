@@ -63,16 +63,14 @@ export function MapScreen({
         </div>
       )}
 
-      <div className="map-grid" role="list">
-        {options.map((room, index) => (
+      <div className="map-grid" role="group" aria-label="Rutas disponibles">
+        {options.map((room) => (
           <button
             key={room.id}
             type="button"
             className={`map-room map-room--${room.type} pixel-panel`}
             onClick={() => onPick(room.id)}
-            role="listitem"
           >
-            <span className="map-room__key">{index + 1}</span>
             <span className="map-room__icon" aria-hidden>
               {room.previewHidden ? '?' : room.icon}
             </span>
@@ -84,7 +82,7 @@ export function MapScreen({
         ))}
       </div>
 
-      <p className="map-hint">Pulsa 1, 2, 3 o 4 para elegir</p>
+      <p className="map-hint">Usa Tab para recorrer las rutas y Enter para elegir, o haz clic.</p>
     </div>
   );
 }

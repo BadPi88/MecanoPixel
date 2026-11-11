@@ -40,8 +40,15 @@ export function BossScreen({
   const isDual = boss.dualWords && bossWords.length > 1;
 
   return (
-    <div className="boss-overlay boss-overlay--intro">
+    <div
+      className={`boss-overlay boss-overlay--intro boss-overlay--${bossId}${
+        remapActive ? ' boss-overlay--remap-active' : ''
+      }`}
+    >
       <BossBackground bossId={bossId} className="boss-bg" />
+      <div className="boss-specter" aria-hidden="true">
+        <BossSprite bossId={bossId} size={360} />
+      </div>
 
       <div className="boss-header">
         <div className="boss-header__identity">
