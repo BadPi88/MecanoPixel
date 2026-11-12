@@ -168,6 +168,7 @@ export function Game() {
     state.frozenUntilMs,
     state.runnerId,
     {
+      difficultyElapsedMs: state.difficultyElapsedMs,
       tempoBuffUntilMs: state.tempoBuffUntilMs,
       flowSpawnMult: state.flowStats.spawnMult,
       flowSpeedMult: state.flowStats.speedMult,
@@ -304,6 +305,9 @@ export function Game() {
             showSpeedNotice={state.showSpeedNotice}
             rampBlockedNotice={state.rampBlockedNotice}
             difficultyTierOffset={tierOffset}
+            difficultyElapsedMs={state.difficultyElapsedMs}
+            flowSpawnMult={state.flowStats.spawnMult}
+            flowSpeedMult={state.flowStats.speedMult}
             activePerks={state.activePerks}
             frozenUntilMs={state.frozenUntilMs}
             isPaused={state.status === 'paused'}

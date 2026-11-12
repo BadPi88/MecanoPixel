@@ -24,6 +24,10 @@ const STEPS = [
     title: 'BIOMAS Y BUILD',
     body: 'Cada 3 pisos cambia la zona y sus reglas. Usa el boton VER BUILD para consultar reliquias, perks y sinergias.',
   },
+  {
+    title: 'RITMO DE LA RUN',
+    body: 'Con buena precision y velocidad, las subidas de ritmo llegan antes y despejas pisos mas rapido. Si necesitas practica, hay mas tiempo entre subidas. Los pisos tardios siempre seran mas exigentes.',
+  },
 ];
 
 interface TutorialOverlayProps {

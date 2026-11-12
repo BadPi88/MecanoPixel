@@ -77,6 +77,7 @@ export function countDefensePerks(activePerks: ActivePerk[]): number {
 
 /** Capas extra de dificultad: buff de tempo (POS adjetivo) y flow adaptativo. */
 export interface CombatExtras {
+  difficultyElapsedMs?: number;
   tempoBuffUntilMs?: number;
   flowSpawnMult?: number;
   flowSpeedMult?: number;
@@ -95,7 +96,10 @@ export function getEffectiveDifficulty(
   runnerId: RunnerId | null = null,
   extras: CombatExtras = {},
 ) {
-  const tier = getDifficultyTier(elapsedMs, difficultyTierOffset);
+  const tier = getDifficultyTier(
+    extras.difficultyElapsedMs ?? elapsedMs,
+    difficultyTierOffset,
+  );
   const mods = getModifiers(activePerks, elapsedMs, frozenUntilMs);
   const runner = getRunnerModifiers(runnerId);
 

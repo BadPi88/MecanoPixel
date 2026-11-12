@@ -27,6 +27,9 @@ interface HUDProps {
   showSpeedNotice: boolean;
   rampBlockedNotice: boolean;
   difficultyTierOffset: number;
+  difficultyElapsedMs: number;
+  flowSpawnMult: number;
+  flowSpeedMult: number;
   activePerks: ActivePerk[];
   frozenUntilMs: number;
   isPaused: boolean;
@@ -90,6 +93,9 @@ export function HUD({
   showSpeedNotice,
   rampBlockedNotice,
   difficultyTierOffset,
+  difficultyElapsedMs,
+  flowSpawnMult,
+  flowSpeedMult,
   activePerks,
   frozenUntilMs,
   isPaused,
@@ -122,6 +128,7 @@ export function HUD({
     activePerks,
     frozenUntilMs,
     runnerId,
+    { difficultyElapsedMs, flowSpawnMult, flowSpeedMult },
   );
   const currentWps = formatWordsPerSecond(
     1000 / effective.spawnInterval,

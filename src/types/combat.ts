@@ -48,6 +48,8 @@ export interface LetterProjectile {
 export interface FlowStats {
   emaWpm: number;
   emaErrorRate: number;
+  /** Ritmo del reloj de dificultad; alto rendimiento progresa antes. */
+  progressionRate: number;
   /** Multiplicador sobre spawnInterval (mas bajo = mas palabras). */
   spawnMult: number;
   /** Multiplicador sobre fallSpeed. */
@@ -60,6 +62,7 @@ export interface FlowStats {
 export const INITIAL_FLOW_STATS: FlowStats = {
   emaWpm: 0,
   emaErrorRate: 0.1,
+  progressionRate: 1,
   spawnMult: 1,
   speedMult: 1,
   windowChars: 0,

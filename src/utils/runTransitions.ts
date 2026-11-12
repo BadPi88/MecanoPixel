@@ -10,7 +10,6 @@ import { createSeededRandom } from './random';
 export function getFloorTierOffset(state: GameState): number {
   return (
     state.difficultyTierOffset +
-    Math.max(0, state.floor - 1) +
     state.eliteTierBonus +
     getEliteTierBonus(state.eliteModifierId) +
     getEffectiveAscensionTierOffset(state)

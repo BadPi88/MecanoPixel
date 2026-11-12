@@ -13,6 +13,7 @@ import { pickRelicChoices } from '../src/data/relics';
 import { INITIAL_FLOW_STATS } from '../src/types/combat';
 import { updateFlowStats } from '../src/utils/flowDifficulty';
 import { recordRunEnd } from '../src/services/meta';
+import { getFloorTierOffset } from '../src/utils/runTransitions';
 
 describe('random reproducible', () => {
   it('produce la misma secuencia para una semilla y distintas para otra', () => {
@@ -46,8 +47,8 @@ describe('random reproducible', () => {
 describe('dificultad y puntuacion', () => {
   it('aumenta gradualmente y limita la velocidad y el intervalo', () => {
     expect(getDifficultyTier(0).fallSpeed).toBe(40);
-    expect(getDifficultyTier(20_000).fallSpeed).toBe(52);
-    expect(getDifficultyTier(1_000_000).fallSpeed).toBe(160);
+    expect(getDifficultyTier(20_000).fallSpeed).toBe(45);
+    expect(getDifficultyTier(1_000_000).fallSpeed).toBe(240);
     expect(getDifficultyTier(1_000_000).spawnInterval).toBe(700);
     expect(getDifficultyTier(40_000, 2).tier).toBe(0);
   });
@@ -69,8 +70,9 @@ describe('dificultad y puntuacion', () => {
     const updated = updateFlowStats(stats, 12_001);
     expect(updated.speedMult).toBeLessThan(1);
     expect(updated.spawnMult).toBeGreaterThan(1);
-    expect(updated.spawnMult).toBeLessThanOrEqual(1.25);
-    expect(updated.speedMult).toBeGreaterThanOrEqual(0.8);
+    expect(updated.spawnMult).toBeLessThanOrEqual(1.1);
+    expect(updated.speedMult).toBeGreaterThanOrEqual(0.94);
+    expect(updated.progressionRate).toBe(0.95);
     expect(updated.windowChars).toBe(0);
   });
 
@@ -87,6 +89,7 @@ describe('dificultad y puntuacion', () => {
     expect(updated.emaWpm).toBeGreaterThan(45);
     expect(updated.spawnMult).toBeLessThan(1);
     expect(updated.speedMult).toBeGreaterThan(1);
+    expect(updated.progressionRate).toBe(1.05);
   });
 });
 
@@ -126,7 +129,7 @@ describe('mapa y reducer', () => {
     };
     const perkState = gameReducer(runState, {
       type: 'SPEED_RAMP',
-      payload: { fallSpeed: 100 },
+      payload: { fallSpeed: 100, spawnInterval: 1000 },
     });
     expect(perkState.status).toBe('perkPick');
     expect(perkState.pendingPerkChoice).toHaveLength(3);
@@ -177,6 +180,37 @@ describe('mapa y reducer', () => {
     expect(state.status).toBe('playing');
     expect(state.endlessMode).toBe(true);
     expect(state.floor).toBe(13);
+  });
+
+  it('avanza el reloj de dificultad mas rapido o mas lento segun el rendimiento', () => {
+    const state = {
+      ...initialGameState,
+      status: 'playing' as const,
+      flowStats: { ...INITIAL_FLOW_STATS, progressionRate: 1.2 },
+    };
+    const next = gameReducer(state, {
+      type: 'TICK',
+      payload: { deltaMs: 1_000, fallSpeed: 40, groundHeight: 800 },
+    });
+    expect(next.elapsedMs).toBe(1_000);
+    expect(next.difficultyElapsedMs).toBe(1_200);
+  });
+});
+
+describe('curva roguelike por pisos', () => {
+  it('mantiene el ritmo al cruzar de piso y endurece claramente el final', () => {
+    const floorOne = { ...initialGameState, floor: 1 };
+    const floorTwo = { ...initialGameState, floor: 2 };
+    const early = getDifficultyTier(60_000, getFloorTierOffset(floorOne));
+    const nextFloorStart = getDifficultyTier(60_000, getFloorTierOffset(floorTwo));
+    const late = getDifficultyTier(720_000, getFloorTierOffset({ ...initialGameState, floor: 12 }));
+
+    expect(nextFloorStart.tier).toBe(early.tier);
+    expect(early.fallSpeed).toBe(55);
+    expect(early.spawnInterval).toBe(2_350);
+    expect(late.fallSpeed).toBeGreaterThan(early.fallSpeed * 3);
+    expect(late.spawnInterval).toBeLessThan(early.spawnInterval);
+    expect(late.wordLengthRange[0]).toBeGreaterThan(early.wordLengthRange[0]);
   });
 });
 

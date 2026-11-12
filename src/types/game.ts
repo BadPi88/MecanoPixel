@@ -70,6 +70,8 @@ export interface GameState {
   input: string;
   startTime: number | null;
   elapsedMs: number;
+  /** Tiempo escalado por el rendimiento usado solo para la curva de reto. */
+  difficultyElapsedMs: number;
   showSpeedNotice: boolean;
   rampBlockedNotice: boolean;
   maxWordsPerSecond: number;
@@ -221,7 +223,7 @@ export type GameAction =
   | { type: 'SUBMIT' }
   | { type: 'ULTIMATE_FIRE' }
   | { type: 'WORD_HIT_GROUND'; payload: string }
-  | { type: 'SPEED_RAMP'; payload: { fallSpeed: number } }
+  | { type: 'SPEED_RAMP'; payload: { fallSpeed: number; spawnInterval: number } }
   | { type: 'BROKEN_CLOCK_SKIP' }
   | { type: 'SELECT_PERK'; payload: PerkId }
   | { type: 'SELECT_RELIC'; payload: RelicId }
@@ -255,6 +257,7 @@ export const initialGameState: GameState = {
   input: '',
   startTime: null,
   elapsedMs: 0,
+  difficultyElapsedMs: 0,
   showSpeedNotice: false,
   rampBlockedNotice: false,
   maxWordsPerSecond: 0,

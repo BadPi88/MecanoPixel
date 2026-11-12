@@ -70,8 +70,12 @@ function findSpawnX(
   return randomX(areaWidth, wordWidth, random);
 }
 
-function getCombatExtras(state: GameState): CombatExtras {
+function getCombatExtras(
+  state: GameState,
+  difficultyElapsedMs = state.difficultyElapsedMs,
+): CombatExtras {
   return {
+    difficultyElapsedMs,
     tempoBuffUntilMs: state.tempoBuffUntilMs,
     flowSpawnMult: state.flowStats.spawnMult,
     flowSpeedMult: state.flowStats.speedMult,
@@ -93,11 +97,27 @@ export function useGameLoop(
   }, [state]);
 
   const lastTierRef = useRef(0);
+  const activeRunRef = useRef<{ runSeed: number; startTime: number | null } | null>(null);
   const spawnIntervalRef = useRef(2500);
 
   useEffect(() => {
-    if (state.status !== 'playing' && state.status !== 'perkPick') {
+    const effectState = stateRef.current;
+    if (effectState.status !== 'playing' && effectState.status !== 'perkPick') {
       return;
+    }
+
+    if (
+      activeRunRef.current?.runSeed !== effectState.runSeed ||
+      activeRunRef.current?.startTime !== effectState.startTime
+    ) {
+      lastTierRef.current = getDifficultyTier(
+        effectState.difficultyElapsedMs,
+        getFloorTierOffset(effectState),
+      ).tier;
+      activeRunRef.current = {
+        runSeed: effectState.runSeed,
+        startTime: effectState.startTime,
+      };
     }
 
     let animationId = 0;
@@ -118,8 +138,10 @@ export function useGameLoop(
       }
 
       const elapsed = current.elapsedMs + deltaMs;
+      const difficultyElapsed =
+        current.difficultyElapsedMs + deltaMs * current.flowStats.progressionRate;
       const tierOffset = getFloorTierOffset(current);
-      const rawTier = getDifficultyTier(elapsed, tierOffset).tier;
+      const rawTier = getDifficultyTier(difficultyElapsed, tierOffset).tier;
 
       if (rawTier > lastTierRef.current) {
         lastTierRef.current = rawTier;
@@ -132,12 +154,15 @@ export function useGameLoop(
             current.activePerks,
             current.frozenUntilMs,
             current.runnerId,
-            getCombatExtras(current),
+            getCombatExtras(current, difficultyElapsed),
           );
           spawnIntervalRef.current = effective.spawnInterval;
           dispatch({
             type: 'SPEED_RAMP',
-            payload: { fallSpeed: effective.fallSpeed },
+            payload: {
+              fallSpeed: effective.fallSpeed,
+              spawnInterval: effective.spawnInterval,
+            },
           });
         }
       }
@@ -148,7 +173,7 @@ export function useGameLoop(
         current.activePerks,
         current.frozenUntilMs,
         current.runnerId,
-        getCombatExtras(current),
+        getCombatExtras(current, difficultyElapsed),
       );
 
       const areaHeight =
@@ -276,7 +301,7 @@ export function useGameLoop(
       );
       const text = getWordTextForKind(
         kind,
-        current.elapsedMs,
+        current.difficultyElapsedMs,
         tierOffset,
         current.selectedGlossary,
         current.activeRelics,

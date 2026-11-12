@@ -130,7 +130,7 @@ function enterBossFight(
     const tierOffset = getFloorTierOffset(state);
     const bossWords = initBossWords(
       boss,
-      state.elapsedMs,
+      state.difficultyElapsedMs,
       tierOffset,
       createWordId,
       state.floor,
@@ -643,6 +643,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const { deltaMs, fallSpeed, groundHeight } = action.payload;
       const deltaSec = deltaMs / 1000;
       const newElapsed = state.elapsedMs + deltaMs;
+      const newDifficultyElapsed =
+        state.difficultyElapsedMs + deltaMs * state.flowStats.progressionRate;
       let activePerks = expirePerks(state.activePerks, newElapsed);
       const frozen = newElapsed < state.frozenUntilMs;
 
@@ -733,11 +735,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activePerks,
         state.frozenUntilMs,
         state.runnerId,
+        { difficultyElapsedMs: newDifficultyElapsed },
       );
 
       return {
         ...state,
         elapsedMs: newElapsed,
+        difficultyElapsedMs: newDifficultyElapsed,
         words: updatedWords,
         activePerks,
         lives,
@@ -1344,13 +1348,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'SPEED_RAMP': {
-      const effective = getEffectiveDifficulty(
-        state.elapsedMs,
-        getFloorTierOffset(state),
-        state.activePerks,
-        state.frozenUntilMs,
-        state.runnerId,
-      );
       const rampsThisFloor = state.rampsThisFloor + 1;
       const rampCount = state.rampCount + 1;
       const offerPerk = rampCount >= PERKS_EVERY_N_RAMPS;
@@ -1359,7 +1356,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         maxWordsPerSecond: Math.max(
           state.maxWordsPerSecond,
-          wordsPerSecondFromSpawnInterval(effective.spawnInterval),
+          wordsPerSecondFromSpawnInterval(action.payload.spawnInterval),
         ),
         showSpeedNotice: true,
         rampBlockedNotice: false,

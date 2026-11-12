@@ -2,10 +2,10 @@ import type { DifficultyTier } from '../types/game';
 
 export const SPEED_RAMP_INTERVAL_MS = 20_000;
 export const BASE_FALL_SPEED = 40;
-export const SPEED_INCREMENT = 12;
-export const MAX_FALL_SPEED = 160;
+export const SPEED_INCREMENT = 5;
+export const MAX_FALL_SPEED = 240;
 export const BASE_SPAWN_INTERVAL = 2500;
-export const SPAWN_DECREMENT = 180;
+export const SPAWN_DECREMENT = 50;
 export const MIN_SPAWN_INTERVAL = 700;
 
 export function getDifficultyTier(
@@ -25,8 +25,8 @@ export function getDifficultyTier(
     MIN_SPAWN_INTERVAL,
   );
 
-  const minLen = Math.min(3 + Math.floor(tier / 2), 6);
-  const maxLen = Math.min(5 + tier, 10);
+  const minLen = Math.min(3 + Math.floor(tier / 6), 6);
+  const maxLen = Math.min(5 + Math.floor(tier / 3), 10);
 
   return {
     fallSpeed,
