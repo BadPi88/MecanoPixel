@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { loadMeta } from '../services/meta';
 import type { PerkId } from '../types/perks';
 import type { GlossaryId, RelicId } from '../types/combat';
@@ -14,27 +14,27 @@ import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameState } from '../hooks/useGameState';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { loadPlayerName, savePlayerName } from '../services/leaderboard';
-import { syncMetaToProfile } from '../services/profile';
-import { BossScreen } from './BossScreen';
-import { EventScreen } from './EventScreen';
 import { GameArea } from './GameArea';
-import { GameOverScreen } from './GameOverScreen';
-import { GlossaryPicker } from './GlossaryPicker';
 import { HUD } from './HUD';
-import { PerkPicker } from './PerkPicker';
-import { RelicPicker } from './RelicPicker';
-import { RunnerPicker } from './RunnerPicker';
 import { getBiomeModifierLabel } from '../utils/biomeModifiers';
 import { BuildOverlay } from './BuildOverlay';
 import { ContextualHint } from './ContextualHint';
-import { MapScreen } from './MapScreen';
-import { ShopScreen } from './ShopScreen';
-import { VictoryScreen } from './VictoryScreen';
 import { PixelButton } from './PixelButton';
-import { StartScreen } from './StartScreen';
-import { TutorialOverlay } from './TutorialOverlay';
 import { BossSprite } from '../assets/bossSprites';
 import { useDialogFocus } from '../hooks/useDialogFocus';
+
+const BossScreen = lazy(() => import('./BossScreen').then((module) => ({ default: module.BossScreen })));
+const EventScreen = lazy(() => import('./EventScreen').then((module) => ({ default: module.EventScreen })));
+const GameOverScreen = lazy(() => import('./GameOverScreen').then((module) => ({ default: module.GameOverScreen })));
+const GlossaryPicker = lazy(() => import('./GlossaryPicker').then((module) => ({ default: module.GlossaryPicker })));
+const MapScreen = lazy(() => import('./MapScreen').then((module) => ({ default: module.MapScreen })));
+const PerkPicker = lazy(() => import('./PerkPicker').then((module) => ({ default: module.PerkPicker })));
+const RelicPicker = lazy(() => import('./RelicPicker').then((module) => ({ default: module.RelicPicker })));
+const RunnerPicker = lazy(() => import('./RunnerPicker').then((module) => ({ default: module.RunnerPicker })));
+const ShopScreen = lazy(() => import('./ShopScreen').then((module) => ({ default: module.ShopScreen })));
+const StartScreen = lazy(() => import('./StartScreen').then((module) => ({ default: module.StartScreen })));
+const TutorialOverlay = lazy(() => import('./TutorialOverlay').then((module) => ({ default: module.TutorialOverlay })));
+const VictoryScreen = lazy(() => import('./VictoryScreen').then((module) => ({ default: module.VictoryScreen })));
 
 export function Game() {
   const { state, dispatch } = useGameState();
@@ -87,7 +87,11 @@ export function Game() {
       const meta = (event as CustomEvent<ReturnType<typeof loadMeta>>).detail;
       if (!meta) return;
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => void syncMetaToProfile(meta), 400);
+      timer = setTimeout(() => {
+        void import('../services/profile').then(({ syncMetaToProfile }) =>
+          syncMetaToProfile(meta),
+        );
+      }, 400);
     };
     window.addEventListener('keyrunner:meta-changed', sync);
     return () => {
@@ -195,6 +199,7 @@ export function Game() {
     state.status === 'oraclePick';
 
   return (
+    <Suspense fallback={null}>
     <div className="game">
       {bossDefeatEffect && (
         <div
@@ -504,5 +509,6 @@ export function Game() {
         />
       )}
     </div>
+    </Suspense>
   );
 }
