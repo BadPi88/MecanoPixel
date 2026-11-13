@@ -9,7 +9,21 @@ export interface RelicDefinition {
   description: string;
   archetype: string;
   cursed?: boolean;
+  rarity?: RelicRarity;
 }
+
+export type RelicRarity = 'comun' | 'rara' | 'epica';
+
+const RELIC_RARITY: Record<RelicId, RelicRarity> = {
+  reliquia_ignea: 'comun', diccionario_erudito: 'comun', teclado_cortocircuitado: 'rara',
+  tinta_toxica: 'rara', afinacion_vocales: 'rara', sello_maldito: 'epica',
+  espejo_roto: 'epica', escudo_runico: 'comun', cronometro_veloz: 'rara',
+  bolsa_mercader: 'comun', dados_caoticos: 'epica', ancla_gravitatoria: 'rara',
+  moneda_ardiente: 'comun', contrato_sangriento: 'epica', teclado_espejo: 'epica',
+  maldicion_prisa: 'rara', marca_agua: 'comun', colofon: 'comun',
+  glosa_acentuada: 'rara', separador: 'comun', pluma_de_eco: 'comun',
+  borrador_compasivo: 'rara',
+};
 
 export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
   reliquia_ignea: {
@@ -151,6 +165,10 @@ export const RELIC_CATALOG: Record<RelicId, RelicDefinition> = {
   },
 };
 
+for (const id of Object.keys(RELIC_CATALOG) as RelicId[]) {
+  RELIC_CATALOG[id].rarity = RELIC_RARITY[id];
+}
+
 export const RELIC_IDS = Object.keys(RELIC_CATALOG) as RelicId[];
 
 export function getRelicDefinition(id: RelicId): RelicDefinition {
@@ -176,13 +194,46 @@ export function pickRelicChoices(
 
   const pool = getUnlockedRelicPool();
   const available = pool.filter((id) => !activeRelics.includes(id));
-  const shuffled = [...available];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.min(i, Math.floor(random() * (i + 1)));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
   const pickCount = bonusReroll
-    ? Math.min(count + 1, shuffled.length)
-    : Math.min(count, shuffled.length);
-  return shuffled.slice(0, pickCount);
+    ? Math.min(count + 1, available.length)
+    : Math.min(count, available.length);
+
+  // Pesos mas altos para comunes, dejando las epicas como hallazgos especiales.
+  // Reducimos duplicados de arquetipo para que las opciones propongan builds distintas.
+  const rarityWeight: Record<RelicRarity, number> = { comun: 5, rara: 2, epica: 0.8 };
+  const synergyPartners: Partial<Record<RelicId, RelicId[]>> = {
+    tinta_toxica: ['contrato_sangriento'],
+    contrato_sangriento: ['tinta_toxica'], dados_caoticos: ['sello_maldito'],
+    sello_maldito: ['dados_caoticos'], moneda_ardiente: ['bolsa_mercader'],
+    bolsa_mercader: ['moneda_ardiente'], glosa_acentuada: ['marca_agua'],
+    marca_agua: ['glosa_acentuada'],
+  };
+  const remaining = [...available];
+  const choices: RelicId[] = [];
+  while (choices.length < pickCount && remaining.length > 0) {
+    const archetypes = new Set(choices.map((id) => RELIC_CATALOG[id].archetype));
+    const weights = remaining.map((id) => {
+      const archetypeWeight = archetypes.has(RELIC_CATALOG[id].archetype)
+        ? 0.35
+        : 1;
+      const synergyWeight = activeRelics.some((active) =>
+        synergyPartners[active]?.includes(id),
+      )
+        ? 2.2
+        : 1;
+      return rarityWeight[RELIC_RARITY[id]] * archetypeWeight * synergyWeight;
+    });
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    let roll = random() * total;
+    let selectedIndex = weights.length - 1;
+    for (let i = 0; i < weights.length; i++) {
+      roll -= weights[i];
+      if (roll < 0) {
+        selectedIndex = i;
+        break;
+      }
+    }
+    choices.push(remaining.splice(selectedIndex, 1)[0]);
+  }
+  return choices;
 }

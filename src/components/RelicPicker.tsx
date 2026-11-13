@@ -40,6 +40,9 @@ export function RelicPicker({ choices, state, onSelect }: RelicPickerProps) {
                 onClick={() => onSelect(id)}
               >
                 <span className="perk-card__name">{relic.name}</span>
+                <span className={`relic-card__rarity relic-card__rarity--${relic.rarity ?? 'comun'}`}>
+                  {relic.rarity === 'epica' ? 'EPICA' : relic.rarity === 'rara' ? 'RARA' : 'COMUN'}
+                </span>
                 <span className="relic-card__archetype">
                   {relic.cursed ? 'MALDITA — ' : ''}
                   {relic.archetype}

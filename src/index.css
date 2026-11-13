@@ -2154,6 +2154,16 @@ body {
   display: block;
 }
 
+.relic-card__rarity {
+  display: block;
+  font-size: 6px;
+  margin: 5px 0;
+  color: #a0c8ff;
+}
+
+.relic-card__rarity--rara { color: #e0a0ff; }
+.relic-card__rarity--epica { color: #ffd060; }
+
 .relic-card--cursed {
   border-color: #a03030;
   background: #1a0808;
