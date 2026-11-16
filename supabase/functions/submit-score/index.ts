@@ -10,7 +10,7 @@ interface ScoreBody {
   elapsedMs: number;
   floorReached?: number;
   runnerId?: string;
-  verification?: {
+  verification: {
     runSeed: number;
     correctChars: number;
     correctKeyPresses: number;
@@ -53,7 +53,8 @@ Deno.serve(async (request: Request) => {
     const validChars = verification.correctChars >= 0 && verification.correctChars <= 1_000_000;
     const validCounts = verification.correctKeyPresses >= 0 && verification.mistakes >= 0 &&
       verification.correctKeyPresses <= 2_000_000 && verification.mistakes <= 2_000_000;
-    const validTimes = verification.defeatedAtMs.length <= 1_000_000 &&
+    const validTimes = verification.defeatedAtMs.length === body.wordsTyped &&
+      verification.defeatedAtMs.length <= 1_000_000 &&
       verification.defeatedAtMs.every((time, index, values) => Number.isInteger(time) && time >= 0 &&
         time <= body.elapsedMs && (index === 0 || time >= values[index - 1]!));
     const expectedWpm = body.elapsedMs > 0
@@ -62,7 +63,8 @@ Deno.serve(async (request: Request) => {
     if (!validChars || !validCounts || !validTimes || body.wpm !== expectedWpm ||
       body.score < 0 || body.score > 1_000_000 || body.wpm > 500 ||
       body.elapsedMs < 0 || body.elapsedMs > 3_600_000 || body.wordsTyped < 0 ||
-      body.wordsTyped > 1_000_000 || body.score > Math.max(body.wordsTyped, 1) * 100_000) {
+      body.wordsTyped > 1_000_000 || body.score > Math.max(body.wordsTyped, 1) * 100_000 ||
+      verification.correctKeyPresses < verification.correctChars) {
       return Response.json({ error: 'La puntuacion no coincide con la telemetria' }, { status: 422, headers: corsHeaders });
     }
 

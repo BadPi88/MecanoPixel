@@ -2,7 +2,7 @@ import type { GlossaryId, RelicId } from '../types/combat';
 import type { FallingWord, GameState } from '../types/game';
 import { getBiomeBonusScoreMult } from './biomeModifiers';
 import { hasSynergy } from './synergyEngine';
-import { GAME_BALANCE } from '../config/gameBalance';
+import { applyDiminishingReturns } from '../config/gameBalance';
 
 export interface SpawnConstraints {
   minLen?: number;
@@ -157,7 +157,7 @@ export function applyRelicOnSubmit(
   }
 
   return {
-    scoreMult: Math.min(scoreMult, GAME_BALANCE.scoreMultiplierHardCap),
+    scoreMult: applyDiminishingReturns(scoreMult),
     extraUltimateCharge,
     burnWordIds,
     aoeBonus,

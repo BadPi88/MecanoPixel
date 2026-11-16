@@ -6,7 +6,7 @@ import { getDifficultyTier } from './difficulty';
 import { calculateWordScore } from './scoring';
 import { getRunnerModifiers } from './runnerModifiers';
 import type { RunnerId } from '../types/run';
-import { GAME_BALANCE } from '../config/gameBalance';
+import { GAME_BALANCE, applyDiminishingReturns } from '../config/gameBalance';
 
 export interface PerkModifiers {
   fallSpeedMult: number;
@@ -215,7 +215,7 @@ export function calculatePerkWordScore(
     if (perk.id === 'golden_streak' && combo >= 5) scoreMult *= 1.5;
   }
 
-  return Math.round(base * Math.min(scoreMult, GAME_BALANCE.scoreMultiplierHardCap));
+  return Math.round(base * applyDiminishingReturns(scoreMult));
 }
 
 export function findLowestWord(words: FallingWord[]): FallingWord | null {

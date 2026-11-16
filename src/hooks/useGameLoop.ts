@@ -250,9 +250,11 @@ export function useGameLoop(
       return;
     }
 
-    let timeoutId: ReturnType<typeof setTimeout>;
+    let animationId = 0;
+    let lastFrame = 0;
+    let spawnElapsedMs = 0;
 
-    const scheduleSpawn = () => {
+    const spawnWord = () => {
       const current = stateRef.current;
       if (current.status !== 'playing') return;
 
@@ -261,7 +263,6 @@ export function useGameLoop(
         current.elapsedMs < current.wordDroughtUntilMs &&
         current.words.length >= 2
       ) {
-        timeoutId = setTimeout(scheduleSpawn, 500);
         return;
       }
 
@@ -337,12 +338,29 @@ export function useGameLoop(
         },
       });
 
-      timeoutId = setTimeout(scheduleSpawn, spawnIntervalRef.current);
     };
 
-    timeoutId = setTimeout(scheduleSpawn, spawnIntervalRef.current);
+    const tick = (timestamp: number) => {
+      if (lastFrame === 0) lastFrame = timestamp;
+      const deltaMs = timestamp - lastFrame;
+      lastFrame = timestamp;
+      const current = stateRef.current;
+      if (current.status === 'playing') {
+        spawnElapsedMs += deltaMs;
+        const droughtBlocked = current.wordDroughtUntilMs > current.elapsedMs && current.words.length >= 2;
+        const interval = droughtBlocked ? 500 : spawnIntervalRef.current;
+        if (spawnElapsedMs >= interval) {
+          spawnElapsedMs = 0;
+          spawnWord();
+        }
+      } else {
+        spawnElapsedMs = 0;
+      }
+      animationId = requestAnimationFrame(tick);
+    };
+    animationId = requestAnimationFrame(tick);
 
-    return () => clearTimeout(timeoutId);
+    return () => cancelAnimationFrame(animationId);
   }, [state.status, dispatch, gameAreaRef]);
 
   useEffect(() => {
@@ -351,16 +369,37 @@ export function useGameLoop(
       (state.status === 'boss' && state.bossAttack?.projectiles);
     if (!projectilesActive) return;
 
-    let timeoutId: ReturnType<typeof setTimeout>;
+    let animationId = 0;
+    let lastFrame = 0;
+    let elapsedMs = 0;
+    let nextIntervalMs = PROJECTILE_MIN_INTERVAL;
+    let pendingWarningMs = 0;
+    let pendingProjectile: { x: number; char: string; random: () => number } | null = null;
 
     const stillActive = (current: GameState) =>
       (current.status === 'playing' && current.floor >= 2) ||
       (current.status === 'boss' && current.bossAttack?.projectiles);
 
+    const launchProjectile = (pending: { x: number; char: string; random: () => number }) => {
+      if (!stillActive(stateRef.current)) return;
+      const { x, char, random } = pending;
+      dispatch({
+        type: 'SPAWN_PROJECTILE',
+        payload: { id: createWordId(), char, x, y: -24, vy: 60 + random() * 30 },
+      });
+      const active = stateRef.current;
+      let intervalMult = active.status === 'boss'
+        ? getBossProjectileIntervalMult(active.bossId, active.activeBossWordIndex)
+        : 1;
+      if (active.status === 'boss') intervalMult *= getAscensionBossAttackMult(active.ascensionLevel);
+      const baseInterval = PROJECTILE_MIN_INTERVAL + random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
+      nextIntervalMs = baseInterval * intervalMult;
+      elapsedMs = 0;
+    };
+
     const scheduleProjectile = () => {
       const current = stateRef.current;
       if (!stillActive(current)) return;
-
       const areaWidth = gameAreaRef.current?.clientWidth ?? window.innerWidth;
       const random = createSeededRandom(
         (current.runSeed + Math.imul(current.projectileCount + 1, 0x85ebca6b)) >>> 0,
@@ -370,36 +409,6 @@ export function useGameLoop(
         PROJECTILE_CHARS[Math.min(PROJECTILE_CHARS.length - 1, Math.floor(random() * PROJECTILE_CHARS.length))];
       const telegraph = current.status === 'boss' && current.bossId !== null;
 
-      const launch = () => {
-        if (!stillActive(stateRef.current)) return;
-        dispatch({
-          type: 'SPAWN_PROJECTILE',
-          payload: {
-            id: createWordId(),
-            char,
-            x,
-            y: -24,
-            vy: 60 + random() * 30,
-          },
-        });
-
-        const active = stateRef.current;
-        let intervalMult =
-          active.status === 'boss'
-            ? getBossProjectileIntervalMult(
-                active.bossId,
-                active.activeBossWordIndex,
-              )
-            : 1;
-        if (active.status === 'boss') {
-          intervalMult *= getAscensionBossAttackMult(active.ascensionLevel);
-        }
-        const baseInterval =
-          PROJECTILE_MIN_INTERVAL +
-          random() * (PROJECTILE_MAX_INTERVAL - PROJECTILE_MIN_INTERVAL);
-        timeoutId = setTimeout(scheduleProjectile, baseInterval * intervalMult);
-      };
-
       if (telegraph && current.status === 'boss') {
         const warningMs = current.bossId
           ? BOSS_CATALOG[current.bossId].telegraphMs
@@ -408,15 +417,35 @@ export function useGameLoop(
           type: 'BOSS_TELEGRAPH',
           payload: { x, untilMs: current.elapsedMs + warningMs },
         });
-        timeoutId = setTimeout(launch, warningMs);
+        pendingProjectile = { x, char, random };
+        pendingWarningMs = warningMs;
       } else {
-        launch();
+        launchProjectile({ x, char, random });
       }
     };
 
-    timeoutId = setTimeout(scheduleProjectile, PROJECTILE_MIN_INTERVAL);
+    const tick = (timestamp: number) => {
+      if (lastFrame === 0) lastFrame = timestamp;
+      const deltaMs = timestamp - lastFrame;
+      lastFrame = timestamp;
+      if (pendingProjectile) {
+        pendingWarningMs -= deltaMs;
+        if (pendingWarningMs <= 0) {
+          const projectile = pendingProjectile;
+          pendingProjectile = null;
+          launchProjectile(projectile);
+        }
+      } else if (stillActive(stateRef.current)) {
+        elapsedMs += deltaMs;
+        if (elapsedMs >= nextIntervalMs) scheduleProjectile();
+      } else {
+        elapsedMs = 0;
+      }
+      animationId = requestAnimationFrame(tick);
+    };
+    animationId = requestAnimationFrame(tick);
 
-    return () => clearTimeout(timeoutId);
+    return () => cancelAnimationFrame(animationId);
   }, [
     state.status,
     state.floor,

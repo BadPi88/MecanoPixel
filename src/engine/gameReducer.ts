@@ -1496,6 +1496,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         poppingWordId: null,
         words: state.words.filter((w) => w.id !== word.id),
         wordsTyped: state.wordsTyped + 1,
+        defeatedAtMs: [...state.defeatedAtMs, state.elapsedMs],
         correctChars: state.correctChars + word.text.length,
         input: '',
         backspacesUsedThisWord: 0,
