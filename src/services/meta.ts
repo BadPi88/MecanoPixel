@@ -23,12 +23,6 @@ import {
 } from '../data/metaUnlocks.ts';
 
 const META_KEY = 'keyrunner:meta';
-let metaOverride: MetaProgress | null = null;
-
-/** Inyecta el snapshot firmado de progreso durante el replay de una run. */
-export function setMetaOverride(meta: MetaProgress | null): void {
-  metaOverride = meta;
-}
 
 export interface MetaCosmetics {
   wordPalette: WordPaletteId;
@@ -186,7 +180,6 @@ export function ensureDailyMission(meta: MetaProgress): MetaProgress {
 }
 
 export function loadMeta(): MetaProgress {
-  if (metaOverride) return metaOverride;
   try {
     const raw = localStorage.getItem(META_KEY);
     if (!raw) return getDefaultMeta();

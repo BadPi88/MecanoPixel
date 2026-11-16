@@ -159,6 +159,7 @@ export function Game() {
     else setRankedNotice(startFailed
       ? 'RUN LOCAL: no se pudo iniciar la validacion online.'
       : 'RUN LOCAL: esta partida no se enviara al ranking.');
+    const progression = loadMeta();
     dispatch({
       type: 'BEGIN_RUN',
       payload: {
@@ -170,6 +171,8 @@ export function Game() {
         rankedRun,
         rankedMode: mode,
         challengeKey,
+        unlockedRelics: progression.unlockedRelics,
+        hubUpgrades: progression.hubUpgrades,
       },
     });
   }, [dispatch, playerName]);
@@ -286,7 +289,7 @@ export function Game() {
       {state.status === 'glossaryPick' && (
         <GlossaryPicker
           onSelect={handleGlossarySelect}
-          onBack={() => dispatch({ type: 'BEGIN_RUN', payload: { runSeed: createRunSeed() } })}
+          onBack={() => dispatch({ type: 'BACK_TO_RUNNER_PICK' })}
         />
       )}
 

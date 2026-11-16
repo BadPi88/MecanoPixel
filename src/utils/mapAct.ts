@@ -30,7 +30,7 @@ export function buildActMapChoices(state: GameState): {
     actMap = generateActMap(actIndex, state.runSeed);
   }
 
-  const maxChoices = getMapChoiceCount(state.dailyRun);
+  const maxChoices = getMapChoiceCount(state.dailyRun, state.hubUpgrades);
   const options = getMapChoicesFromAct(
     actMap,
     state.actMapNodeId,

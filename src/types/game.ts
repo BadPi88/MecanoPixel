@@ -16,6 +16,7 @@ import type {
 } from './combat.ts';
 import { INITIAL_FLOW_STATS } from './combat.ts';
 import type { RankedRunTicket } from '../../shared/runReplay';
+import { DEFAULT_UNLOCKED_RELICS } from '../data/metaUnlocks.ts';
 
 export type GameStatus =
   | 'idle'
@@ -74,6 +75,8 @@ export interface GameState {
   input: string;
   startTime: number | null;
   elapsedMs: number;
+  /** Altura util del area de combate, actualizada en cada tick. */
+  lastGroundHeight: number;
   /** Tiempo escalado por el rendimiento usado solo para la curva de reto. */
   difficultyElapsedMs: number;
   showSpeedNotice: boolean;
@@ -136,6 +139,9 @@ export interface GameState {
   /** Semilla de la run para generar rutas del mapa. */
   runSeed: number;
   rankedRun: RankedRunTicket | null;
+  /** Snapshot de progresion fijado al comienzo; el motor no consulta storage. */
+  unlockedRelics: RelicId[];
+  hubUpgrades: { extraMapOption: boolean; safeFirstFloor: boolean };
   /** Contador monotono para que cada spawn use una secuencia reproducible. */
   spawnCount: number;
   projectileCount: number;
@@ -210,8 +216,10 @@ export type GameAction =
         ascensionLevel?: number;
         startedAtMs?: number;
         rankedRun?: RankedRunTicket | null;
-          rankedMode?: 'global' | 'daily' | 'weekly';
-          challengeKey?: string;
+        rankedMode?: 'global' | 'daily' | 'weekly';
+        challengeKey?: string;
+        unlockedRelics?: RelicId[];
+        hubUpgrades?: { extraMapOption: boolean; safeFirstFloor: boolean };
         /** Semilla opcional para reproducir una run en pruebas de balance. */
         runSeed?: number;
       };
@@ -219,6 +227,7 @@ export type GameAction =
   | { type: 'GO_HOME' }
   | { type: 'RETRY'; payload: { runSeed: number } }
   | { type: 'SELECT_RUNNER'; payload: RunnerId }
+  | { type: 'BACK_TO_RUNNER_PICK' }
   | { type: 'SELECT_GLOSSARY'; payload: GlossaryId; startedAtMs?: number }
   | { type: 'TOGGLE_PAUSE' }
   | {
@@ -239,7 +248,7 @@ export type GameAction =
   | { type: 'SHOP_BUY'; payload: import('./run.ts').ShopItemId }
   | { type: 'SHOP_LEAVE' }
   | { type: 'EVENT_CHOICE'; payload: 'A' | 'B' }
-  | { type: 'BOSS_TICK'; payload: { deltaMs: number; groundHeight?: number } }
+  | { type: 'BOSS_TICK'; payload: { deltaMs: number; groundHeight: number } }
   | { type: 'BOSS_TELEGRAPH'; payload: { x: number; untilMs: number } }
   | { type: 'BOSS_FAIL' }
   | { type: 'CLEAR_POP' }
@@ -269,6 +278,7 @@ export const initialGameState: GameState = {
   input: '',
   startTime: null,
   elapsedMs: 0,
+  lastGroundHeight: 552,
   difficultyElapsedMs: 0,
   showSpeedNotice: false,
   rampBlockedNotice: false,
@@ -314,6 +324,8 @@ export const initialGameState: GameState = {
   eliteTierBonus: 0,
   runSeed: 0,
   rankedRun: null,
+  unlockedRelics: [...DEFAULT_UNLOCKED_RELICS],
+  hubUpgrades: { extraMapOption: false, safeFirstFloor: false },
   spawnCount: 0,
   projectileCount: 0,
   actIndex: 0,

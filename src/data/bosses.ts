@@ -1,6 +1,7 @@
 import type { BossAttackState, BossId } from '../types/combat.ts';
 import type { FallingWord } from '../types/game.ts';
 import { getBossWord } from '../utils/wordSpawn.ts';
+import { GAME_BALANCE } from '../config/gameBalance.ts';
 
 export const BOSS_REMAP_TABLE: Record<string, string> = {
   a: 'z',
@@ -9,8 +10,8 @@ export const BOSS_REMAP_TABLE: Record<string, string> = {
   x: 's',
 };
 
-export const BOSS_BLIND_INTERVAL_MS = 10_000;
-export const BOSS_BLIND_DURATION_MS = 2_000;
+export const BOSS_BLIND_INTERVAL_MS = GAME_BALANCE.boss.blindIntervalMs;
+export const BOSS_BLIND_DURATION_MS = GAME_BALANCE.boss.blindDurationMs;
 export const BOSS_REMAP_DURATION_MS = 15_000;
 
 export interface BossDefinition {

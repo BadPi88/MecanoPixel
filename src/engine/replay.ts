@@ -13,11 +13,18 @@ import {
   rollWordKind,
 } from '../utils/wordSpawn.ts';
 import { createSeededRandom } from './rng.ts';
-import { setMetaOverride, type MetaProgress } from '../services/meta.ts';
 import { gameReducer } from './gameReducer.ts';
 import { getDifficultyTier } from '../utils/difficulty.ts';
 import { initialGameState, type FallingWord, type GameAction, type GameState } from '../types/game.ts';
 import type { RunReplayEvent } from '../../shared/runReplay';
+
+export interface ReplayProgression {
+  unlockedRelics: string[];
+  unlockedRunners: string[];
+  unlockedGlossaries: string[];
+  maxAscension: number;
+  hubUpgrades: { extraMapOption: boolean; safeFirstFloor: boolean };
+}
 
 export interface ReplayExpectation {
   mode: 'global' | 'daily' | 'weekly';
@@ -102,6 +109,8 @@ function expectedWord(state: GameState): Omit<FallingWord, 'id' | 'x'> {
 
 function validSpawn(state: GameState, action: GameAction): boolean {
   if (action.type !== 'SPAWN_WORD') return false;
+  // La sequia permite conservar hasta dos objetivos activos (mismo limite que el loop visual).
+  if (state.elapsedMs < state.wordDroughtUntilMs && state.words.length >= 2) return false;
   const expected = expectedWord(state);
   return action.payload.id.length > 0 && Number.isFinite(action.payload.x) &&
     action.payload.x >= 0 && action.payload.x <= 4096 &&
@@ -127,7 +136,7 @@ function validTick(state: GameState, action: GameAction): boolean {
   const delta = action.payload.deltaMs;
   if (!Number.isFinite(delta) || delta <= 0 || delta > 1_000 ||
     !Number.isFinite(action.payload.groundHeight) ||
-    action.payload.groundHeight < 400 || action.payload.groundHeight > 1_600) return false;
+    action.payload.groundHeight < 100 || action.payload.groundHeight > 2_000) return false;
   const nextElapsed = state.elapsedMs + delta;
   const nextDifficultyElapsed = state.difficultyElapsedMs + delta * state.flowStats.progressionRate;
   const effective = getEffectiveDifficulty(
@@ -153,10 +162,14 @@ function checkEvent(
   state: GameState,
   action: GameAction,
   nextTick: GameAction | null,
-  groundHeight: number,
-  progression: MetaProgress,
+  progression: ReplayProgression,
 ): boolean {
-  if (action.type === 'BEGIN_RUN') return state.status === 'idle';
+  if (action.type === 'BEGIN_RUN') {
+    const payload = action.payload;
+    return state.status === 'idle' &&
+      sameJson(payload?.unlockedRelics ?? initialGameState.unlockedRelics, progression.unlockedRelics) &&
+      sameJson(payload?.hubUpgrades ?? initialGameState.hubUpgrades, progression.hubUpgrades);
+  }
   if (action.type === 'SELECT_RUNNER') return state.status === 'runnerPick' && progression.unlockedRunners.includes(action.payload);
   if (action.type === 'SELECT_GLOSSARY') return state.status === 'glossaryPick' && progression.unlockedGlossaries.includes(action.payload);
   if (action.type === 'SELECT_PERK') return state.pendingPerkChoice?.includes(action.payload) ?? false;
@@ -167,23 +180,27 @@ function checkEvent(
   if (action.type === 'ORACLE_CHOICE') return state.status === 'oraclePick' && (action.payload === 'score' || action.payload === 'charge');
   if (action.type === 'CONTINUE_ENDLESS') return state.status === 'victory';
   if (action.type === 'SPAWN_WORD') return state.status === 'playing' && validSpawn(state, action);
-  if (action.type === 'SPAWN_PROJECTILE') return state.status === 'playing' && validProjectile(state, action);
+  if (action.type === 'SPAWN_PROJECTILE') {
+    const bossAllowsProjectiles = state.status === 'boss' && Boolean(state.bossAttack?.projectiles);
+    return (state.status === 'playing' || bossAllowsProjectiles) && validProjectile(state, action);
+  }
   if (action.type === 'TICK') return state.status === 'playing' && validTick(state, action);
   if (action.type === 'TYPE_CHAR' || action.type === 'BACKSPACE' || action.type === 'SUBMIT') {
     return state.status === 'playing' || state.status === 'boss';
   }
   if (action.type === 'TOGGLE_PAUSE') return state.status === 'playing' || state.status === 'paused';
   if (action.type === 'BOSS_TICK') {
-    return Number.isFinite(action.payload.deltaMs) && action.payload.deltaMs > 0 && action.payload.deltaMs <= 1_000;
+    return Number.isFinite(action.payload.deltaMs) && action.payload.deltaMs > 0 && action.payload.deltaMs <= 1_000 &&
+      Number.isFinite(action.payload.groundHeight) && action.payload.groundHeight >= 100 && action.payload.groundHeight <= 2_000;
   }
   if (action.type === 'WORD_HIT_GROUND') {
     const word = state.words.find((item) => item.id === action.payload);
-    return Boolean(word && Number.isFinite(groundHeight) && word.y >= groundHeight - 36);
+    return Boolean(word && Number.isFinite(state.lastGroundHeight) && word.y >= state.lastGroundHeight - 36);
   }
   if (action.type === 'BOSS_FAIL') {
     const active = state.bossWords.slice(state.activeBossWordIndex);
-    return state.status === 'boss' && Number.isFinite(groundHeight) && active.length > 0 &&
-      active.some((word) => word.y >= groundHeight - 40);
+    return state.status === 'boss' && Number.isFinite(state.lastGroundHeight) && active.length > 0 &&
+      active.some((word) => word.y >= state.lastGroundHeight - 40);
   }
   if (action.type === 'SPEED_RAMP' || action.type === 'BROKEN_CLOCK_SKIP') {
     if (!nextTick || nextTick.type !== 'TICK') return false;
@@ -225,14 +242,12 @@ function checkEvent(
 export function replayRun(
   events: RunReplayEvent[],
   expected: ReplayExpectation,
-  progression: MetaProgress,
+  progression: ReplayProgression,
 ): ReplayResult {
   if (events.length === 0 || events.length > 250_000) return { valid: false, reason: 'event_count' };
-  setMetaOverride(progression);
   try {
     let state: GameState = initialGameState;
     let lastElapsedMs = -1;
-    let groundHeight = Number.NaN;
     for (let index = 0; index < events.length; index += 1) {
       const event = events[index]!;
       const action = parseAction(event.action);
@@ -241,8 +256,7 @@ export function replayRun(
         return { valid: false, reason: 'event_order' };
       }
       const nextAction = index + 1 < events.length ? parseAction(events[index + 1]!.action) : null;
-      if (!checkEvent(state, action, nextAction, groundHeight, progression)) return { valid: false, reason: 'event_invalid' };
-      if (action.type === 'TICK') groundHeight = action.payload.groundHeight;
+      if (!checkEvent(state, action, nextAction, progression)) return { valid: false, reason: 'event_invalid' };
       state = gameReducer(state, action);
       lastElapsedMs = event.elapsedMs;
     }
@@ -256,7 +270,5 @@ export function replayRun(
     return { valid: true, state };
   } catch {
     return { valid: false, reason: 'replay_error' };
-  } finally {
-    setMetaOverride(null);
   }
 }

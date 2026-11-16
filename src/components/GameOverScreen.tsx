@@ -243,42 +243,25 @@ export function GameOverScreen({
     let cancelled = false;
 
     async function saveAndLoad() {
-      if (!verification || !playerName.trim()) {
-        setSubmitStatus('skipped');
-      } else {
-
-      try {
+      if (!verification || !playerName.trim()) setSubmitStatus('skipped');
+      else try {
         let result: { saved: boolean; rank: number | null; rejected?: boolean; queueFailed?: boolean };
         if (verification.rankedRun.mode === 'weekly') {
           result = await submitWeeklyScore({
-              playerName: playerName.trim(), week: verification.rankedRun.challengeKey, score, wpm,
-              wordsTyped, elapsedMs, floorReached: floor, runnerId: runnerId ?? undefined,
-              verification,
-            });
-            const board = await fetchWeeklyLeaderboard(playerName.trim(), verification.rankedRun.challengeKey);
-            if (!cancelled) setWeeklyRank(board.playerRank);
+            playerName: playerName.trim(), week: verification.rankedRun.challengeKey, score, wpm,
+            wordsTyped, elapsedMs, floorReached: floor, runnerId: runnerId ?? undefined, verification,
+          });
+          const board = await fetchWeeklyLeaderboard(playerName.trim(), verification.rankedRun.challengeKey);
+          if (!cancelled) setWeeklyRank(board.playerRank);
         } else if (verification.rankedRun.mode === 'daily') {
           result = await submitDailyScore({
-            playerName: playerName.trim(),
-            date: verification.rankedRun.challengeKey,
-            score,
-            wpm,
-            wordsTyped,
-            elapsedMs,
-            floorReached: floor,
-            runnerId: runnerId ?? undefined,
-            verification,
+            playerName: playerName.trim(), date: verification.rankedRun.challengeKey, score, wpm,
+            wordsTyped, elapsedMs, floorReached: floor, runnerId: runnerId ?? undefined, verification,
           });
         } else {
           result = await submitScore({
-          playerName: playerName.trim(),
-          score,
-          wpm,
-          wordsTyped,
-          elapsedMs,
-          floorReached: floor,
-          runnerId: runnerId ?? undefined,
-          verification,
+            playerName: playerName.trim(), score, wpm, wordsTyped, elapsedMs,
+            floorReached: floor, runnerId: runnerId ?? undefined, verification,
           });
         }
         if (cancelled) return;
@@ -288,11 +271,10 @@ export function GameOverScreen({
         if (cancelled) return;
         setSubmitStatus('error');
       }
-
-      }
       try {
-        if (!verification) return;
-        const data = await fetchSupabaseLeaderboard(verification.rankedRun.mode, verification.rankedRun.challengeKey);
+        const mode = verification?.rankedRun.mode ?? 'global';
+        const challengeKey = verification?.rankedRun.challengeKey ?? '';
+        const data = await fetchSupabaseLeaderboard(mode, challengeKey);
         if (!cancelled) setLeaderboard(data);
       } catch {
         if (!cancelled) {

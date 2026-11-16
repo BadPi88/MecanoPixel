@@ -3,16 +3,26 @@ import { loadSettings } from './settings';
 let audioCtx: AudioContext | null = null;
 let masterCompressor: DynamicsCompressorNode | null = null;
 
-function getContext(): AudioContext {
+function getContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
   if (!audioCtx) {
-    audioCtx = new AudioContext();
-    masterCompressor = audioCtx.createDynamicsCompressor();
-    masterCompressor.threshold.setValueAtTime(-18, audioCtx.currentTime);
-    masterCompressor.knee.setValueAtTime(12, audioCtx.currentTime);
-    masterCompressor.ratio.setValueAtTime(8, audioCtx.currentTime);
-    masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
-    masterCompressor.release.setValueAtTime(0.18, audioCtx.currentTime);
-    masterCompressor.connect(audioCtx.destination);
+    try {
+      const AudioContextConstructor = window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextConstructor) return null;
+      audioCtx = new AudioContextConstructor();
+      masterCompressor = audioCtx.createDynamicsCompressor();
+      masterCompressor.threshold.setValueAtTime(-18, audioCtx.currentTime);
+      masterCompressor.knee.setValueAtTime(12, audioCtx.currentTime);
+      masterCompressor.ratio.setValueAtTime(8, audioCtx.currentTime);
+      masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+      masterCompressor.release.setValueAtTime(0.18, audioCtx.currentTime);
+      masterCompressor.connect(audioCtx.destination);
+    } catch {
+      audioCtx = null;
+      masterCompressor = null;
+      return null;
+    }
   }
   return audioCtx;
 }
@@ -23,7 +33,7 @@ function canPlay(): boolean {
 
 function resumeIfNeeded(ctx: AudioContext): void {
   if (ctx.state === 'suspended') {
-    void ctx.resume();
+    try { void ctx.resume().catch(() => {}); } catch { /* Autoplay bloqueado por el navegador. */ }
   }
 }
 
@@ -45,6 +55,7 @@ function playTone({
   if (!canPlay()) return;
 
   const ctx = getContext();
+  if (!ctx) return;
   resumeIfNeeded(ctx);
 
   const start = ctx.currentTime + delay;

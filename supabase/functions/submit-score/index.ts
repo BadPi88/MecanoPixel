@@ -1,6 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { replayRun } from '../../../src/engine/replay.ts';
-import { getDefaultMeta } from '../../../src/services/meta.ts';
 import { verifyRunToken } from '../_shared/runToken.ts';
 
 const corsHeaders = {
@@ -38,12 +37,6 @@ Deno.serve(async (request: Request) => {
     const supabase = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError || !authData.user || authData.user.id !== claims.sub) return Response.json({ error: 'Sesion invalida' }, { status: 401, headers: corsHeaders });
-    const meta = getDefaultMeta();
-    meta.unlockedRelics = claims.progression.unlockedRelics as typeof meta.unlockedRelics;
-    meta.unlockedRunners = claims.progression.unlockedRunners as typeof meta.unlockedRunners;
-    meta.unlockedGlossaries = claims.progression.unlockedGlossaries as typeof meta.unlockedGlossaries;
-    meta.maxAscension = claims.progression.maxAscension;
-    meta.hubUpgrades = claims.progression.hubUpgrades;
     const result = replayRun(events as never[], {
       mode: claims.mode,
       challengeKey: claims.challengeKey,
@@ -52,7 +45,7 @@ Deno.serve(async (request: Request) => {
       wordsTyped: Number(body.wordsTyped),
       correctChars: Number(verification.correctChars),
       elapsedMs: Number(body.elapsedMs),
-    }, meta);
+    }, claims.progression);
     if (!result.valid || Number(verification.correctKeyPresses) !== result.state.correctKeyPresses ||
       Number(verification.mistakes) !== result.state.mistakes ||
       Number(body.wpm) !== (result.state.elapsedMs > 0 ? Math.round(result.state.correctChars * 12_000 / result.state.elapsedMs) : 0)) {

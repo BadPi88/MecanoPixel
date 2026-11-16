@@ -7,6 +7,20 @@ export const GAME_BALANCE = {
   shieldChargeHardCap: 2,
   shop: { offerCount: 4, rerollBaseCost: 90 },
   combat: { ultimateChargeCap: 100, projectileCap: 5 },
+  typing: {
+    trapPenalty: 40,
+    ultimateChargePerChar: 1.5,
+    ultimateDeflectBonus: 5,
+    ultimateFreezeMs: 2_000,
+    adjacentTempoBuffMs: 8_000,
+    verbAoeFactor: 0.7,
+    cleanWordScoreMultiplier: 1.1,
+    projectileHeight: 24,
+    oracleScoreBase: 50,
+    oracleScorePerChar: 10,
+    oracleChargeReward: 35,
+  },
+  boss: { blindIntervalMs: 10_000, blindDurationMs: 2_000 },
   economy: { bonusWordCoins: 15, eliteCoinMultiplier: 1.5 },
 } as const;
 

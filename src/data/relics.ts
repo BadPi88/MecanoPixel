@@ -1,4 +1,3 @@
-import { loadMeta } from '../services/meta.ts';
 import type { RelicId } from '../types/combat.ts';
 import { MAX_ACTIVE_RELICS } from '../types/combat.ts';
 import { DEFAULT_UNLOCKED_RELICS } from './metaUnlocks.ts';
@@ -175,12 +174,11 @@ export function getRelicDefinition(id: RelicId): RelicDefinition {
   return RELIC_CATALOG[id];
 }
 
-export function getUnlockedRelicPool(): RelicId[] {
-  const meta = loadMeta();
+export function getUnlockedRelicPool(unlockedRelics: readonly RelicId[] = DEFAULT_UNLOCKED_RELICS): RelicId[] {
   return RELIC_IDS.filter(
     (id) =>
       DEFAULT_UNLOCKED_RELICS.includes(id) ||
-      meta.unlockedRelics.includes(id),
+      unlockedRelics.includes(id),
   );
 }
 
@@ -189,10 +187,11 @@ export function pickRelicChoices(
   count = 3,
   bonusReroll = false,
   random: () => number = Math.random,
+  unlockedRelics: readonly RelicId[] = DEFAULT_UNLOCKED_RELICS,
 ): RelicId[] {
   if (activeRelics.length >= MAX_ACTIVE_RELICS) return [];
 
-  const pool = getUnlockedRelicPool();
+  const pool = getUnlockedRelicPool(unlockedRelics);
   const available = pool.filter((id) => !activeRelics.includes(id));
   const pickCount = bonusReroll
     ? Math.min(count + 1, available.length)
