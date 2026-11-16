@@ -4,7 +4,6 @@ import { pickRelicChoices } from '../../data/relics.ts';
 import { getShopItem, pickShopOffers } from '../../data/shop.ts';
 import {
   type FallingWord,
-  type GameAction,
   type GameState,
   type GameStatus,
 } from '../../types/game.ts';
@@ -39,7 +38,7 @@ import {
   applyPerkSelection,
 } from '../../utils/perkModifiers.ts';
 import { createWordId } from '../gameIds.ts';
-import { createSeededRandom } from './rng.ts';
+import { createSeededRandom } from '../rng.ts';
 import { GAME_BALANCE } from '../../config/gameBalance.ts';
 
 
