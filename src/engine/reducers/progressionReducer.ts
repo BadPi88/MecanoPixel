@@ -21,6 +21,7 @@ case 'SPEED_RAMP': {
         showSpeedNotice: true,
         rampBlockedNotice: false,
         rampsThisFloor,
+        lastTier: action.payload.tier,
         rampCount: offerPerk ? 0 : rampCount,
         status: offerPerk ? 'perkPick' : 'playing',
         pendingPerkChoice: offerPerk
@@ -41,7 +42,7 @@ case 'SPEED_RAMP': {
       return next;
     }
 case 'BROKEN_CLOCK_SKIP':
-      return { ...state, ...applyBrokenClockSkip(state) };
+      return { ...state, lastTier: action.payload.tier, ...applyBrokenClockSkip(state) };
 case 'SELECT_PERK': {
       const partial = applyPerkSelection(state, action.payload);
       const next: GameState = {

@@ -37,13 +37,10 @@ import { getNodeById } from '../../data/mapRooms.ts';
 import {
   applyPerkSelection,
 } from '../../utils/perkModifiers.ts';
-import { createWordId } from '../gameIds.ts';
 import { createSeededRandom } from '../rng.ts';
 import { GAME_BALANCE } from '../../config/gameBalance.ts';
 
 
-
-export { createWordId } from '../gameIds.ts';
 
 export function randomFor(state: GameState, channel: number): () => number {
   return createSeededRandom(
@@ -82,7 +79,10 @@ function enterBossFight(
       boss,
       state.difficultyElapsedMs,
       tierOffset,
-      createWordId,
+      (() => {
+        let wordIndex = 0;
+        return () => `boss-${state.runSeed}-${state.floor}-${state.elapsedMs}-${wordIndex++}`;
+      })(),
       state.floor,
       randomFor(state, 0x501),
     );

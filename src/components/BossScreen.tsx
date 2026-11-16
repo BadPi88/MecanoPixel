@@ -97,6 +97,11 @@ export function BossScreen({
             ? `Palabra ${bossPhase + 1}/${bossWords.length} — alterna hasta derrotarla`
             : 'Escribe la palabra antes de que toque el suelo'}
         </p>
+        {isDual && (
+          <p className="boss-header__active-target" role="status" aria-live="polite">
+            OBJETIVO ACTIVO {activeBossWordIndex + 1}/{bossWords.length}: {bossWord.text}
+          </p>
+        )}
         {bossId === 'indexadora' && (
           <p className="boss-header__phase" role="status">
             {boss.phases?.[bossPhase]?.label ?? `FASE ${bossPhase + 1}`}

@@ -13,7 +13,7 @@ import { submitDailyScore } from '../services/daily';
 import { fetchWeeklyLeaderboard, submitWeeklyScore } from '../services/weekly';
 import { formatPeakIntensity } from '../utils/intensity';
 import { getAscensionMetaCoinsMult } from '../utils/ascensionModifiers';
-import { calculateMetaCoinsEarned } from '../utils/metaCoins';
+import { getMetaCoinsBreakdown } from '../utils/metaCoins';
 import { calculateWpm, formatTime } from '../utils/wpm';
 import {
   buildRunSummaryText,
@@ -101,15 +101,16 @@ export function GameOverScreen({
     ? Math.round((correctKeyPresses / (correctKeyPresses + mistakes)) * 100)
     : 100;
   const peakIntensity = formatPeakIntensity(maxWordsPerSecond);
-  const metaCoinsEarned = useMemo(
-    () =>
-      calculateMetaCoinsEarned(
-        floor,
-        score,
-        bossSkipMetaMult * getAscensionMetaCoinsMult(ascensionLevel),
-      ),
+  const metaCoinsBreakdown = useMemo(
+    () => getMetaCoinsBreakdown(
+      floor,
+      score,
+      bossSkipMetaMult,
+      getAscensionMetaCoinsMult(ascensionLevel),
+    ),
     [floor, score, bossSkipMetaMult, ascensionLevel],
   );
+  const metaCoinsEarned = metaCoinsBreakdown.total;
 
   const runTitle = useMemo(() => {
     const input: RunSummaryInput = {
@@ -447,6 +448,10 @@ export function GameOverScreen({
             <span className="screen__stat-label">META COINS</span>
             <span className="screen__stat-value screen__stat-value--gold">
               +{metaCoinsEarned}
+            </span>
+            <span className="screen__stat-hint">
+              Pisos +{metaCoinsBreakdown.floorBase} · Puntuacion +{Math.floor(metaCoinsBreakdown.scoreBonus)} · Ascension x{metaCoinsBreakdown.ascensionMultiplier}
+              {metaCoinsBreakdown.bossPenalty > 0 ? ` · Jefe evitado -${metaCoinsBreakdown.bossPenalty}` : ''}
             </span>
           </div>
           <div className="screen__stat">

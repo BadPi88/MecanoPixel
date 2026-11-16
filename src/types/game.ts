@@ -241,8 +241,8 @@ export type GameAction =
   | { type: 'SUBMIT' }
   | { type: 'ULTIMATE_FIRE' }
   | { type: 'WORD_HIT_GROUND'; payload: string }
-  | { type: 'SPEED_RAMP'; payload: { fallSpeed: number; spawnInterval: number } }
-  | { type: 'BROKEN_CLOCK_SKIP' }
+  | { type: 'SPEED_RAMP'; payload: { fallSpeed: number; spawnInterval: number; tier: number } }
+  | { type: 'BROKEN_CLOCK_SKIP'; payload: { tier: number } }
   | { type: 'SELECT_PERK'; payload: PerkId }
   | { type: 'SELECT_RELIC'; payload: RelicId }
   | { type: 'SHOP_BUY'; payload: import('./run.ts').ShopItemId }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { LeaderboardResponse } from '../types/leaderboard';
 import type { DailyLeaderboardResponse } from '../types/daily';
 import { RUNNER_CATALOG } from '../data/runners';
@@ -47,6 +47,7 @@ export function StartScreen({
 }: StartScreenProps) {
   const meta = loadMeta();
   const [tab, setTab] = useState<HubTab>('play');
+  const [routePath, setRoutePath] = useState(() => window.location.pathname);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
     null,
   );
@@ -67,6 +68,17 @@ export function StartScreen({
   const [profileError, setProfileError] = useState('');
   const [profileBusy, setProfileBusy] = useState(false);
 
+  const replacePath = useCallback((path: string) => {
+    window.history.replaceState({}, '', path);
+    setRoutePath(path);
+  }, []);
+
+  useEffect(() => {
+    const syncPath = () => setRoutePath(window.location.pathname);
+    window.addEventListener('popstate', syncPath);
+    return () => window.removeEventListener('popstate', syncPath);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void restoreProfileSession()
@@ -75,12 +87,12 @@ export function StartScreen({
         setSession(restored);
         if (restored?.playerName) {
           onPlayerNameChange(restored.playerName);
-          if (window.location.pathname === '/login') window.history.replaceState({}, '', '/');
+          if (routePath === '/login') replacePath('/');
         }
       })
       .catch(() => { if (!cancelled) setSession(null); });
     return () => { cancelled = true; };
-  }, [onPlayerNameChange]);
+  }, [onPlayerNameChange, replacePath, routePath]);
 
   useEffect(() => {
     try {
@@ -196,9 +208,7 @@ export function StartScreen({
         : result.created
           ? 'Cuenta creada: tu progreso ya se guarda en la nube'
           : 'Sesion iniciada: progreso sincronizado desde la nube');
-      if (result.session && window.location.pathname === '/login') {
-        window.history.replaceState({}, '', '/');
-      }
+      if (result.session && routePath === '/login') replacePath('/');
     } catch (err) {
       setProfileError(
         err instanceof Error ? err.message : 'No se pudo conectar',
@@ -231,7 +241,7 @@ export function StartScreen({
       const restored = await restoreProfileSession();
       setSession(restored);
       if (restored?.playerName) onPlayerNameChange(restored.playerName);
-      window.history.replaceState({}, '', '/');
+      replacePath('/');
       setNewPassword('');
       setConfirmPassword('');
       setProfileStatus('Contrasena actualizada. Ya puedes guardar y competir.');
@@ -249,7 +259,7 @@ export function StartScreen({
     setProfileError('');
   };
 
-  if (window.location.pathname === '/recover-password') {
+  if (routePath === '/recover-password') {
     return (
       <main className="auth-screen">
         <a className="auth-screen__brand" href="/">KEY RUNNER</a>
@@ -286,7 +296,7 @@ export function StartScreen({
     );
   }
 
-  if (window.location.pathname === '/login') {
+  if (routePath === '/login') {
     const registering = authMode === 'register';
     return (
       <main className="auth-screen">

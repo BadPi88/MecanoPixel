@@ -14,6 +14,7 @@ import { INITIAL_FLOW_STATS } from '../src/types/combat';
 import { updateFlowStats } from '../src/utils/flowDifficulty';
 import { recordRunEnd } from '../src/services/meta';
 import { getFloorTierOffset } from '../src/utils/runTransitions';
+import { DEFAULT_UNLOCKED_RELICS } from '../src/data/metaUnlocks';
 
 describe('random reproducible', () => {
   it('produce la misma secuencia para una semilla y distintas para otra', () => {
@@ -38,8 +39,8 @@ describe('random reproducible', () => {
     const perks = pickPerkChoices([], 3, 7, 0, createSeededRandom(123));
     expect(pickPerkChoices([], 3, 7, 0, createSeededRandom(123))).toEqual(perks);
     expect(new Set(perks).size).toBe(3);
-    const relics = pickRelicChoices([], 3, false, createSeededRandom(123));
-    expect(pickRelicChoices([], 3, false, createSeededRandom(123))).toEqual(relics);
+    const relics = pickRelicChoices([], 3, false, createSeededRandom(123), DEFAULT_UNLOCKED_RELICS);
+    expect(pickRelicChoices([], 3, false, createSeededRandom(123), DEFAULT_UNLOCKED_RELICS)).toEqual(relics);
     expect(new Set(relics).size).toBe(relics.length);
   });
 });
@@ -129,7 +130,7 @@ describe('mapa y reducer', () => {
     };
     const perkState = gameReducer(runState, {
       type: 'SPEED_RAMP',
-      payload: { fallSpeed: 100, spawnInterval: 1000 },
+      payload: { fallSpeed: 100, spawnInterval: 1000, tier: 1 },
     });
     expect(perkState.status).toBe('perkPick');
     expect(perkState.pendingPerkChoice).toHaveLength(3);

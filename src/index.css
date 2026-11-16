@@ -1969,6 +1969,19 @@ html[data-flashes='reduced'] .boss-telegraph {
   color: var(--color-warn);
 }
 
+.boss-header__active-target {
+  display: inline-block;
+  max-width: min(90vw, 620px);
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border: 2px solid var(--color-warn);
+  background: var(--color-panel);
+  color: var(--color-warn);
+  font-size: calc(12px * var(--ui-font-scale, 1));
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 .boss-area {
   position: absolute;
   inset: 0;

@@ -184,7 +184,9 @@ function checkEvent(
     const bossAllowsProjectiles = state.status === 'boss' && Boolean(state.bossAttack?.projectiles);
     return (state.status === 'playing' || bossAllowsProjectiles) && validProjectile(state, action);
   }
-  if (action.type === 'TICK') return state.status === 'playing' && validTick(state, action);
+  // The render loop can dispatch the frame that triggered a perk offer. The
+  // reducer intentionally ignores that tick while the choice modal is open.
+  if (action.type === 'TICK') return (state.status === 'playing' || state.status === 'perkPick') && validTick(state, action);
   if (action.type === 'TYPE_CHAR' || action.type === 'BACKSPACE' || action.type === 'SUBMIT') {
     return state.status === 'playing' || state.status === 'boss';
   }
@@ -205,11 +207,10 @@ function checkEvent(
   if (action.type === 'SPEED_RAMP' || action.type === 'BROKEN_CLOCK_SKIP') {
     if (!nextTick || nextTick.type !== 'TICK') return false;
     const nextDifficulty = state.difficultyElapsedMs + nextTick.payload.deltaMs * state.flowStats.progressionRate;
-    const currentTier = getDifficultyTier(state.difficultyElapsedMs, getFloorTierOffset(state)).tier;
     const nextTier = getDifficultyTier(nextDifficulty, getFloorTierOffset(state)).tier;
-    if (nextTier <= currentTier) return false;
+    if (nextTier <= state.lastTier || action.payload.tier !== nextTier) return false;
     const shouldSkip = state.activePerks.some((perk) => perk.id === 'broken_clock' && (perk.charges ?? 0) > 0);
-    if (action.type === 'BROKEN_CLOCK_SKIP') return shouldSkip;
+    if (action.type === 'BROKEN_CLOCK_SKIP') return shouldSkip && action.payload.tier === nextTier;
     if (shouldSkip) return false;
     const effective = getEffectiveDifficulty(
       state.elapsedMs,

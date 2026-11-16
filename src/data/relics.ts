@@ -184,10 +184,10 @@ export function getUnlockedRelicPool(unlockedRelics: readonly RelicId[] = DEFAUL
 
 export function pickRelicChoices(
   activeRelics: RelicId[],
-  count = 3,
-  bonusReroll = false,
-  random: () => number = Math.random,
-  unlockedRelics: readonly RelicId[] = DEFAULT_UNLOCKED_RELICS,
+  count: number,
+  bonusReroll: boolean,
+  random: () => number,
+  unlockedRelics: readonly RelicId[],
 ): RelicId[] {
   if (activeRelics.length >= MAX_ACTIVE_RELICS) return [];
 

@@ -146,11 +146,13 @@ export function useGameLoop(
         current.difficultyElapsedMs + deltaMs * current.flowStats.progressionRate;
       const tierOffset = getFloorTierOffset(current);
       const rawTier = getDifficultyTier(difficultyElapsed, tierOffset).tier;
+      let tickTierOffset = tierOffset;
 
       if (rawTier > lastTierRef.current) {
         lastTierRef.current = rawTier;
         if (hasPerkWithCharge(current.activePerks, 'broken_clock')) {
-          dispatch({ type: 'BROKEN_CLOCK_SKIP' });
+          dispatch({ type: 'BROKEN_CLOCK_SKIP', payload: { tier: rawTier } });
+          tickTierOffset += 1;
         } else {
           const effective = getEffectiveDifficulty(
             current.elapsedMs,
@@ -166,6 +168,7 @@ export function useGameLoop(
             payload: {
               fallSpeed: effective.fallSpeed,
               spawnInterval: effective.spawnInterval,
+              tier: rawTier,
             },
           });
         }
@@ -173,7 +176,7 @@ export function useGameLoop(
 
       const effective = getEffectiveDifficulty(
         elapsed,
-        tierOffset,
+        tickTierOffset,
         current.activePerks,
         current.frozenUntilMs,
         current.runnerId,

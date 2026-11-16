@@ -24,8 +24,10 @@ case 'BEGIN_RUN': {
           hubUpgrades,
         };
       }
-      const weeklyChallenge = weeklyRun ? getWeeklyChallengeConfig(action.payload?.challengeKey) : null;
-      const challenge = weeklyChallenge ?? getDailyChallengeConfig(action.payload?.challengeKey);
+      const challengeKey = action.payload?.challengeKey;
+      if (dailyRun === weeklyRun || !challengeKey || !/^\d{4}-\d{2}-\d{2}$/.test(challengeKey)) return state;
+      const weeklyChallenge = weeklyRun ? getWeeklyChallengeConfig(challengeKey) : null;
+      const challenge = weeklyChallenge ?? getDailyChallengeConfig(challengeKey);
       const runnerId = challenge.runnerId;
       const lives = getInitialLives(runnerId);
       const trapIgnore = getRunnerModifiers(runnerId).trapIgnoreCharges;
