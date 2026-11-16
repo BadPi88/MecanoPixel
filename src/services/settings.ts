@@ -25,6 +25,7 @@ export interface GameSettings {
   screenShake: boolean;
   reducedFlashes: boolean;
   soundEnabled: boolean;
+  autoSubmit: boolean;
 }
 
 const SETTINGS_KEY = 'keyrunner:settings';
@@ -38,6 +39,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   screenShake: true,
   reducedFlashes: false,
   soundEnabled: true,
+  autoSubmit: true,
 };
 
 export function loadSettings(): GameSettings {
@@ -74,6 +76,9 @@ export function loadSettings(): GameSettings {
       soundEnabled: typeof parsed.soundEnabled === 'boolean'
         ? parsed.soundEnabled
         : DEFAULT_SETTINGS.soundEnabled,
+      autoSubmit: typeof parsed.autoSubmit === 'boolean'
+        ? parsed.autoSubmit
+        : DEFAULT_SETTINGS.autoSubmit,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

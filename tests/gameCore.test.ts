@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateActMap } from '../src/data/mapRooms';
 import { gameReducer } from '../src/hooks/useGameState';
-import { initialGameState } from '../src/types/game';
+import { initialGameState, type GameState } from '../src/types/game';
 import { getDifficultyTier } from '../src/utils/difficulty';
 import { calculateMissPenalty, calculateWordScore } from '../src/utils/scoring';
 import { createSeededRandom } from '../src/utils/random';
@@ -95,6 +95,65 @@ describe('dificultad y puntuacion', () => {
 });
 
 describe('mapa y reducer', () => {
+  it('fija el objetivo coincidente mas cercano y no ensucia el buffer con una tecla erronea', () => {
+    const words = [
+      { id: 'far', text: 'casa', x: 0, y: 80, kind: 'normal' as const },
+      { id: 'near', text: 'camino', x: 0, y: 200, kind: 'normal' as const },
+    ];
+    let state = { ...initialGameState, status: 'playing' as const, words };
+    state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'c' });
+    expect(state.activeTargetWordId).toBe('near');
+    state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'x' });
+    expect(state.input).toBe('c');
+    expect(state.mistakes).toBe(1);
+  });
+
+  it('cambia entre objetivos ambiguos con Tab sin perder el prefijo escrito', () => {
+    const words = [
+      { id: 'one', text: 'casa', x: 0, y: 100, kind: 'normal' as const },
+      { id: 'two', text: 'camino', x: 0, y: 200, kind: 'normal' as const },
+    ];
+    let state = { ...initialGameState, status: 'playing' as const, words };
+    state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'c' });
+    state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'a' });
+    expect(state.activeTargetWordId).toBe('two');
+    state = gameReducer(state, { type: 'CYCLE_TARGET' });
+    expect(state.activeTargetWordId).toBe('one');
+    expect(state.input).toBe('ca');
+  });
+
+  it('autocompleta la palabra cuando el ajuste de run esta activo', () => {
+    const word = { id: 'auto', text: 'sol', x: 0, y: 80, kind: 'normal' as const };
+    let state = { ...initialGameState, status: 'playing' as const, autoSubmit: true, words: [word] };
+    state = gameReducer(state, { type: 'TYPE_CHAR', payload: 's' });
+    state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'o' });
+    state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'l' });
+    expect(state.wordsTyped).toBe(1);
+    expect(state.input).toBe('');
+    expect(state.poppingWordId).toBe('auto');
+  });
+
+  it('permite rerolls escalables, vender reliquias y potenciar categorias gramaticales', () => {
+    let state: GameState = {
+      ...initialGameState,
+      status: 'shop' as const,
+      runCoins: 1_000,
+      runSeed: 442,
+      floor: 4,
+      activeRelics: ['marca_agua'],
+    };
+    state = gameReducer(state, { type: 'SHOP_REROLL' });
+    expect(state.runCoins).toBe(950);
+    expect(state.shopRerollCount).toBe(1);
+    state = gameReducer(state, { type: 'SHOP_REROLL' });
+    expect(state.runCoins).toBe(875);
+    state = gameReducer(state, { type: 'SHOP_SELL_RELIC', payload: 'marca_agua' });
+    expect(state.activeRelics).not.toContain('marca_agua');
+    expect(state.runCoins).toBe(915);
+    state = gameReducer(state, { type: 'SHOP_UPGRADE_GLOSSARY', payload: 'verb' });
+    expect(state.glossaryLevels.verb).toBe(1);
+  });
+
   it('genera el mismo acto para una semilla y garantiza un jefe al final', () => {
     const first = generateActMap(0, 1234);
     expect(generateActMap(0, 1234)).toEqual(first);
@@ -155,7 +214,7 @@ describe('mapa y reducer', () => {
     state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'o' });
     state = gameReducer(state, { type: 'TYPE_CHAR', payload: 'l' });
     state = gameReducer(state, { type: 'SUBMIT' });
-    expect(state.mistakes).toBe(3);
+    expect(state.mistakes).toBe(2);
     expect(state.wordsTyped).toBe(1);
     expect(state.correctChars).toBe(3);
     expect(state.score).toBeGreaterThan(0);

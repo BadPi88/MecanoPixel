@@ -150,6 +150,15 @@ export function SettingsPanel() {
         <button
           type="button"
           role="switch"
+          aria-checked={settings.autoSubmit}
+          className={`settings__option ${settings.autoSubmit ? 'settings__option--active' : ''}`}
+          onClick={() => update('autoSubmit', !settings.autoSubmit)}
+        >
+          AUTOCOMPLETAR PALABRA: {settings.autoSubmit ? 'SI' : 'NO'}
+        </button>
+        <button
+          type="button"
+          role="switch"
           aria-checked={settings.screenShake}
           className={`settings__option ${settings.screenShake ? 'settings__option--active' : ''}`}
           onClick={() => update('screenShake', !settings.screenShake)}

@@ -8,6 +8,7 @@ import {
   playDamage,
   playGameOver,
   playKeyCorrect,
+  playKeyError,
   playUltimateFire,
   playUltimateReady,
   playWordComplete,
@@ -45,6 +46,7 @@ export function useGameAudio(state: GameState): void {
     ultimateCharge: state.ultimateCharge,
     ultimatesUsed: state.ultimatesUsed,
     input: state.input,
+    mistakes: state.mistakes,
     bossId: state.bossId,
     bossPhase: state.bossPhase,
     bossTelegraphX: state.bossTelegraphX,
@@ -62,8 +64,9 @@ export function useGameAudio(state: GameState): void {
         state.words,
       )
     ) {
-      playKeyCorrect();
+      playKeyCorrect(state.input.length);
     }
+    if (state.mistakes > prev.mistakes) playKeyError();
 
     if (state.poppingWordId && state.poppingWordId !== prev.poppingWordId) {
       playWordComplete();
@@ -136,6 +139,7 @@ export function useGameAudio(state: GameState): void {
       ultimateCharge: state.ultimateCharge,
       ultimatesUsed: state.ultimatesUsed,
       input: state.input,
+      mistakes: state.mistakes,
       bossId: state.bossId,
       bossPhase: state.bossPhase,
       bossTelegraphX: state.bossTelegraphX,
@@ -148,6 +152,7 @@ export function useGameAudio(state: GameState): void {
     state.ultimateCharge,
     state.ultimatesUsed,
     state.input,
+    state.mistakes,
     state.bossId,
     state.bossPhase,
     state.bossTelegraphX,

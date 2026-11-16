@@ -22,6 +22,7 @@ case 'BEGIN_RUN': {
           rankedRun: action.payload?.rankedRun ?? null,
           unlockedRelics,
           hubUpgrades,
+          autoSubmit: action.payload?.autoSubmit ?? initialGameState.autoSubmit,
         };
       }
       const challengeKey = action.payload?.challengeKey;
@@ -43,6 +44,7 @@ case 'BEGIN_RUN': {
         rankedRun: action.payload?.rankedRun ?? null,
         unlockedRelics,
         hubUpgrades,
+        autoSubmit: action.payload?.autoSubmit ?? initialGameState.autoSubmit,
         dailyRun,
         weeklyRun,
         endlessMode: weeklyRun,
@@ -84,6 +86,7 @@ case 'SELECT_GLOSSARY': {
         rankedRun: state.rankedRun,
         unlockedRelics: state.unlockedRelics,
         hubUpgrades: state.hubUpgrades,
+        autoSubmit: state.autoSubmit,
         wordStartedAtMs: 0,
       };
     }

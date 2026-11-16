@@ -656,6 +656,78 @@ body {
   animation: match-blink 0.4s steps(2) infinite;
 }
 
+.falling-word__letter--typed {
+  color: #b8ff76;
+  text-shadow: 0 0 6px rgb(184 255 118 / 72%);
+}
+
+.falling-word__letter--next {
+  color: var(--color-warn);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  animation: target-cursor-pulse 700ms steps(2, end) infinite;
+}
+
+.falling-word--sealed {
+  outline: 2px solid #8be9fd;
+  box-shadow: 0 0 10px rgb(139 233 253 / 45%);
+}
+
+.game-area__typing-bolt {
+  position: absolute;
+  z-index: 8;
+  width: 5px;
+  height: 15px;
+  pointer-events: none;
+  background: linear-gradient(#fff6a5, #ffb347);
+  box-shadow: 0 0 8px #ffe66d;
+  animation: typing-bolt-impact 110ms steps(3, end) both;
+}
+
+.game-area--impact {
+  animation: impact-flash 42ms steps(2, end);
+}
+
+.synergy-unlocked {
+  position: absolute;
+  z-index: 30;
+  top: 14%;
+  left: 50%;
+  display: grid;
+  gap: 6px;
+  min-width: min(90%, 360px);
+  padding: 12px 18px;
+  transform: translateX(-50%);
+  border: 2px solid var(--color-warn);
+  background: rgb(20 18 32 / 94%);
+  color: var(--color-warn);
+  text-align: center;
+  box-shadow: 0 0 18px rgb(255 205 117 / 35%);
+  animation: synergy-arrive 240ms steps(4, end) both;
+  pointer-events: none;
+}
+
+.synergy-unlocked span { color: var(--color-text); }
+
+@keyframes synergy-arrive {
+  from { opacity: 0; translate: 0 -8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes typing-bolt-impact {
+  from { opacity: 0; transform: translateY(60vh) scaleY(2); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes impact-flash {
+  50% { outline: 2px solid rgb(255 230 109 / 70%); filter: saturate(1.25); }
+}
+
+@keyframes target-cursor-pulse {
+  50% { text-decoration-color: transparent; }
+}
+
 .falling-word--radar {
   outline: 3px solid var(--color-danger);
   outline-offset: 2px;
@@ -1475,6 +1547,20 @@ html[data-flashes='reduced'] .boss-telegraph {
   margin-top: auto;
 }
 
+.shop-choices {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 560px);
+  margin: 0 auto 16px;
+  padding: 14px;
+}
+
+.shop-choices__upgrades,
+.shop-choices__relics {
+  display: grid;
+  gap: 8px;
+}
+
 .event-panel {
   max-width: 480px;
   padding: 24px;
@@ -1617,6 +1703,28 @@ html[data-flashes='reduced'] .boss-telegraph {
 .boss-specter .boss-sprite {
   width: 100%;
   height: 100%;
+}
+
+.boss-specter__pushback { transition: transform 180ms ease-out; }
+.boss-area__attack-bolt {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 82%;
+  width: 6px;
+  height: 34px;
+  background: linear-gradient(#fff6a5, #ff718a);
+  box-shadow: 0 0 10px #ffcd75;
+  pointer-events: none;
+  animation: boss-attack-bolt 180ms steps(4, end) both;
+}
+
+.boss-header__attack--remap-warning { color: var(--color-warn); border-color: var(--color-warn); }
+.boss-overlay--hitstop .boss-specter__pushback { transition: none; }
+
+@keyframes boss-attack-bolt {
+  from { opacity: 1; transform: translateY(0) scaleY(1); }
+  to { opacity: 0; transform: translateY(-54vh) scaleY(2); }
 }
 
 .boss-overlay--archivista .boss-specter,

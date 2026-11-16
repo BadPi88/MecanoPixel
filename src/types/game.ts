@@ -73,6 +73,9 @@ export interface GameState {
   completedWordLengths: number[];
   words: FallingWord[];
   input: string;
+  /** Objetivo fijado al empezar a escribir; evita ambiguedad entre prefijos. */
+  activeTargetWordId: string | null;
+  autoSubmit: boolean;
   startTime: number | null;
   elapsedMs: number;
   /** Altura util del area de combate, actualizada en cada tick. */
@@ -102,6 +105,8 @@ export interface GameState {
   pendingEvent: EventDefinition | null;
   /** Ofertas rotativas de la tienda del piso actual. */
   shopOffers: ShopItemId[];
+  shopRerollCount: number;
+  glossaryLevels: Record<WordPOS, number>;
   /** Multiplicador de run coins durante el proximo piso (tienda). */
   nextFloorCoinMult: number;
   /** Regenerar opciones en la proxima eleccion de reliquia. */
@@ -222,6 +227,7 @@ export type GameAction =
         hubUpgrades?: { extraMapOption: boolean; safeFirstFloor: boolean };
         /** Semilla opcional para reproducir una run en pruebas de balance. */
         runSeed?: number;
+        autoSubmit?: boolean;
       };
     }
   | { type: 'GO_HOME' }
@@ -238,6 +244,7 @@ export type GameAction =
   | { type: 'SPAWN_PROJECTILE'; payload: LetterProjectile }
   | { type: 'TYPE_CHAR'; payload: string }
   | { type: 'BACKSPACE' }
+  | { type: 'CYCLE_TARGET' }
   | { type: 'SUBMIT' }
   | { type: 'ULTIMATE_FIRE' }
   | { type: 'WORD_HIT_GROUND'; payload: string }
@@ -246,6 +253,9 @@ export type GameAction =
   | { type: 'SELECT_PERK'; payload: PerkId }
   | { type: 'SELECT_RELIC'; payload: RelicId }
   | { type: 'SHOP_BUY'; payload: import('./run.ts').ShopItemId }
+  | { type: 'SHOP_REROLL' }
+  | { type: 'SHOP_SELL_RELIC'; payload: RelicId }
+  | { type: 'SHOP_UPGRADE_GLOSSARY'; payload: WordPOS }
   | { type: 'SHOP_LEAVE' }
   | { type: 'EVENT_CHOICE'; payload: 'A' | 'B' }
   | { type: 'BOSS_TICK'; payload: { deltaMs: number; groundHeight: number } }
@@ -276,6 +286,8 @@ export const initialGameState: GameState = {
   completedWordLengths: [],
   words: [],
   input: '',
+  activeTargetWordId: null,
+  autoSubmit: false,
   startTime: null,
   elapsedMs: 0,
   lastGroundHeight: 552,
@@ -300,6 +312,8 @@ export const initialGameState: GameState = {
   trapIgnoreRemaining: 0,
   pendingEvent: null,
   shopOffers: [],
+  shopRerollCount: 0,
+  glossaryLevels: { verb: 0, adj: 0, noun: 0 },
   nextFloorCoinMult: 1,
   relicRerollPending: false,
   freezeNextFloorMs: 0,

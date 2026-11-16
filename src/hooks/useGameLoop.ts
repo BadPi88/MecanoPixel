@@ -234,11 +234,11 @@ export function useGameLoop(
         current.activeBossWordIndex,
       );
       const deltaSec = deltaMs / 1000;
-      const anyHitsGround = current.bossWords.some(
-        (w, index) =>
-          index >= current.activeBossWordIndex &&
-          w.y + fallSpeed * deltaSec >= areaHeight - BOSS_WORD_HEIGHT,
-      );
+      const anyHitsGround = current.bossWords.some((w, index) => {
+        if (current.bossWords.length > 2 && index !== current.activeBossWordIndex) return false;
+        return index >= current.activeBossWordIndex &&
+          w.y + fallSpeed * deltaSec >= areaHeight - BOSS_WORD_HEIGHT;
+      });
       if (anyHitsGround) {
         dispatch({ type: 'BOSS_FAIL' });
         return;

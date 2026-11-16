@@ -47,6 +47,8 @@ const ACTION_TYPES = new Set([
   'BROKEN_CLOCK_SKIP', 'SELECT_PERK', 'SELECT_RELIC', 'SHOP_BUY', 'SHOP_LEAVE',
   'PICK_ROOM', 'EVENT_CHOICE', 'HIDE_SPEED_NOTICE', 'CLEAR_POP',
   'TOGGLE_BUILD_OVERLAY', 'CONTINUE_ENDLESS', 'VICTORY_HOME', 'ORACLE_CHOICE',
+  'SHOP_REROLL', 'SHOP_SELL_RELIC', 'SHOP_UPGRADE_GLOSSARY',
+  'CYCLE_TARGET',
   'BOSS_TELEGRAPH',
 ]);
 
@@ -175,6 +177,9 @@ function checkEvent(
   if (action.type === 'SELECT_PERK') return state.pendingPerkChoice?.includes(action.payload) ?? false;
   if (action.type === 'SELECT_RELIC') return state.pendingRelicChoice?.includes(action.payload) ?? false;
   if (action.type === 'SHOP_BUY') return state.status === 'shop' && state.shopOffers.includes(action.payload);
+  if (action.type === 'SHOP_REROLL') return state.status === 'shop' && state.runCoins >= [50, 75, 100][Math.min(state.shopRerollCount, 2)]!;
+  if (action.type === 'SHOP_SELL_RELIC') return state.status === 'shop' && state.activeRelics.includes(action.payload);
+  if (action.type === 'SHOP_UPGRADE_GLOSSARY') return state.status === 'shop' && state.glossaryLevels[action.payload] < 3 && state.runCoins >= 100 + state.glossaryLevels[action.payload] * 75;
   if (action.type === 'PICK_ROOM') return state.status === 'mapPick' && state.mapRoomOptions.some((option) => option.id === action.payload);
   if (action.type === 'EVENT_CHOICE') return state.status === 'event' && (action.payload === 'A' || action.payload === 'B');
   if (action.type === 'ORACLE_CHOICE') return state.status === 'oraclePick' && (action.payload === 'score' || action.payload === 'charge');
@@ -190,6 +195,7 @@ function checkEvent(
   if (action.type === 'TYPE_CHAR' || action.type === 'BACKSPACE' || action.type === 'SUBMIT') {
     return state.status === 'playing' || state.status === 'boss';
   }
+  if (action.type === 'CYCLE_TARGET') return state.status === 'playing' && state.words.length >= 2;
   if (action.type === 'TOGGLE_PAUSE') return state.status === 'playing' || state.status === 'paused';
   if (action.type === 'BOSS_TICK') {
     return Number.isFinite(action.payload.deltaMs) && action.payload.deltaMs > 0 && action.payload.deltaMs <= 1_000 &&

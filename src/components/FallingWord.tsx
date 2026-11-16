@@ -7,6 +7,7 @@ interface FallingWordProps {
   elapsedMs: number;
   groundHeight: number;
   isPartialMatch: boolean;
+  typedCount?: number;
   isRadarTarget?: boolean;
   isPopping: boolean;
   onPopEnd: () => void;
@@ -52,6 +53,7 @@ export function FallingWord({
   elapsedMs,
   groundHeight,
   isPartialMatch,
+  typedCount = 0,
   isRadarTarget = false,
   isPopping,
   onPopEnd,
@@ -77,8 +79,12 @@ export function FallingWord({
   const isAnagram = word.modifiers?.includes('anagram');
   const isShifting = word.modifiers?.includes('shifting');
   const isVowelless = word.modifiers?.includes('vowelless');
+  const isSealed = word.modifiers?.includes('sealed');
   const morphWarning = isShifting && word.morphAtMs !== undefined &&
     word.morphAtMs - elapsedMs <= 1_000;
+  const knockback = isPartialMatch && (word.kind === 'bomb' || className.includes('boss-active'))
+    ? Math.min(8, typedCount * 2)
+    : 0;
 
   const kindSymbol = KIND_SYMBOLS[word.kind];
   const posSymbol =
@@ -99,10 +105,11 @@ export function FallingWord({
         morphWarning ? 'falling-word--morph-warning' : '',
         className,
         isVowelless ? 'falling-word--vowelless' : '',
+        isSealed ? 'falling-word--sealed' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      style={{ left: word.x, top: word.y }}
+      style={{ left: word.x, top: word.y - knockback }}
     >
       {kindSymbol && (
         <TooltipHint hintId={`kind-${word.kind}`} message={KIND_HINTS[word.kind] ?? ''}>
@@ -114,7 +121,17 @@ export function FallingWord({
           <span className="falling-word__pos-symbol">{posSymbol}·</span>
         </TooltipHint>
       )}
-      {word.displayText ?? word.text}
+      {isSealed && <span className="falling-word__modifier-symbol" aria-label="Sello de archivo">#</span>}
+      {word.displayText && word.displayText !== word.text
+        ? word.displayText
+        : word.text.split('').map((letter, index) => (
+          <span
+            key={`${word.id}-${index}`}
+            className={index < typedCount ? 'falling-word__letter--typed' : index === typedCount ? 'falling-word__letter--next' : undefined}
+          >
+            {letter}
+          </span>
+        ))}
       {(isAnagram || isShifting) && (
         <span className="falling-word__modifier-symbol">
           {isShifting ? '~' : '?'}

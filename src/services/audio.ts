@@ -81,15 +81,23 @@ function playSequence(tones: ToneOptions[]): void {
   tones.forEach((tone) => playTone(tone));
 }
 
-export function playKeyCorrect(): void {
-  playTone({ frequency: 520, duration: 0.04, volume: 0.04 });
+const PENTATONIC = [0, 2, 4, 7, 9] as const;
+
+export function playKeyCorrect(inputLength = 0): void {
+  const semitones = PENTATONIC[inputLength % PENTATONIC.length]! + Math.floor(inputLength / PENTATONIC.length) * 12;
+  playTone({ frequency: 440 * 2 ** (semitones / 12), duration: 0.035, volume: 0.035 });
 }
 
 export function playWordComplete(): void {
   playSequence([
-    { frequency: 660, duration: 0.06, volume: 0.06 },
-    { frequency: 880, duration: 0.08, delay: 0.05, volume: 0.05 },
+    { frequency: 523.25, duration: 0.09, type: 'triangle', volume: 0.055 },
+    { frequency: 659.25, duration: 0.11, delay: 0.025, type: 'triangle', volume: 0.05 },
+    { frequency: 783.99, duration: 0.14, delay: 0.05, type: 'triangle', volume: 0.045 },
   ]);
+}
+
+export function playKeyError(): void {
+  playTone({ frequency: 105, duration: 0.075, type: 'triangle', volume: 0.06 });
 }
 
 export function playComboMilestone(level: number): void {

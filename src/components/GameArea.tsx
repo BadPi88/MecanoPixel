@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BiomeId } from '../data/biomes';
 import type { FallingWord as FallingWordType } from '../types/game';
 import type { LetterProjectile } from '../types/combat';
@@ -15,6 +15,8 @@ interface GameAreaProps {
   words: FallingWordType[];
   projectiles: LetterProjectile[];
   input: string;
+  activeTargetWordId: string | null;
+  correctKeyPresses: number;
   elapsedMs: number;
   poppingWordId: string | null;
   radarTargetId: string | null;
@@ -28,6 +30,8 @@ export function GameArea({
   words,
   projectiles,
   input,
+  activeTargetWordId,
+  correctKeyPresses,
   elapsedMs,
   poppingWordId,
   radarTargetId,
@@ -35,8 +39,29 @@ export function GameArea({
   shake = false,
 }: GameAreaProps) {
   const groundHeight = useElementHeight(areaRef);
+  const [hitStopped, setHitStopped] = useState(false);
+  const [frozenWords, setFrozenWords] = useState(words);
+  const wordsBeforeImpactRef = useRef(words);
+  useEffect(() => {
+    if (!poppingWordId) return;
+    let hitStopTimer: ReturnType<typeof setTimeout> | undefined;
+    const startTimer = setTimeout(() => {
+      setFrozenWords(wordsBeforeImpactRef.current);
+      setHitStopped(true);
+      hitStopTimer = setTimeout(() => setHitStopped(false), 42);
+    }, 0);
+    return () => {
+      clearTimeout(startTimer);
+      if (hitStopTimer) clearTimeout(hitStopTimer);
+    };
+  }, [poppingWordId]);
+  useEffect(() => {
+    if (!poppingWordId) wordsBeforeImpactRef.current = words;
+  }, [words, poppingWordId]);
+  const visibleWords = hitStopped ? frozenWords : words;
   const lowerInput = input.toLowerCase();
-  const poppedWord = words.find((word) => word.id === poppingWordId);
+  const poppedWord = visibleWords.find((word) => word.id === poppingWordId);
+  const activeTarget = visibleWords.find((word) => word.id === activeTargetWordId);
   const poppedX = poppedWord?.x;
   const poppedY = poppedWord?.y;
   const burst = useMemo(() => {
@@ -47,17 +72,23 @@ export function GameArea({
 
   return (
     <div
-      className={`game-area ${shake ? 'game-area--shake' : ''}`.trim()}
+      className={`game-area ${shake ? 'game-area--shake' : ''} ${poppingWordId ? 'game-area--impact' : ''}`.trim()}
       data-biome={biomeId}
       ref={areaRef}
     >
       <BiomeBackground biomeId={biomeId} className="game-area__biome-bg" />
       <ParticleCanvas burst={burst} />
-      {words.map((word) => {
-        const isPartialMatch =
-          word.kind !== 'trap' &&
-          lowerInput.length > 0 &&
-          word.text.startsWith(lowerInput);
+      {activeTarget && correctKeyPresses > 0 && (
+        <span
+          key={correctKeyPresses}
+          className="game-area__typing-bolt"
+          style={{ left: activeTarget.x + 8, top: activeTarget.y + 8 }}
+          aria-hidden="true"
+        />
+      )}
+      {visibleWords.map((word) => {
+        const isTarget = word.id === activeTargetWordId;
+        const isPartialMatch = isTarget && lowerInput.length > 0;
         return (
           <FallingWord
             key={word.id}
@@ -65,6 +96,7 @@ export function GameArea({
             elapsedMs={elapsedMs}
             groundHeight={groundHeight}
             isPartialMatch={isPartialMatch}
+            typedCount={isTarget ? lowerInput.length : 0}
             isRadarTarget={word.id === radarTargetId}
             isPopping={poppingWordId === word.id}
             onPopEnd={onPopEnd}

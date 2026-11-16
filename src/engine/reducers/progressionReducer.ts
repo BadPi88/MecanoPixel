@@ -4,6 +4,7 @@ import { wordsPerSecondFromSpawnInterval } from '../../utils/intensity.ts';
 import { applyEventChoice, applyNextFloorStartModifiers, applyRoomFromMap, applyShopItem, completeFloor, enterPostFloor, randomFor } from './shared.ts';
 import { finishRoomToCombat, shouldCompleteFloor } from '../../utils/runTransitions.ts';
 import { applyBrokenClockSkip, applyPerkSelection } from '../../utils/perkModifiers.ts';
+import { pickShopOffers } from '../../data/shop.ts';
 
 export function reduceProgressionAction(state: GameState, action: GameAction): GameState | null {
   switch (action.type) {
@@ -83,6 +84,25 @@ case 'SHOP_BUY': {
       const result = applyShopItem(state, action.payload);
       if (!result) return state;
       return result;
+    }
+case 'SHOP_REROLL': {
+      const cost = [50, 75, 100][Math.min(state.shopRerollCount, 2)]!;
+      if (state.status !== 'shop' || state.runCoins < cost) return state;
+      return {
+        ...state,
+        runCoins: state.runCoins - cost,
+        shopRerollCount: state.shopRerollCount + 1,
+        shopOffers: pickShopOffers(state.floor, state.runSeed ^ Math.imul(state.shopRerollCount + 1, 0x9e3779b9)),
+      };
+    }
+case 'SHOP_SELL_RELIC':
+      if (state.status !== 'shop' || !state.activeRelics.includes(action.payload)) return state;
+      return { ...state, activeRelics: state.activeRelics.filter((id) => id !== action.payload), runCoins: state.runCoins + 40 };
+case 'SHOP_UPGRADE_GLOSSARY': {
+      const level = state.glossaryLevels[action.payload];
+      const cost = 100 + level * 75;
+      if (state.status !== 'shop' || level >= 3 || state.runCoins < cost) return state;
+      return { ...state, runCoins: state.runCoins - cost, glossaryLevels: { ...state.glossaryLevels, [action.payload]: level + 1 } };
     }
 case 'SHOP_LEAVE':
       return {

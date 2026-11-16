@@ -2,6 +2,7 @@ import { type GameAction, type GameState } from '../../types/game.ts';
 import { getBossFallSpeed } from '../../data/bosses.ts';
 import { clearBossEncounter } from './shared.ts';
 import { GAME_BALANCE } from '../../config/gameBalance.ts';
+import { BOSS_REMAP_TABLE } from '../../data/bosses.ts';
 
 export function reduceBossAction(state: GameState, action: GameAction): GameState | null {
   switch (action.type) {
@@ -12,7 +13,8 @@ case 'BOSS_TICK': {
         state.bossId,
         state.activeBossWordIndex,
       );
-      const bossWords = state.bossWords.map((w, index) => index < state.activeBossWordIndex
+      const sequentialWaves = state.bossWords.length > 2;
+      const bossWords = state.bossWords.map((w, index) => index < state.activeBossWordIndex || (sequentialWaves && index !== state.activeBossWordIndex)
         ? w
         : { ...w, y: w.y + fallSpeed * deltaSec });
       const activeIdx = state.activeBossWordIndex;
@@ -36,11 +38,15 @@ case 'BOSS_TICK': {
             nextBlindAtMs: bossAttack.nextBlindAtMs + GAME_BALANCE.boss.blindIntervalMs,
           };
         }
-        if (keyRemap && newElapsed >= bossAttack.remapUntilMs) {
+        if (bossAttack.remap && !keyRemap && newElapsed >= bossAttack.remapUntilMs) {
+          keyRemap = { ...BOSS_REMAP_TABLE };
+          bossAttack = { ...bossAttack, remapUntilMs: newElapsed + 5_000 };
+        } else if (keyRemap && newElapsed >= bossAttack.remapUntilMs) {
           if (state.input.length > 0) {
             bossAttack = { ...bossAttack, remapUntilMs: newElapsed + 750 };
           } else {
             keyRemap = null;
+            bossAttack = { ...bossAttack, remapUntilMs: newElapsed + 10_000 };
           }
         }
       }

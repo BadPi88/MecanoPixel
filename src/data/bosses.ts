@@ -47,7 +47,7 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     theme: 'biblioteca',
     quote: 'Cada palabra queda archivada... para siempre.',
     fallSpeed: 25,
-    dualWords: false,
+    dualWords: true,
     bonusCoins: 80,
     attacks: { blind: true, remap: false, projectiles: false },
     projectileIntervalMult: 1,
@@ -87,7 +87,7 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     name: 'LA TIRANOTIPO',
     floorMin: 12,
     theme: 'trono',
-    quote: 'Dos decretos caen a la vez. Alterna o perece.',
+    quote: 'Tres oleadas dictan la ley. Resiste hasta la palabra final.',
     fallSpeed: 30,
     dualWords: true,
     bonusCoins: 200,
@@ -95,6 +95,11 @@ export const BOSS_CATALOG: Record<BossId, BossDefinition> = {
     projectileIntervalMult: 0.8,
     telegraphMs: 1000,
     telegraphLabel: 'DECRETO: IMPACTO',
+    phases: [
+      { label: 'FASE 1 — RITMO', fallSpeedMult: 1, projectileIntervalMult: 0.9 },
+      { label: 'FASE 2 — CODIGO', fallSpeedMult: 1.15, projectileIntervalMult: 0.75 },
+      { label: 'FASE 3 — DOMINIO', fallSpeedMult: 1.3, projectileIntervalMult: 0.6 },
+    ],
   },
   cronista: {
     id: 'cronista',
@@ -220,7 +225,12 @@ export function getMiniBoss(): BossDefinition {
 export function getBossFallSpeed(bossId: BossId | null, phase = 0): number {
   if (!bossId) return 25;
   const boss = BOSS_CATALOG[bossId];
-  return boss.fallSpeed * (boss.phases?.[phase]?.fallSpeedMult ?? 1);
+  const phaseIndex = bossId === 'tiranotipo'
+    ? Math.min(2, Math.floor(phase / 4))
+    : bossId === 'indexadora'
+      ? Math.min(1, Math.floor(phase / 3))
+      : phase;
+  return boss.fallSpeed * (boss.phases?.[phaseIndex]?.fallSpeedMult ?? 1);
 }
 
 /** Configura ataques de UI del jefe desde el catalogo. */
@@ -235,7 +245,7 @@ export function initBossAttackFromCatalog(
     projectiles: boss.attacks.projectiles,
     startedAtMs: elapsedMs,
     nextBlindAtMs: elapsedMs + BOSS_BLIND_INTERVAL_MS,
-    remapUntilMs: boss.attacks.remap ? elapsedMs + BOSS_REMAP_DURATION_MS : 0,
+    remapUntilMs: boss.attacks.remap ? elapsedMs + 1_500 : 0,
   };
 }
 
@@ -262,9 +272,31 @@ export function initBossWords(
   floor = 1,
   random: () => number = Math.random,
 ): FallingWord[] {
+  if (boss.id === 'tiranotipo') {
+    const verses = [
+      'tecla', 'pulso', 'ritmo', 'clave',
+      'codigo', 'patron', 'memoria', 'senal',
+      'dictado', 'dominio', 'control', 'tiranotipo', 'victoria',
+    ];
+    return verses.map((text) => makeBossFallingWord(text, 120, createId()));
+  }
+  if (boss.id === 'indexadora') {
+    const verses = ['indice', 'palimpsesto', 'catalogo', 'memoria', 'reescribe', 'fragmento', 'archivo', 'silencio', 'eternidad'];
+    return verses.map((text) => makeBossFallingWord(text, 120, createId()));
+  }
+  if (boss.id === 'archivista') {
+    const texts = ['sello', 'archivo', ...Array.from({ length: 4 }, (_, index) =>
+      getBossWord(elapsedMs + (index + 1) * 1_000, tierOffset, floor, random))];
+    return texts.map((text, index) => ({
+      ...makeBossFallingWord(text, 90 + index * 28, createId()),
+      ...(index < 2 ? { modifiers: ['sealed' as const] } : {}),
+    }));
+  }
   const first = getBossWord(elapsedMs, tierOffset, floor, random);
   if (!boss.dualWords) {
-    return [makeBossFallingWord(first, 120, createId())];
+    const chain = [first, ...Array.from({ length: 4 }, (_, index) =>
+      getBossWord(elapsedMs + (index + 1) * 1_000, tierOffset, floor, random))];
+    return chain.map((text) => makeBossFallingWord(text, 120, createId()));
   }
 
   let second = getBossWord(elapsedMs + 1_000, tierOffset, floor, random);
@@ -286,7 +318,12 @@ export function getBossProjectileIntervalMult(
 ): number {
   if (!bossId) return 1;
   const boss = BOSS_CATALOG[bossId];
-  return boss.phases?.[phase]?.projectileIntervalMult ?? boss.projectileIntervalMult;
+  const phaseIndex = bossId === 'tiranotipo'
+    ? Math.min(2, Math.floor(phase / 4))
+    : bossId === 'indexadora'
+      ? Math.min(1, Math.floor(phase / 3))
+      : phase;
+  return boss.phases?.[phaseIndex]?.projectileIntervalMult ?? boss.projectileIntervalMult;
 }
 
 /** Progreso de HP del jefe (0-100) segun input y fase dual. */

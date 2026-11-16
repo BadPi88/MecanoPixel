@@ -10,13 +10,18 @@ export type SynergyId =
   | 'sangre_toxica'
   | 'caos_maldito'
   | 'mercader_dorado'
-  | 'glosa_perfecta';
+  | 'glosa_perfecta'
+  | 'ritmo_circuito'
+  | 'glosa_pirotecnica'
+  | 'mercado_medico';
 
 export interface SynergyDefinition {
   id: SynergyId;
   name: string;
   description: string;
 }
+
+export type SynergyContext = Pick<GameState, 'activePerks' | 'perksHistory' | 'activeRelics' | 'selectedGlossary' | 'runnerId'>;
 
 export const SYNERGY_CATALOG: Record<SynergyId, SynergyDefinition> = {
   doble_defensa: {
@@ -64,9 +69,24 @@ export const SYNERGY_CATALOG: Record<SynergyId, SynergyDefinition> = {
     name: 'GLOSA PERFECTA',
     description: 'Palabras con tilde perfectas: +5 carga ultimate',
   },
+  ritmo_circuito: {
+    id: 'ritmo_circuito',
+    name: 'RITMO DE CIRCUITO',
+    description: 'Codificador + Tecnico + Cronometro Veloz: +12% score y +10% carga',
+  },
+  glosa_pirotecnica: {
+    id: 'glosa_pirotecnica',
+    name: 'GLOSA PIROTECNICA',
+    description: 'Veloz + Tecnico + Reliquia Ignea: +20% score en palabras con tilde',
+  },
+  mercado_medico: {
+    id: 'mercado_medico',
+    name: 'MERCADO MEDICO',
+    description: 'Magnate + Medico + Bolsa Mercader: +25% run coins',
+  },
 };
 
-export function getActiveSynergies(state: GameState): SynergyId[] {
+export function getActiveSynergies(state: SynergyContext): SynergyId[] {
   const result: SynergyId[] = [];
 
   const radarActive = state.activePerks.some((p) => p.id === 'radar');
@@ -119,6 +139,16 @@ export function getActiveSynergies(state: GameState): SynergyId[] {
     state.activeRelics.includes('glosa_acentuada') &&
     state.activeRelics.includes('marca_agua')
   ) result.push('glosa_perfecta');
+
+  if (state.runnerId === 'codificador' && state.selectedGlossary === 'tecnico' && state.activeRelics.includes('cronometro_veloz')) {
+    result.push('ritmo_circuito');
+  }
+  if (state.runnerId === 'veloz' && state.selectedGlossary === 'tecnico' && state.activeRelics.includes('reliquia_ignea')) {
+    result.push('glosa_pirotecnica');
+  }
+  if (state.runnerId === 'magnate' && state.selectedGlossary === 'medico' && state.activeRelics.includes('bolsa_mercader')) {
+    result.push('mercado_medico');
+  }
 
   return result;
 }
@@ -175,5 +205,11 @@ export function previewPotentialSynergiesIfRelic(
     has('moneda_ardiente') ? 'Bolsa Mercader' : 'Moneda Ardiente');
   add('glosa_perfecta', has('glosa_acentuada') && has('marca_agua'),
     has('glosa_acentuada') ? 'Marca de Agua' : 'Glosa Acentuada');
+  add('ritmo_circuito', has('cronometro_veloz') && withRelic.runnerId === 'codificador' && withRelic.selectedGlossary === 'tecnico',
+    has('cronometro_veloz') ? 'runner Codificador y glosario Tecnico' : 'Cronometro Veloz');
+  add('glosa_pirotecnica', has('reliquia_ignea') && withRelic.runnerId === 'veloz' && withRelic.selectedGlossary === 'tecnico',
+    has('reliquia_ignea') ? 'runner Veloz y glosario Tecnico' : 'Reliquia Ignea');
+  add('mercado_medico', has('bolsa_mercader') && withRelic.runnerId === 'magnate' && withRelic.selectedGlossary === 'medico',
+    has('bolsa_mercader') ? 'runner Magnate y glosario Medico' : 'Bolsa Mercader');
   return candidates.slice(0, 2);
 }

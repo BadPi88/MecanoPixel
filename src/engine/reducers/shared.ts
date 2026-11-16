@@ -21,7 +21,6 @@ import {
 } from '../../utils/runTransitions.ts';
 import {
   BOSS_CATALOG,
-  BOSS_REMAP_TABLE,
   getBossForFloor,
   initBossAttackFromCatalog,
   initBossWords,
@@ -98,7 +97,7 @@ function enterBossFight(
       bossAttack,
       bossTelegraphX: null,
       bossTelegraphUntilMs: 0,
-      keyRemap: bossAttack.remap ? { ...BOSS_REMAP_TABLE } : null,
+      keyRemap: null,
       pendingEvent: null,
       bossSkippedPending: false,
       bossSkipMetaMult: 1,
@@ -120,6 +119,7 @@ export function enterPostFloor(
       status: 'shop',
       pendingEvent: null,
       shopOffers: pickShopOffers(state.floor, state.runSeed ^ state.floor),
+      shopRerollCount: 0,
     };
   }
   return { status: nextStatus, pendingEvent: null, shopOffers: [] };
@@ -196,6 +196,7 @@ export function applyRoomFromMap(state: GameState, roomId: string): GameState {
         status: 'shop',
         pendingEvent: null,
         shopOffers: pickShopOffers(state.floor, state.runSeed + state.floor),
+        shopRerollCount: 0,
       };
     case 'event':
       return {
@@ -481,23 +482,24 @@ export function applyPosEffect(state: GameState, word: FallingWord): Partial<Gam
       return {
         lastPosEffectAtMs: state.elapsedMs,
         words: state.words.map((w) =>
-          w.id === word.id ? w : { ...w, y: w.y * GAME_BALANCE.typing.verbAoeFactor },
+          w.id === word.id ? w : { ...w, y: w.y * Math.max(0.5, GAME_BALANCE.typing.verbAoeFactor - state.glossaryLevels.verb * 0.05) },
         ),
       };
     case 'adj':
       return {
         lastPosEffectAtMs: state.elapsedMs,
-        tempoBuffUntilMs: state.elapsedMs + GAME_BALANCE.typing.adjacentTempoBuffMs,
+        tempoBuffUntilMs: state.elapsedMs + GAME_BALANCE.typing.adjacentTempoBuffMs * (1 + state.glossaryLevels.adj * 0.25),
       };
     case 'noun': {
       const shield = state.activePerks.find((p) => p.id === 'shield');
+      const chargesToAdd = 1 + state.glossaryLevels.noun;
       const activePerks = shield
         ? state.activePerks.map((p) =>
             p.id === 'shield'
-              ? { ...p, charges: Math.min((p.charges ?? 0) + 1, GAME_BALANCE.shieldChargeHardCap) }
+              ? { ...p, charges: Math.min((p.charges ?? 0) + chargesToAdd, GAME_BALANCE.shieldChargeHardCap) }
               : p,
           )
-        : trimActivePerks([...state.activePerks, { id: 'shield' as const, charges: 1 }]);
+        : trimActivePerks([...state.activePerks, { id: 'shield' as const, charges: Math.min(chargesToAdd, GAME_BALANCE.shieldChargeHardCap) }]);
       return {
         lastPosEffectAtMs: state.elapsedMs,
         activePerks,

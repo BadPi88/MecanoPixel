@@ -29,7 +29,7 @@ export type RelicId =
   | 'borrador_compasivo';
 
 /** Modificadores visuales/mentales de palabras enemigas. */
-export type WordModifier = 'anagram' | 'shifting' | 'vowelless' | 'reversed';
+export type WordModifier = 'anagram' | 'shifting' | 'vowelless' | 'reversed' | 'sealed';
 
 /** Elemento de dano asociado a glosarios/reliquias. */
 export type CombatElement = 'fire' | 'poison' | 'electric' | 'none';

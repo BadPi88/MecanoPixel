@@ -50,6 +50,7 @@ export function useKeyboard(state: GameState, dispatch: Dispatch<GameAction>) {
       if (event.key === 'Tab') {
         event.preventDefault();
         if (current.ultimateCharge >= ULTIMATE_MAX_CHARGE) dispatchRef.current({ type: 'ULTIMATE_FIRE' });
+        else dispatchRef.current({ type: 'CYCLE_TARGET' });
         return;
       }
       if (event.key === 'Backspace') {

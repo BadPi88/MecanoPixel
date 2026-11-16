@@ -52,6 +52,27 @@ export function Game() {
     () => !loadMeta().tutorialComplete,
   );
   const [rankedNotice, setRankedNotice] = useState('');
+  const [synergyNotice, setSynergyNotice] = useState<string[]>([]);
+  const previousSynergiesRef = useRef<string[]>([]);
+  const activeSynergies = useMemo(
+    () => getActiveSynergies({
+      activePerks: state.activePerks,
+      perksHistory: state.perksHistory,
+      activeRelics: state.activeRelics,
+      selectedGlossary: state.selectedGlossary,
+      runnerId: state.runnerId,
+    }),
+    [state.activePerks, state.perksHistory, state.activeRelics, state.selectedGlossary, state.runnerId],
+  );
+
+  useEffect(() => {
+    const unlocked = activeSynergies.filter((id) => !previousSynergiesRef.current.includes(id));
+    previousSynergiesRef.current = activeSynergies;
+    if (unlocked.length === 0) return;
+    setSynergyNotice(unlocked.map((id) => SYNERGY_CATALOG[id].name));
+    const timer = setTimeout(() => setSynergyNotice([]), 2_400);
+    return () => clearTimeout(timer);
+  }, [activeSynergies]);
 
   useEffect(() => applySettingsToDocument(loadSettings()), []);
 
@@ -173,6 +194,7 @@ export function Game() {
         challengeKey,
         unlockedRelics: progression.unlockedRelics,
         hubUpgrades: progression.hubUpgrades,
+        autoSubmit: loadSettings().autoSubmit,
       },
     });
   }, [dispatch, playerName]);
@@ -335,9 +357,15 @@ export function Game() {
           runCoins={state.runCoins}
           lives={state.lives}
           offers={state.shopOffers}
+          activeRelics={state.activeRelics}
+          rerollCount={state.shopRerollCount}
+          glossaryLevels={state.glossaryLevels}
           floor={state.floor}
           onBuy={(id: ShopItemId) => dispatch({ type: 'SHOP_BUY', payload: id })}
           onLeave={() => dispatch({ type: 'SHOP_LEAVE' })}
+          onReroll={() => dispatch({ type: 'SHOP_REROLL' })}
+          onSellRelic={(id) => dispatch({ type: 'SHOP_SELL_RELIC', payload: id })}
+          onUpgradeGlossary={(pos) => dispatch({ type: 'SHOP_UPGRADE_GLOSSARY', payload: pos })}
         />
       )}
 
@@ -397,6 +425,12 @@ export function Game() {
             }
           />
           <div className="game__playfield">
+            {synergyNotice.length > 0 && (
+              <div className="synergy-unlocked" role="status" aria-live="polite">
+                <strong>¡SINERGIA DESBLOQUEADA!</strong>
+                <span>{synergyNotice.join(' · ')}</span>
+              </div>
+            )}
             {state.status === 'playing' &&
               state.elapsedMs < state.biomeIntroUntilMs && (
                 <div className="biome-intro" role="status">
@@ -419,6 +453,8 @@ export function Game() {
               words={state.status === 'boss' ? [] : state.words}
               projectiles={state.letterProjectiles}
               input={state.input}
+              activeTargetWordId={state.activeTargetWordId}
+              correctKeyPresses={state.correctKeyPresses}
               elapsedMs={state.elapsedMs}
               poppingWordId={state.poppingWordId}
               radarTargetId={radarTargetId}
@@ -431,7 +467,6 @@ export function Game() {
                 bossWord={state.bossWord}
                 bossWords={state.bossWords}
                 activeBossWordIndex={state.activeBossWordIndex}
-                bossPhase={state.bossPhase}
                 input={state.input}
                 floor={state.floor}
                 areaRef={gameAreaRef}
@@ -460,7 +495,7 @@ export function Game() {
               activeRelics={state.activeRelics}
               activePerks={state.activePerks}
               perksHistory={state.perksHistory}
-              synergyIds={getActiveSynergies(state)}
+              synergyIds={activeSynergies}
               biomeId={state.biomeId}
               eliteModifierId={state.eliteModifierId}
               ascensionLevel={state.ascensionLevel}
