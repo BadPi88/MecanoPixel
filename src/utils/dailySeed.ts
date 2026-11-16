@@ -1,5 +1,5 @@
-import type { GlossaryId } from '../types/combat';
-import type { RunnerId } from '../types/run';
+import type { GlossaryId } from '../types/combat.ts';
+import type { RunnerId } from '../types/run.ts';
 
 const RUNNER_POOL: RunnerId[] = [
   'veloz',

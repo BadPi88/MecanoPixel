@@ -1,6 +1,6 @@
-import type { ShopItemId } from '../types/run';
-import { createSeededRandom } from '../utils/random';
-import { GAME_BALANCE } from '../config/gameBalance';
+import type { ShopItemId } from '../types/run.ts';
+import { createSeededRandom } from '../utils/random.ts';
+import { GAME_BALANCE } from '../config/gameBalance.ts';
 
 export interface ShopItem {
   id: ShopItemId;

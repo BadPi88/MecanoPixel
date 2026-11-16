@@ -1,0 +1,5 @@
+[functions.start-run]
+verify_jwt = true
+
+[functions.submit-score]
+verify_jwt = true

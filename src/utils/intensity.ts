@@ -1,4 +1,4 @@
-import { getDifficultyTier } from './difficulty';
+import { getDifficultyTier } from './difficulty.ts';
 
 /** Palabras nuevas que aparecen por segundo según el intervalo de spawn. */
 export function wordsPerSecondFromSpawnInterval(spawnIntervalMs: number): number {

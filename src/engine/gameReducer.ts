@@ -1,25 +1,25 @@
-import { pickPerkChoices, PERKS_EVERY_N_RAMPS, trimActivePerks } from '../data/perks';
-import { pickRandomEvent } from '../data/events';
-import { pickRelicChoices } from '../data/relics';
-import { getShopItem, pickShopOffers } from '../data/shop';
-import { BONUS_WORD_COINS } from '../data/run';
+import { pickPerkChoices, PERKS_EVERY_N_RAMPS, trimActivePerks } from '../data/perks.ts';
+import { pickRandomEvent } from '../data/events.ts';
+import { pickRelicChoices } from '../data/relics.ts';
+import { getShopItem, pickShopOffers } from '../data/shop.ts';
+import { BONUS_WORD_COINS } from '../data/run.ts';
 import {
   initialGameState,
   type FallingWord,
   type GameAction,
   type GameState,
   type GameStatus,
-} from '../types/game';
-import { MAX_LIVES } from '../types/perks';
-import type { ShopItemId } from '../types/run';
+} from '../types/game.ts';
+import { MAX_LIVES } from '../types/perks.ts';
+import type { ShopItemId } from '../types/run.ts';
 import {
   MAX_LETTER_PROJECTILES,
   POS_EFFECT_COOLDOWN_MS,
   ULTIMATE_CLEAN_WORD_BONUS,
   ULTIMATE_MAX_CHARGE,
-} from '../types/combat';
-import { wordsPerSecondFromSpawnInterval } from '../utils/intensity';
-import { calculateRunCoinsFromScore } from '../utils/metaCoins';
+} from '../types/combat.ts';
+import { wordsPerSecondFromSpawnInterval } from '../utils/intensity.ts';
+import { calculateRunCoinsFromScore } from '../utils/metaCoins.ts';
 import {
   advanceToNextFloor,
   buildMapPickState,
@@ -27,8 +27,8 @@ import {
   getFloorClearCoins,
   getFloorTierOffset,
   shouldCompleteFloor,
-} from '../utils/runTransitions';
-import { getInitialLives, getRunnerModifiers } from '../utils/runnerModifiers';
+} from '../utils/runTransitions.ts';
+import { getInitialLives, getRunnerModifiers } from '../utils/runnerModifiers.ts';
 import {
   BOSS_BLIND_DURATION_MS,
   BOSS_BLIND_INTERVAL_MS,
@@ -38,12 +38,12 @@ import {
   getBossForFloor,
   initBossAttackFromCatalog,
   initBossWords,
-} from '../data/bosses';
-import { morphDisplayText } from '../utils/wordSpawn';
-import { ELITE_COIN_MULT } from '../data/eliteModifiers';
-import { getMiniBoss } from '../data/bosses';
-import { FLOORS_PER_BIOME } from '../data/biomes';
-import { getAscensionInitialLivesPenalty } from '../utils/ascensionModifiers';
+} from '../data/bosses.ts';
+import { morphDisplayText } from '../utils/wordSpawn.ts';
+import { ELITE_COIN_MULT } from '../data/eliteModifiers.ts';
+import { getMiniBoss } from '../data/bosses.ts';
+import { FLOORS_PER_BIOME } from '../data/biomes.ts';
+import { getAscensionInitialLivesPenalty } from '../utils/ascensionModifiers.ts';
 import {
   applyRelicOnMiss,
   applyRelicOnSubmit,
@@ -52,12 +52,12 @@ import {
   getTrapShieldOnFloorStart,
   getUltimateChargePerChar,
   getBackspaceChargePenalty,
-} from '../utils/combatModifiers';
-import { getNodeById } from '../data/mapRooms';
-import { hasSynergy } from '../utils/synergyEngine';
-import { tickEliteFog } from '../utils/eliteModifiers';
-import { getBiomeGameplayMod } from '../utils/biomeModifiers';
-import { updateFlowStats } from '../utils/flowDifficulty';
+} from '../utils/combatModifiers.ts';
+import { getNodeById } from '../data/mapRooms.ts';
+import { hasSynergy } from '../utils/synergyEngine.ts';
+import { tickEliteFog } from '../utils/eliteModifiers.ts';
+import { getBiomeGameplayMod } from '../utils/biomeModifiers.ts';
+import { updateFlowStats } from '../utils/flowDifficulty.ts';
 import {
   applyBrokenClockSkip,
   applyPerkSelection,
@@ -68,15 +68,15 @@ import {
   getEffectiveDifficulty,
   hasPerkWithCharge,
   removePerk,
-} from '../utils/perkModifiers';
-import { calculateMissPenalty } from '../utils/scoring';
-import { getDailyChallengeConfig } from '../utils/dailySeed';
-import { getWeeklyChallengeConfig } from '../utils/weeklySeed';
-import { createWordId } from './gameIds';
-import { createSeededRandom } from './rng';
-import { GAME_BALANCE } from '../config/gameBalance';
+} from '../utils/perkModifiers.ts';
+import { calculateMissPenalty } from '../utils/scoring.ts';
+import { getDailyChallengeConfig } from '../utils/dailySeed.ts';
+import { getWeeklyChallengeConfig } from '../utils/weeklySeed.ts';
+import { createWordId } from './gameIds.ts';
+import { createSeededRandom } from './rng.ts';
+import { GAME_BALANCE } from '../config/gameBalance.ts';
 
-export { createWordId } from './gameIds';
+export { createWordId } from './gameIds.ts';
 
 const GROUND_OFFSET = 48;
 const TRAP_PENALTY = 40;
@@ -165,7 +165,7 @@ function enterPostFloor(
     return {
       status: 'shop',
       pendingEvent: null,
-      shopOffers: pickShopOffers(state.floor, state.runCoins + state.score),
+      shopOffers: pickShopOffers(state.floor, state.runSeed ^ state.floor),
     };
   }
   return { status: nextStatus, pendingEvent: null, shopOffers: [] };
@@ -564,23 +564,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...initialGameState,
           status: 'runnerPick',
           ascensionLevel,
-          runSeed: action.payload?.runSeed ?? 0,
+          runSeed: action.payload?.rankedRun?.runSeed ?? action.payload?.runSeed ?? 0,
+          rankedRun: action.payload?.rankedRun ?? null,
         };
       }
-      const weeklyChallenge = weeklyRun ? getWeeklyChallengeConfig() : null;
-      const challenge = weeklyChallenge ?? getDailyChallengeConfig();
+      const weeklyChallenge = weeklyRun ? getWeeklyChallengeConfig(action.payload?.challengeKey) : null;
+      const challenge = weeklyChallenge ?? getDailyChallengeConfig(action.payload?.challengeKey);
       const runnerId = challenge.runnerId;
       const lives = getInitialLives(runnerId);
       const trapIgnore = getRunnerModifiers(runnerId).trapIgnoreCharges;
       return {
         ...initialGameState,
         status: 'playing',
-        startTime: Date.now(),
+        startTime: action.payload?.startedAtMs ?? 0,
         lives,
         runnerId,
         trapIgnoreRemaining: trapIgnore,
         selectedGlossary: challenge.glossaryId,
-        runSeed: action.payload?.runSeed ?? challenge.seed,
+        runSeed: action.payload?.rankedRun?.runSeed ?? action.payload?.runSeed ?? challenge.seed,
+        rankedRun: action.payload?.rankedRun ?? null,
         dailyRun,
         weeklyRun,
         endlessMode: weeklyRun,
@@ -610,7 +612,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...initialGameState,
         status: 'playing',
-        startTime: Date.now(),
+        startTime: action.startedAtMs ?? 0,
         lives,
         runnerId,
         trapIgnoreRemaining: trapIgnore,
@@ -618,6 +620,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         dailyRun: state.dailyRun,
         ascensionLevel,
         runSeed: state.runSeed,
+        rankedRun: state.rankedRun,
         wordStartedAtMs: 0,
       };
     }
@@ -659,12 +662,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (fabricaMod.fabricaRemap) {
         if (state.fabricaRemapNextAtMs === 0) {
           fabricaRemapNextAtMs = newElapsed + 20_000;
-        } else if (!keyRemap && newElapsed >= state.fabricaRemapNextAtMs) {
+        } else if (!keyRemap && newElapsed >= state.fabricaRemapNextAtMs && state.input.length === 0) {
           keyRemap = { a: 's', s: 'a' };
           fabricaRemapNextAtMs = newElapsed + 5_000;
+        } else if (!keyRemap && newElapsed >= state.fabricaRemapNextAtMs) {
+          fabricaRemapNextAtMs = newElapsed + 750;
         } else if (keyRemap && newElapsed >= state.fabricaRemapNextAtMs) {
-          keyRemap = null;
-          fabricaRemapNextAtMs = newElapsed + 20_000;
+          if (state.input.length > 0) {
+            fabricaRemapNextAtMs = newElapsed + 750;
+          } else {
+            keyRemap = null;
+            fabricaRemapNextAtMs = newElapsed + 20_000;
+          }
         }
       }
 
@@ -794,7 +803,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           };
         }
         if (keyRemap && newElapsed >= bossAttack.remapUntilMs) {
-          keyRemap = null;
+          if (state.input.length > 0) {
+            bossAttack = { ...bossAttack, remapUntilMs: newElapsed + 750 };
+          } else {
+            keyRemap = null;
+          }
         }
       }
 
@@ -998,13 +1011,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (state.status === 'boss' && state.bossWord) {
         if (trimmed !== state.bossWord.text) {
+          const penaltyScore = Math.max(0, state.score - calculateMissPenalty());
           return {
             ...state,
             input: '',
             combo: 0,
             precisionStreak: 0,
             backspacesUsedThisWord: 0,
-            score: Math.max(0, state.score - calculateMissPenalty()),
+            score: penaltyScore,
+            scoreEvents: penaltyScore === state.score ? state.scoreEvents : [...state.scoreEvents, penaltyScore - state.score],
             mistakes: state.mistakes + 1,
             flowStats: {
               ...state.flowStats,
@@ -1029,6 +1044,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             backspacesUsedThisWord: 0,
             wordsTyped: state.wordsTyped + 1,
             defeatedAtMs: [...state.defeatedAtMs, state.elapsedMs],
+            completedWordLengths: [...state.completedWordLengths, trimmed.length],
             correctChars: state.correctChars + trimmed.length,
             combo: state.combo + 1,
           };
@@ -1069,6 +1085,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             backspacesUsedThisWord: 0,
             wordsTyped: state.wordsTyped + 1,
             defeatedAtMs: [...state.defeatedAtMs, state.elapsedMs],
+            completedWordLengths: [...state.completedWordLengths, trimmed.length],
             correctChars: state.correctChars + trimmed.length,
             status: 'victory',
           };
@@ -1085,6 +1102,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           backspacesUsedThisWord: 0,
           wordsTyped: state.wordsTyped + 1,
           defeatedAtMs: [...state.defeatedAtMs, state.elapsedMs],
+          completedWordLengths: [...state.completedWordLengths, trimmed.length],
           correctChars: state.correctChars + trimmed.length,
           ...advanceToNextFloor(state),
         };
@@ -1094,6 +1112,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const matchIndex = state.words.findIndex((w) => w.text === trimmed);
 
       if (matchIndex === -1) {
+        const penaltyScore = Math.max(0, state.score - calculateMissPenalty());
         let activePerks = state.activePerks;
         let combo = 0;
         if (hasPerkWithCharge(activePerks, 'combo_safe')) {
@@ -1110,7 +1129,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           activePerks,
           precisionStreak: 0,
           backspacesUsedThisWord: 0,
-          score: Math.max(0, state.score - calculateMissPenalty()),
+          score: penaltyScore,
+          scoreEvents: penaltyScore === state.score ? state.scoreEvents : [...state.scoreEvents, penaltyScore - state.score],
           flowStats: {
             ...state.flowStats,
             windowErrors: state.flowStats.windowErrors + 2,
@@ -1148,13 +1168,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             words: state.words.filter((w) => w.id !== matched.id),
           };
         }
+        const penaltyScore = Math.max(0, state.score - TRAP_PENALTY);
         return {
           ...state,
           input: '',
           combo: 0,
           precisionStreak: 0,
           backspacesUsedThisWord: 0,
-          score: Math.max(0, state.score - TRAP_PENALTY),
+          score: penaltyScore,
+          scoreEvents: penaltyScore === state.score ? state.scoreEvents : [...state.scoreEvents, penaltyScore - state.score],
           words: state.words.filter((w) => w.id !== matched.id),
           activePerks: removePerk(state.activePerks, 'golden_streak'),
         };
@@ -1268,10 +1290,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         input: '',
         combo,
         score: state.score + points,
+        scoreEvents: points === 0 ? state.scoreEvents : [...state.scoreEvents, points],
         runCoins,
         correctChars: state.correctChars + matched.text.length,
         wordsTyped: state.wordsTyped + 1,
         defeatedAtMs: [...state.defeatedAtMs, state.elapsedMs],
+        completedWordLengths: [...state.completedWordLengths, matched.text.length],
         poppingWordId: matched.id,
         activePerks: posPartial.activePerks ?? activePerks,
         backspacesUsedThisWord: 0,
@@ -1497,12 +1521,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         words: state.words.filter((w) => w.id !== word.id),
         wordsTyped: state.wordsTyped + 1,
         defeatedAtMs: [...state.defeatedAtMs, state.elapsedMs],
+        completedWordLengths: [...state.completedWordLengths, word.text.length],
         correctChars: state.correctChars + word.text.length,
         input: '',
         backspacesUsedThisWord: 0,
       };
       if (action.payload === 'score') {
-        return { ...state, ...shared, score: state.score + scoreBonus };
+        return {
+          ...state,
+          ...shared,
+          score: state.score + scoreBonus,
+          scoreEvents: [...state.scoreEvents, scoreBonus],
+        };
       }
       return {
         ...state,

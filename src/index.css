@@ -33,7 +33,7 @@ body,
 
 body {
   font-family: var(--font-pixel);
-  font-size: 16px;
+  font-size: calc(16px * var(--ui-font-scale, 1));
   line-height: 1.5;
   background-color: var(--color-sky);
   color: var(--color-text);
@@ -134,13 +134,13 @@ body {
 }
 
 .screen__error {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-danger);
   margin-top: 8px;
 }
 
 .screen__status {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
@@ -159,7 +159,7 @@ body {
 .pixel-input {
   width: 100%;
   font-family: var(--font-pixel);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   padding: 10px 12px;
   border: 4px solid var(--color-panel-border);
   background: var(--color-sky);
@@ -183,14 +183,14 @@ body {
 }
 
 .leaderboard__title {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-bottom: 8px;
   text-align: center;
 }
 
 .leaderboard__total {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-panel-border);
   text-align: center;
   margin-bottom: 12px;
@@ -198,7 +198,7 @@ body {
 
 .leaderboard__status,
 .leaderboard__empty {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 2;
   text-align: center;
   color: var(--color-panel-border);
@@ -216,7 +216,7 @@ body {
   grid-template-columns: 28px 1fr auto;
   gap: 8px;
   align-items: center;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   padding: 6px 8px;
   border: 2px solid transparent;
 }
@@ -242,7 +242,7 @@ body {
 
 .leaderboard__your-rank {
   margin-top: 12px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   text-align: center;
   color: var(--color-text);
   line-height: 1.8;
@@ -262,7 +262,7 @@ body {
 }
 
 .hud__stat--player .hud__value--player {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   max-width: 80px;
   overflow: hidden;
@@ -272,7 +272,7 @@ body {
 
 .screen__title {
   font-family: var(--font-display);
-  font-size: clamp(18px, 4vw, 28px);
+  font-size: clamp(calc(18px * var(--ui-font-scale, 1)), calc(4vw * var(--ui-font-scale, 1)), calc(28px * var(--ui-font-scale, 1)));
   color: var(--color-highlight);
   text-shadow: 4px 4px 0 #000;
   line-height: 1.6;
@@ -283,7 +283,7 @@ body {
 }
 
 .screen__subtitle {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-top: -12px;
 }
@@ -294,14 +294,14 @@ body {
 }
 
 .screen__panel-title {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   margin-bottom: 12px;
   color: var(--color-warn);
 }
 
 .screen__instructions {
   list-style: none;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 2.2;
   text-align: left;
 }
@@ -329,12 +329,12 @@ body {
 }
 
 .screen__stat-label {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
 .screen__stat-value {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
 }
 
@@ -343,7 +343,7 @@ body {
 }
 
 .screen__stat-hint {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-panel-border);
   line-height: 1.6;
 }
@@ -390,17 +390,17 @@ body {
 }
 
 .hud__stat--score .hud__value {
-  font-size: 16px;
+  font-size: calc(16px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
 .hud__label {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   color: var(--color-panel-border);
 }
 
 .hud__value {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
 }
 
 .hud__lives {
@@ -423,7 +423,7 @@ body {
 }
 
 .hud__input-value {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
   letter-spacing: 2px;
 }
@@ -451,7 +451,7 @@ body {
 }
 
 .hud__combo-count {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-safe);
 }
 
@@ -460,7 +460,7 @@ body {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   text-shadow: 2px 2px 0 #000;
   animation: speed-notice 0.6s steps(3) infinite;
@@ -485,7 +485,7 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 100;
-  font-size: 24px;
+  font-size: calc(24px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   text-shadow: 4px 4px 0 #000;
 }
@@ -579,7 +579,7 @@ body {
 
 .biome-intro__label {
   font-family: var(--font-pixel);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   text-align: center;
   line-height: 1.8;
@@ -590,7 +590,7 @@ body {
   max-width: min(70vw, 560px);
   margin-top: 6px;
   color: var(--color-text);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   line-height: 1.8;
 }
 
@@ -607,7 +607,7 @@ body {
 
 .hud__value--biome {
   color: var(--color-warn);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
 }
 
 :root[data-motion='reduced'] .biome-intro {
@@ -625,8 +625,10 @@ body {
 
 .falling-word {
   position: absolute;
-  font-family: var(--font-display);
-  font-size: 12px;
+  font-family: var(--font-game, var(--font-display));
+  font-size: var(--word-font-size, 14px);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
   padding: 8px 12px;
   border: 4px solid #000;
   white-space: nowrap;
@@ -692,13 +694,13 @@ body {
 }
 
 .perk-picker__title {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-bottom: 8px;
 }
 
 .perk-picker__subtitle {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
   margin-bottom: 16px;
 }
@@ -710,7 +712,7 @@ body {
 }
 
 .perk-picker__hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   color: var(--color-panel-border);
   margin-top: 12px;
 }
@@ -736,20 +738,20 @@ body {
 
 .perk-card__key {
   grid-row: span 2;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   align-self: center;
   text-align: center;
 }
 
 .perk-card__name {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   line-height: 1.4;
   color: var(--color-text);
 }
 
 .perk-card__desc {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   color: #e2e8f0;
   line-height: 1.65;
   overflow-wrap: break-word;
@@ -786,7 +788,7 @@ body {
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   padding: 4px 6px;
   border: 2px solid #000;
 }
@@ -981,7 +983,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .hub-tabs__tab {
   font-family: var(--font-pixel);
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   padding: 10px 16px;
   background: var(--color-panel);
   border: 3px solid var(--color-panel-border);
@@ -1064,17 +1066,17 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .runner-card__name {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
 }
 
 .runner-card__desc {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.6;
 }
 
 .runner-card__lock {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
@@ -1106,7 +1108,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .auth-screen__brand {
   color: var(--color-highlight);
-  font-size: clamp(18px, 5vw, 28px);
+  font-size: clamp(calc(18px * var(--ui-font-scale, 1)), calc(5vw * var(--ui-font-scale, 1)), calc(28px * var(--ui-font-scale, 1)));
   text-decoration: none;
   text-shadow: 4px 4px 0 #000;
 }
@@ -1122,21 +1124,21 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .auth-card__eyebrow {
   color: var(--color-warn);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   text-align: center;
   letter-spacing: 1px;
 }
 
 .auth-card__title {
   color: var(--color-highlight);
-  font-size: clamp(12px, 3vw, 16px);
+  font-size: clamp(calc(12px * var(--ui-font-scale, 1)), calc(3vw * var(--ui-font-scale, 1)), calc(16px * var(--ui-font-scale, 1)));
   line-height: 1.8;
   text-align: center;
 }
 
 .auth-card__description {
   color: var(--color-text);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   line-height: 1.9;
   text-align: center;
   margin-bottom: 4px;
@@ -1146,7 +1148,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 .auth-card__link-button {
   color: var(--color-highlight);
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.8;
   text-align: center;
   text-decoration: underline;
@@ -1173,7 +1175,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   border: 3px solid var(--color-panel-border);
   background: var(--color-panel);
   color: var(--color-highlight);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.7;
   text-align: center;
   text-decoration: none;
@@ -1187,7 +1189,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .auth-card__switch {
   color: var(--color-text);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.8;
   text-align: center;
 }
@@ -1218,12 +1220,12 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .map-room__key {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
 .map-room__icon {
-  font-size: 28px;
+  font-size: calc(28px * var(--ui-font-scale, 1));
   line-height: 1;
   width: 48px;
   height: 48px;
@@ -1252,18 +1254,18 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .map-room__label {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
 }
 
 .map-room__desc {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   line-height: 1.6;
   opacity: 0.85;
 }
 
 .map-hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   opacity: 0.6;
 }
 
@@ -1291,7 +1293,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   background: rgba(0, 0, 0, 0.3);
 }
 
@@ -1316,7 +1318,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .hud__stat--elite .hud__value--elite {
   color: #e43b44;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
 }
 
 .perk-card--legendary {
@@ -1353,7 +1355,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .build-overlay__title {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   margin-bottom: 12px;
 }
 
@@ -1362,13 +1364,13 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .build-overlay__section h3 {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   margin-bottom: 6px;
   color: var(--color-highlight);
 }
 
 .build-overlay__list {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.7;
   list-style: none;
   padding: 0;
@@ -1382,7 +1384,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   transform: translateX(-50%);
   z-index: 150;
   padding: 10px 14px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.6;
   max-width: 360px;
   animation: hint-fade-in 0.3s ease;
@@ -1412,7 +1414,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .ascension-picker__btn {
   font-family: var(--font-pixel);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   padding: 8px 10px;
   border: 2px solid var(--color-panel-border);
   background: var(--color-panel);
@@ -1456,19 +1458,19 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .shop-item__name {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale, 1));
   color: var(--color-safe);
   line-height: 1.4;
 }
 
 .shop-item__desc {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   line-height: 1.6;
   color: #e2e8f0;
 }
 
 .shop-item__price {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-top: auto;
 }
@@ -1482,12 +1484,12 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .event-panel__title {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
 .event-panel__desc {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.6;
   color: var(--color-muted);
 }
@@ -1527,7 +1529,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   gap: 8px;
   background: radial-gradient(ellipse, rgba(18, 12, 25, 0.84), rgba(5, 6, 16, 0.12) 68%, transparent 78%);
   color: #ffcd75;
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   text-align: center;
   text-shadow: 3px 3px #1a0e14, 0 0 16px #ffcd75;
   pointer-events: none;
@@ -1700,7 +1702,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   padding: 4px 8px;
   border: 1px solid #b13e53;
   color: #ffcd75;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   animation: boss-phase-label 0.7s steps(5);
 }
 
@@ -1774,7 +1776,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   border: 2px solid #ffcd75;
   background: rgba(26, 14, 20, 0.94);
   color: #ffcd75;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   text-align: center;
   white-space: nowrap;
   animation: boss-warning-pulse 0.3s steps(2) infinite alternate;
@@ -1919,18 +1921,18 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .boss-header__title {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-danger);
 }
 
 .boss-header__floor {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-top: 4px;
 }
 
 .boss-header__quote {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   color: var(--color-muted);
   margin-top: 6px;
   max-width: 280px;
@@ -1956,13 +1958,13 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .boss-hp-bar__label {
   display: block;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-top: 4px;
 }
 
 .boss-header__hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   margin-top: 8px;
   color: var(--color-warn);
 }
@@ -2001,7 +2003,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 .meta-shop__header {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
 }
 
 .meta-shop__coins {
@@ -2024,31 +2026,31 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .meta-shop__item-name {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
   display: block;
 }
 
 .meta-shop__item-desc {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   display: block;
   margin-top: 4px;
 }
 
 .meta-shop__owned {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-safe);
 }
 
 .meta-shop__stats {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   padding: 12px;
   display: flex;
   gap: 16px;
 }
 
 .leaderboard__floor {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
@@ -2109,7 +2111,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .hud__meter-value {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   min-width: 36px;
   text-align: right;
 }
@@ -2122,7 +2124,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .hud__relic-chip {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   padding: 3px 6px;
   background: #2a1a3b;
   border: 2px solid #8050b0;
@@ -2137,7 +2139,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .hud__synergy-badge {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   padding: 3px 6px;
   background: #4a2a5b;
   border: 2px solid #c080ff;
@@ -2152,7 +2154,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 .letter-projectile {
   position: absolute;
   font-family: var(--font-pixel);
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale, 1));
   padding: 4px 8px;
   background: #6b1a1a;
   border: 2px solid var(--color-danger);
@@ -2219,11 +2221,11 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .relic-card .perk-card__name {
-  font-size: 15px;
+  font-size: calc(15px * var(--ui-font-scale, 1));
 }
 
 .relic-card__archetype {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   display: block;
   line-height: 1.5;
@@ -2231,7 +2233,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .relic-card__rarity {
   display: block;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   margin: 0;
   color: #a0c8ff;
 }
@@ -2253,13 +2255,13 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .relic-card__synergy-next {
   display: block;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.5;
   color: #c8ecff;
 }
 
 .relic-card__synergy-chip {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   padding: 2px 4px;
   background: #1a2a4a;
   border: 1px solid #4a7acc;
@@ -2267,7 +2269,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .hud__glossary-notice {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   padding: 4px 8px;
   margin-top: 4px;
   background: #1a2a1a;
@@ -2285,7 +2287,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .boss-header__attack {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   padding: 3px 6px;
   background: #6b1a1a;
   border: 2px solid var(--color-danger);
@@ -2297,12 +2299,12 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .meta-shop__item-kind {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
 .screen__stat-value--small {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.6;
 }
 
@@ -2322,7 +2324,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .settings__label {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
 }
 
@@ -2334,7 +2336,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .settings__option {
   font-family: var(--font-pixel);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   padding: 8px 10px;
   background: var(--color-panel);
   border: 2px solid var(--color-panel-border);
@@ -2404,19 +2406,19 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .oracle-overlay__title {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
   margin-bottom: 8px;
 }
 
 .oracle-overlay__word {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-bottom: 8px;
 }
 
 .oracle-overlay__hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-panel-border);
   margin-bottom: 16px;
 }
@@ -2476,7 +2478,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .unlock-banner__title {
-  font-size: 10px;
+  font-size: calc(10px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
@@ -2495,19 +2497,19 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .unlock-banner__name {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-highlight);
 }
 
 /* Secciones de la pantalla de desbloqueos */
 .meta-shop__section-title {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin: 14px 0 6px;
 }
 
 .meta-shop__milestone {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   text-align: right;
   line-height: 1.6;
@@ -2528,12 +2530,12 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .profile-box__hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.6;
 }
 
 .profile-box__status {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.6;
   color: var(--color-safe);
 }
@@ -2562,18 +2564,18 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .tutorial-overlay__step {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-bottom: 8px;
 }
 
 .tutorial-overlay__title {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   margin-bottom: 12px;
 }
 
 .tutorial-overlay__body {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   line-height: 1.8;
   margin-bottom: 16px;
 }
@@ -2587,7 +2589,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 
 .tutorial-overlay__skip {
   font-family: var(--font-pixel);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   background: none;
   border: none;
   color: var(--color-text-dim);
@@ -2610,7 +2612,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   min-width: 140px;
   max-width: 200px;
   padding: 8px;
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   line-height: 1.6;
   background: var(--color-panel);
   border: 2px solid var(--color-panel-border);
@@ -2623,7 +2625,7 @@ html[data-flashes='reduced'] .boss-telegraph {
   display: block;
   margin-top: 6px;
   font-family: var(--font-pixel);
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   background: var(--color-highlight);
   border: 2px solid #000;
   color: #000;
@@ -2637,7 +2639,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .achievements-panel__mission-label {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   line-height: 1.6;
   margin-bottom: 8px;
 }
@@ -2655,7 +2657,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .achievements-panel__mission-meta {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-text-dim);
 }
 
@@ -2685,17 +2687,17 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .achievements-panel__icon {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
 }
 
 .achievements-panel__name {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   display: block;
 }
 
 .achievements-panel__desc {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   line-height: 1.6;
   color: var(--color-text-dim);
   margin: 4px 0 0;
@@ -2718,12 +2720,12 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .run-summary-card__runner {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
 }
 
 .run-summary-card__relics,
 .run-summary-card__synergies {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   line-height: 1.6;
   color: var(--color-text-dim);
   margin-top: 4px;
@@ -2738,7 +2740,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .run-summary-card__ghost-label {
-  font-size: 11px;
+  font-size: calc(11px * var(--ui-font-scale, 1));
   grid-column: 1 / -1;
 }
 
@@ -2754,7 +2756,7 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .run-summary-card__ghost-score {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
 }
 
 .unlock-banner--achievement {
@@ -2769,19 +2771,19 @@ html[data-flashes='reduced'] .boss-telegraph {
 }
 
 .unlock-banner__achievement {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-font-scale, 1));
   color: var(--color-safe);
 }
 
 .leaderboard__gap {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   color: var(--color-warn);
   margin-top: 8px;
   text-align: center;
 }
 
 .daily-challenge__hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.6;
   color: var(--color-highlight);
 }
@@ -2815,11 +2817,11 @@ html[data-flashes='reduced'] .boss-telegraph {
   }
 
   .hud__stat--score .hud__value {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-font-scale, 1));
   }
 
   .falling-word {
-    font-size: 12px;
+    font-size: calc(12px * var(--ui-font-scale, 1));
     padding: 6px 8px;
   }
 

@@ -1,6 +1,6 @@
-import type { GameState } from '../types/game';
-import { MAX_LIVES } from '../types/perks';
-import type { EventEffect, EventId } from '../types/run';
+import type { GameState } from '../types/game.ts';
+import { MAX_LIVES } from '../types/perks.ts';
+import type { EventEffect, EventId } from '../types/run.ts';
 
 export interface EventDefinition {
   id: EventId;

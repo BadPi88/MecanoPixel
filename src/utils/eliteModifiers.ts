@@ -3,9 +3,9 @@ import {
   ELITE_FOG_DURATION_MS,
   ELITE_FOG_INTERVAL_MS,
   type EliteModifierId,
-} from '../data/eliteModifiers';
-import type { GameState } from '../types/game';
-import type { SpawnConstraints } from './combatModifiers';
+} from '../data/eliteModifiers.ts';
+import type { GameState } from '../types/game.ts';
+import type { SpawnConstraints } from './combatModifiers.ts';
 
 export function getEliteCoinMult(state: GameState): number {
   return state.eliteCoinMult > 1 ? state.eliteCoinMult : 1;

@@ -1,5 +1,5 @@
-import type { RelicId } from '../types/combat';
-import type { GameState } from '../types/game';
+import type { RelicId } from '../types/combat.ts';
+import type { GameState } from '../types/game.ts';
 
 export type SynergyId =
   | 'doble_defensa'

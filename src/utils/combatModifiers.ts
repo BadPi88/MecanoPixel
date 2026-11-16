@@ -1,8 +1,8 @@
-import type { GlossaryId, RelicId } from '../types/combat';
-import type { FallingWord, GameState } from '../types/game';
-import { getBiomeBonusScoreMult } from './biomeModifiers';
-import { hasSynergy } from './synergyEngine';
-import { applyDiminishingReturns } from '../config/gameBalance';
+import type { GlossaryId, RelicId } from '../types/combat.ts';
+import type { FallingWord, GameState } from '../types/game.ts';
+import { getBiomeBonusScoreMult } from './biomeModifiers.ts';
+import { hasSynergy } from './synergyEngine.ts';
+import { applyDiminishingReturns } from '../config/gameBalance.ts';
 
 export interface SpawnConstraints {
   minLen?: number;

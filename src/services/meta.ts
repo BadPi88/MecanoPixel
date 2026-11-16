@@ -1,28 +1,34 @@
-import type { GlossaryId, RelicId } from '../types/combat';
-import type { DeathCause, RunnerId } from '../types/run';
-import { RUNNER_CATALOG } from '../data/runners';
+import type { GlossaryId, RelicId } from '../types/combat.ts';
+import type { DeathCause, RunnerId } from '../types/run.ts';
+import { RUNNER_CATALOG } from '../data/runners.ts';
 import {
   ACHIEVEMENT_IDS,
   type AchievementId,
   isAchievementMet,
   type RunAchievementStats,
-} from '../data/achievements';
+} from '../data/achievements.ts';
 import {
   DAILY_MISSION_CATALOG,
   type DailyMissionId,
   getMissionProgressForRun,
   pickMissionForDate,
-} from '../data/dailyMissions';
-import { getUtcDateString } from '../utils/dailySeed';
-import { applyAchievementReward } from '../data/achievements';
+} from '../data/dailyMissions.ts';
+import { getUtcDateString } from '../utils/dailySeed.ts';
+import { applyAchievementReward } from '../data/achievements.ts';
 import {
   DEFAULT_UNLOCKED_RELICS,
   type FrameId,
   type TrailId,
   type WordPaletteId,
-} from '../data/metaUnlocks';
+} from '../data/metaUnlocks.ts';
 
 const META_KEY = 'keyrunner:meta';
+let metaOverride: MetaProgress | null = null;
+
+/** Inyecta el snapshot firmado de progreso durante el replay de una run. */
+export function setMetaOverride(meta: MetaProgress | null): void {
+  metaOverride = meta;
+}
 
 export interface MetaCosmetics {
   wordPalette: WordPaletteId;
@@ -180,6 +186,7 @@ export function ensureDailyMission(meta: MetaProgress): MetaProgress {
 }
 
 export function loadMeta(): MetaProgress {
+  if (metaOverride) return metaOverride;
   try {
     const raw = localStorage.getItem(META_KEY);
     if (!raw) return getDefaultMeta();

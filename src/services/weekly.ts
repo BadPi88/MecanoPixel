@@ -1,6 +1,6 @@
 import type { WeeklyLeaderboardResponse, SubmitWeeklyScorePayload } from '../types/weekly';
 import { getWeeklyChallengeConfig } from '../utils/weeklySeed';
-import { fetchSupabaseLeaderboard, submitSupabaseScore } from './supabaseScores';
+import { fetchSupabaseLeaderboard, submitSupabaseScore, type ScoreSubmitResult } from './supabaseScores';
 
 export async function fetchWeeklyLeaderboard(
   _playerName?: string,
@@ -11,6 +11,6 @@ export async function fetchWeeklyLeaderboard(
   return { ...board, week: challenge.week, challenge };
 }
 
-export function submitWeeklyScore(payload: SubmitWeeklyScorePayload): Promise<{ saved: boolean; rank: number | null }> {
+export function submitWeeklyScore(payload: SubmitWeeklyScorePayload): Promise<ScoreSubmitResult> {
   return submitSupabaseScore({ mode: 'weekly', challengeKey: payload.week, ...payload });
 }

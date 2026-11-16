@@ -1,4 +1,4 @@
-import type { CombatElement, GlossaryId } from '../types/combat';
+import type { CombatElement, GlossaryId } from '../types/combat.ts';
 
 export interface GlossaryDefinition {
   id: GlossaryId;

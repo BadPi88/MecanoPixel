@@ -24,7 +24,7 @@ export interface SubmitScorePayload {
   elapsedMs: number;
   floorReached?: number;
   runnerId?: string;
-  verification?: RunVerification;
+  verification: RunVerification;
 }
 
 export interface RunVerification {
@@ -33,5 +33,9 @@ export interface RunVerification {
   correctKeyPresses: number;
   mistakes: number;
   defeatedAtMs: number[];
+  completedWordLengths: number[];
   relics: string[];
+  scoreEvents: number[];
+  replayEvents: import('./runReplay').RunReplayEvent[];
+  rankedRun: import('./runReplay').RankedRunTicket;
 }

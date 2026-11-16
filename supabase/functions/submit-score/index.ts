@@ -1,24 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-interface ScoreBody {
-  mode: 'global' | 'daily' | 'weekly';
-  challengeKey: string;
-  playerName: string;
-  score: number;
-  wpm: number;
-  wordsTyped: number;
-  elapsedMs: number;
-  floorReached?: number;
-  runnerId?: string;
-  verification: {
-    runSeed: number;
-    correctChars: number;
-    correctKeyPresses: number;
-    mistakes: number;
-    defeatedAtMs: number[];
-    relics: string[];
-  };
-}
+import { replayRun } from '../../../src/engine/replay.ts';
+import { getDefaultMeta } from '../../../src/services/meta.ts';
+import { verifyRunToken } from '../_shared/runToken.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,64 +9,61 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-function isScoreBody(value: unknown): value is ScoreBody {
-  if (!value || typeof value !== 'object') return false;
-  const body = value as Partial<ScoreBody>;
-  return (body.mode === 'global' || body.mode === 'daily' || body.mode === 'weekly') &&
-    typeof body.challengeKey === 'string' && typeof body.playerName === 'string' &&
-    Number.isInteger(body.score) && Number.isInteger(body.wpm) &&
-    Number.isInteger(body.wordsTyped) && Number.isInteger(body.elapsedMs) &&
-    !!body.verification && Number.isInteger(body.verification.runSeed) &&
-    Number.isInteger(body.verification.correctChars) &&
-    Number.isInteger(body.verification.correctKeyPresses) &&
-    Number.isInteger(body.verification.mistakes) &&
-    Array.isArray(body.verification.defeatedAtMs) &&
-    Array.isArray(body.verification.relics);
-}
-
 Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405, headers: corsHeaders });
-
   try {
-    const bodyValue: unknown = await request.json();
-    if (!isScoreBody(bodyValue)) return Response.json({ error: 'Payload invalido' }, { status: 400, headers: corsHeaders });
-    const body = bodyValue;
-    const verification = body.verification;
-    const validChars = verification.correctChars >= 0 && verification.correctChars <= 1_000_000;
-    const validCounts = verification.correctKeyPresses >= 0 && verification.mistakes >= 0 &&
-      verification.correctKeyPresses <= 2_000_000 && verification.mistakes <= 2_000_000;
-    const validTimes = verification.defeatedAtMs.length === body.wordsTyped &&
-      verification.defeatedAtMs.length <= 1_000_000 &&
-      verification.defeatedAtMs.every((time, index, values) => Number.isInteger(time) && time >= 0 &&
-        time <= body.elapsedMs && (index === 0 || time >= values[index - 1]!));
-    const expectedWpm = body.elapsedMs > 0
-      ? Math.round((verification.correctChars / 5) / (body.elapsedMs / 60_000))
-      : 0;
-    if (!validChars || !validCounts || !validTimes || body.wpm !== expectedWpm ||
-      body.score < 0 || body.score > 1_000_000 || body.wpm > 500 ||
-      body.elapsedMs < 0 || body.elapsedMs > 3_600_000 || body.wordsTyped < 0 ||
-      body.wordsTyped > 1_000_000 || body.score > Math.max(body.wordsTyped, 1) * 100_000 ||
-      verification.correctKeyPresses < verification.correctChars) {
-      return Response.json({ error: 'La puntuacion no coincide con la telemetria' }, { status: 422, headers: corsHeaders });
+    const raw = await request.text();
+    if (raw.length > 4_000_000) return Response.json({ error: 'Payload demasiado grande' }, { status: 413, headers: corsHeaders });
+    const body = JSON.parse(raw) as Record<string, unknown>;
+    const verification = body.verification as Record<string, unknown> | undefined;
+    const ticket = verification?.rankedRun as { token?: unknown; runId?: unknown } | undefined;
+    const events = verification?.replayEvents;
+    if (!verification || !ticket || typeof ticket.token !== 'string' || typeof ticket.runId !== 'string' ||
+      !Array.isArray(events) || events.length === 0 || events.length > 250_000 ||
+      !['global', 'daily', 'weekly'].includes(String(body.mode)) || typeof body.challengeKey !== 'string') {
+      return Response.json({ error: 'Replay o ticket invalido' }, { status: 400, headers: corsHeaders });
     }
-
+    const secret = Deno.env.get('RUN_TOKEN_SECRET');
+    const url = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!secret || !url || !anonKey) return Response.json({ error: 'Servicio competitivo no configurado' }, { status: 503, headers: corsHeaders });
+    const claims = await verifyRunToken(ticket.token, secret);
+    if (!claims || claims.runId !== ticket.runId || claims.mode !== body.mode || claims.challengeKey !== body.challengeKey ||
+      claims.runSeed !== verification.runSeed || claims.issuedAtMs > Date.now() || Date.now() - claims.issuedAtMs > 14 * 86400_000) {
+      return Response.json({ error: 'Ticket de run invalido o expirado' }, { status: 422, headers: corsHeaders });
+    }
     const authorization = request.headers.get('Authorization');
     if (!authorization) return Response.json({ error: 'Sesion requerida' }, { status: 401, headers: corsHeaders });
-    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authorization } },
-    });
-    const { data: userData, error: authError } = await supabase.auth.getUser();
-    if (authError || !userData.user) return Response.json({ error: 'Sesion invalida' }, { status: 401, headers: corsHeaders });
-    const { data, error } = await supabase.rpc('submit_run_score', {
-      p_mode: body.mode,
-      p_challenge_key: body.challengeKey,
-      p_score: body.score,
-      p_wpm: body.wpm,
-      p_words_typed: body.wordsTyped,
-      p_elapsed_ms: body.elapsedMs,
-      p_floor_reached: body.floorReached ?? 0,
-      p_runner_id: body.runnerId ?? null,
+    const supabase = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user || authData.user.id !== claims.sub) return Response.json({ error: 'Sesion invalida' }, { status: 401, headers: corsHeaders });
+    const meta = getDefaultMeta();
+    meta.unlockedRelics = claims.progression.unlockedRelics as typeof meta.unlockedRelics;
+    meta.unlockedRunners = claims.progression.unlockedRunners as typeof meta.unlockedRunners;
+    meta.unlockedGlossaries = claims.progression.unlockedGlossaries as typeof meta.unlockedGlossaries;
+    meta.maxAscension = claims.progression.maxAscension;
+    meta.hubUpgrades = claims.progression.hubUpgrades;
+    const result = replayRun(events as never[], {
+      mode: claims.mode,
+      challengeKey: claims.challengeKey,
+      runSeed: claims.runSeed,
+      score: Number(body.score),
+      wordsTyped: Number(body.wordsTyped),
+      correctChars: Number(verification.correctChars),
+      elapsedMs: Number(body.elapsedMs),
+    }, meta);
+    if (!result.valid || Number(verification.correctKeyPresses) !== result.state.correctKeyPresses ||
+      Number(verification.mistakes) !== result.state.mistakes ||
+      Number(body.wpm) !== (result.state.elapsedMs > 0 ? Math.round(result.state.correctChars * 12_000 / result.state.elapsedMs) : 0)) {
+      return Response.json({ error: 'La reproduccion no coincide con el resultado' }, { status: 422, headers: corsHeaders });
+    }
+    const { data, error } = await supabase.rpc('submit_verified_run_score', {
+      p_run_id: claims.runId, p_rules_version: claims.rulesVersion, p_mode: claims.mode,
+      p_challenge_key: claims.challengeKey, p_score: result.state.score,
+      p_wpm: Number(body.wpm), p_words_typed: result.state.wordsTyped,
+      p_elapsed_ms: result.state.elapsedMs, p_floor_reached: result.state.floor,
+      p_runner_id: result.state.runnerId,
     });
     if (error) return Response.json({ error: error.message }, { status: 400, headers: corsHeaders });
     return Response.json({ saved: Boolean(data) }, { headers: corsHeaders });

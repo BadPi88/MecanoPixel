@@ -1,4 +1,4 @@
-import type { DifficultyTier } from '../types/game';
+import type { DifficultyTier } from '../types/game.ts';
 
 export const SPEED_RAMP_INTERVAL_MS = 20_000;
 export const BASE_FALL_SPEED = 40;

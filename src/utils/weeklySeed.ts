@@ -1,5 +1,5 @@
-import type { GlossaryId } from '../types/combat';
-import type { RunnerId } from '../types/run';
+import type { GlossaryId } from '../types/combat.ts';
+import type { RunnerId } from '../types/run.ts';
 
 const WEEKLY_RUNNERS: RunnerId[] = ['veloz', 'tanque', 'codificador', 'fantasma', 'maestro'];
 const WEEKLY_GLOSSARIES: GlossaryId[] = ['general', 'medico', 'tecnico'];

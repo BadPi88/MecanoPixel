@@ -1,4 +1,4 @@
-import type { WordPOS } from '../types/combat';
+import type { WordPOS } from '../types/combat.ts';
 
 /**
  * Etiquetado manual de palabras frecuentes del diccionario nucleo.

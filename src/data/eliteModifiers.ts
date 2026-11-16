@@ -1,4 +1,4 @@
-import { GAME_BALANCE } from '../config/gameBalance';
+import { GAME_BALANCE } from '../config/gameBalance.ts';
 
 export type EliteModifierId = 'fog' | 'storm' | 'cascade';
 

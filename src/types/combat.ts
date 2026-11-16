@@ -1,4 +1,4 @@
-import { GAME_BALANCE } from '../config/gameBalance';
+import { GAME_BALANCE } from '../config/gameBalance.ts';
 
 /** Categoria gramatical de una palabra (efectos de combate al escribirla). */
 export type WordPOS = 'verb' | 'adj' | 'noun';

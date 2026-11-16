@@ -1,6 +1,6 @@
-import type { RunnerId } from '../types/run';
-import { INITIAL_LIVES } from '../types/game';
-import { MAX_LIVES } from '../types/perks';
+import type { RunnerId } from '../types/run.ts';
+import { INITIAL_LIVES } from '../types/game.ts';
+import { MAX_LIVES } from '../types/perks.ts';
 
 export interface RunnerModifiers {
   initialLivesBonus: number;

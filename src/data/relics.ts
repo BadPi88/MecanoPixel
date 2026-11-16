@@ -1,7 +1,7 @@
-import { loadMeta } from '../services/meta';
-import type { RelicId } from '../types/combat';
-import { MAX_ACTIVE_RELICS } from '../types/combat';
-import { DEFAULT_UNLOCKED_RELICS } from './metaUnlocks';
+import { loadMeta } from '../services/meta.ts';
+import type { RelicId } from '../types/combat.ts';
+import { MAX_ACTIVE_RELICS } from '../types/combat.ts';
+import { DEFAULT_UNLOCKED_RELICS } from './metaUnlocks.ts';
 
 export interface RelicDefinition {
   id: RelicId;

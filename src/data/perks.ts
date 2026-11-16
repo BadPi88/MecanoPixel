@@ -1,5 +1,5 @@
-import type { ActivePerk, PerkDefinition, PerkId } from '../types/perks';
-import { MAX_ACTIVE_PERKS } from '../types/perks';
+import type { ActivePerk, PerkDefinition, PerkId } from '../types/perks.ts';
+import { MAX_ACTIVE_PERKS } from '../types/perks.ts';
 
 export const PERKS_EVERY_N_RAMPS = 3;
 

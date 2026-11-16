@@ -32,6 +32,7 @@ import {
 import { getAscensionBossAttackMult } from '../utils/ascensionModifiers';
 import { createWordId } from '../engine/gameIds';
 import { createSeededRandom } from '../engine/rng';
+import { loadSettings } from '../services/settings';
 
 const WORD_HEIGHT = 36;
 const MIN_X_PADDING = 16;
@@ -46,8 +47,10 @@ function randomX(areaWidth: number, wordWidth: number, random: () => number): nu
   return MIN_X_PADDING + random() * (maxX - MIN_X_PADDING);
 }
 
-function estimateWordWidth(text: string): number {
-  return text.length * 12 + 24;
+function estimateWordWidth(text: string, fontMode: ReturnType<typeof loadSettings>['fontMode'], fontScale: number): number {
+  const fontSize = (fontMode === 'pixel' ? 14 : 18) * fontScale;
+  const averageGlyphWidth = fontMode === 'pixel' ? fontSize : fontSize * 0.64;
+  return Math.ceil(text.length * averageGlyphWidth + 32);
 }
 
 function findSpawnX(
@@ -56,12 +59,13 @@ function findSpawnX(
   existingWords: { x: number; text: string }[],
   random: () => number,
 ): number {
-  const wordWidth = estimateWordWidth(text);
+  const { fontMode, fontScale } = loadSettings();
+  const wordWidth = estimateWordWidth(text, fontMode, fontScale);
 
   for (let attempt = 0; attempt < 12; attempt++) {
     const x = randomX(areaWidth, wordWidth, random);
     const overlaps = existingWords.some((w) => {
-      const wWidth = estimateWordWidth(w.text);
+      const wWidth = estimateWordWidth(w.text, fontMode, fontScale);
       return Math.abs(w.x - x) < MIN_WORD_GAP + (wWidth + wordWidth) / 4;
     });
     if (!overlaps) return x;
@@ -128,7 +132,7 @@ export function useGameLoop(
         lastFrame = timestamp;
       }
 
-      const deltaMs = timestamp - lastFrame;
+      const deltaMs = Math.min(timestamp - lastFrame, 1_000);
       lastFrame = timestamp;
 
       const current = stateRef.current;
@@ -210,7 +214,7 @@ export function useGameLoop(
 
     const tick = (timestamp: number) => {
       if (lastFrame === 0) lastFrame = timestamp;
-      const deltaMs = timestamp - lastFrame;
+      const deltaMs = Math.min(timestamp - lastFrame, 1_000);
       lastFrame = timestamp;
 
       const current = stateRef.current;
@@ -219,10 +223,9 @@ export function useGameLoop(
         return;
       }
 
-      dispatch({ type: 'BOSS_TICK', payload: { deltaMs } });
-
       const areaHeight =
         gameAreaRef.current?.clientHeight ?? window.innerHeight - 48;
+      dispatch({ type: 'BOSS_TICK', payload: { deltaMs, groundHeight: areaHeight } });
       const fallSpeed = getBossFallSpeed(
         current.bossId,
         current.activeBossWordIndex,
@@ -342,7 +345,7 @@ export function useGameLoop(
 
     const tick = (timestamp: number) => {
       if (lastFrame === 0) lastFrame = timestamp;
-      const deltaMs = timestamp - lastFrame;
+      const deltaMs = Math.min(timestamp - lastFrame, 1_000);
       lastFrame = timestamp;
       const current = stateRef.current;
       if (current.status === 'playing') {
@@ -426,7 +429,7 @@ export function useGameLoop(
 
     const tick = (timestamp: number) => {
       if (lastFrame === 0) lastFrame = timestamp;
-      const deltaMs = timestamp - lastFrame;
+      const deltaMs = Math.min(timestamp - lastFrame, 1_000);
       lastFrame = timestamp;
       if (pendingProjectile) {
         pendingWarningMs -= deltaMs;

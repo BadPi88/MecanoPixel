@@ -1,7 +1,7 @@
-import type { RelicId } from '../types/combat';
-import type { DeathCause } from '../types/run';
-import type { MetaProgress } from '../services/meta';
-import type { FrameId, TrailId, WordPaletteId } from './metaUnlocks';
+import type { RelicId } from '../types/combat.ts';
+import type { DeathCause } from '../types/run.ts';
+import type { MetaProgress } from '../services/meta.ts';
+import type { FrameId, TrailId, WordPaletteId } from './metaUnlocks.ts';
 
 export type AchievementId =
   | 'primera_run'

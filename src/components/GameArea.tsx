@@ -1,4 +1,5 @@
 import type { RefObject } from 'react';
+import { useMemo } from 'react';
 import type { BiomeId } from '../data/biomes';
 import type { FallingWord as FallingWordType } from '../types/game';
 import type { LetterProjectile } from '../types/combat';
@@ -36,9 +37,13 @@ export function GameArea({
   const groundHeight = useElementHeight(areaRef);
   const lowerInput = input.toLowerCase();
   const poppedWord = words.find((word) => word.id === poppingWordId);
-  const burst = poppedWord && poppingWordId
-    ? { id: poppingWordId, x: poppedWord.x, y: poppedWord.y }
-    : null;
+  const poppedX = poppedWord?.x;
+  const poppedY = poppedWord?.y;
+  const burst = useMemo(() => {
+    return poppedX !== undefined && poppedY !== undefined && poppingWordId
+      ? { id: poppingWordId, x: poppedX, y: poppedY }
+      : null;
+  }, [poppedX, poppedY, poppingWordId]);
 
   return (
     <div

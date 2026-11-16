@@ -3,9 +3,9 @@ import {
   getActIndexForFloor,
   getMapChoicesFromAct,
   type ActMapGraph,
-} from '../data/mapRooms';
-import { getMapChoiceCount } from './hubModifiers';
-import type { GameState } from '../types/game';
+} from '../data/mapRooms.ts';
+import { getMapChoiceCount } from './hubModifiers.ts';
+import type { GameState } from '../types/game.ts';
 
 export function initActMapIfNeeded(state: GameState): Partial<GameState> {
   const actIndex = getActIndexForFloor(state.floor);
@@ -21,7 +21,7 @@ export function initActMapIfNeeded(state: GameState): Partial<GameState> {
 }
 
 export function buildActMapChoices(state: GameState): {
-  mapRoomOptions: import('../data/mapRooms').MapRoomOption[];
+  mapRoomOptions: import('../data/mapRooms.ts').MapRoomOption[];
   actMap: ActMapGraph;
 } {
   const actIndex = getActIndexForFloor(state.floor);

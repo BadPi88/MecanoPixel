@@ -1,4 +1,4 @@
-import type { RunnerId } from '../types/run';
+import type { RunnerId } from '../types/run.ts';
 
 /** Stat de meta-progresion que desbloquea un runner. */
 export type UnlockStat = 'runsPlayed' | 'totalWords' | 'bestFloor';

@@ -1,4 +1,4 @@
-import type { FlowStats } from '../types/combat';
+import type { FlowStats } from '../types/combat.ts';
 
 const UPDATE_INTERVAL_MS = 10_000;
 const EMA_ALPHA = 0.3;

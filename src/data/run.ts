@@ -1,4 +1,4 @@
-import { GAME_BALANCE } from '../config/gameBalance';
+import { GAME_BALANCE } from '../config/gameBalance.ts';
 
 /** Subidas de ritmo necesarias para completar un piso. */
 export const RAMPS_PER_FLOOR = 3;

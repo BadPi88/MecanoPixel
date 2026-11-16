@@ -43,7 +43,11 @@ npm install
 npm run dev
 ```
 
-Para probar las funciones online en local, configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en `.env.local` y ejecuta `npm run vercel:dev`. La migración de base de datos está en `supabase/migrations/`.
+Para el frontend local, configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en `.env.local`. Para probar las funciones en local, instala la Supabase CLI, inicia el stack con `supabase start` y usa un archivo local `supabase/functions/.env` que contenga `RUN_TOKEN_SECRET`; luego ejecuta `supabase functions serve --env-file supabase/functions/.env`. Los archivos `.env` están ignorados por Git.
+
+El frontend se despliega en Vercel; las funciones y la base de datos se despliegan por separado en Supabase. En Vercel solo hacen falta `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (clave publicable). Nunca pongas `RUN_TOKEN_SECRET` en Vercel ni en variables `VITE_*`. Para el backend, `RUN_TOKEN_SECRET` es un secreto de Edge Functions de Supabase con al menos 32 bytes aleatorios.
+
+Antes de producción, valida las migraciones y funciones en local/staging. El despliegue coordinado es: `supabase db push --dry-run --remote`, aplicar la migración revisada con `supabase db push --remote`, configurar el secreto en Supabase y desplegar `supabase functions deploy start-run` y `supabase functions deploy submit-score`. No despliegues solo la migración: revoca el RPC de puntuaciones antiguo y debe quedar desplegada la función nueva. Configura además en Supabase Auth la URL del sitio de Vercel y los redirects `/login` y `/recover-password`. La implementación actual no ha sido validada en Supabase local/staging; no la publiques en producción hasta completar esa verificación.
 
 Comandos adicionales:
 

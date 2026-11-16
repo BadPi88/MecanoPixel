@@ -1,12 +1,12 @@
-import type { ActivePerk, PerkId } from '../types/perks';
-import { MAX_LIVES } from '../types/perks';
-import { PERK_CATALOG, trimActivePerks } from '../data/perks';
-import type { FallingWord, GameState } from '../types/game';
-import { getDifficultyTier } from './difficulty';
-import { calculateWordScore } from './scoring';
-import { getRunnerModifiers } from './runnerModifiers';
-import type { RunnerId } from '../types/run';
-import { GAME_BALANCE, applyDiminishingReturns } from '../config/gameBalance';
+import type { ActivePerk, PerkId } from '../types/perks.ts';
+import { MAX_LIVES } from '../types/perks.ts';
+import { PERK_CATALOG, trimActivePerks } from '../data/perks.ts';
+import type { FallingWord, GameState } from '../types/game.ts';
+import { getDifficultyTier } from './difficulty.ts';
+import { calculateWordScore } from './scoring.ts';
+import { getRunnerModifiers } from './runnerModifiers.ts';
+import type { RunnerId } from '../types/run.ts';
+import { GAME_BALANCE, applyDiminishingReturns } from '../config/gameBalance.ts';
 
 export interface PerkModifiers {
   fallSpeedMult: number;

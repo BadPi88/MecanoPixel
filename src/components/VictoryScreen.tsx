@@ -6,11 +6,17 @@ import { syncMetaToProfile } from '../services/profile';
 import { calculateMetaCoinsEarned } from '../utils/metaCoins';
 import { getAscensionMetaCoinsMult } from '../utils/ascensionModifiers';
 import { calculateWpm } from '../utils/wpm';
+import type { RunVerification } from '../../shared/leaderboard';
+import { submitScore } from '../services/leaderboard';
+import { submitDailyScore } from '../services/daily';
+import { submitWeeklyScore } from '../services/weekly';
 import type { RelicId } from '../types/combat';
 import type { RunnerId } from '../types/run';
 import { PixelButton } from './PixelButton';
 
 interface VictoryScreenProps {
+  playerName: string;
+  verification: RunVerification | null;
   score: number;
   floor: number;
   runnerId: RunnerId | null;
@@ -31,6 +37,8 @@ interface VictoryScreenProps {
 }
 
 export function VictoryScreen({
+  playerName,
+  verification,
   score,
   floor,
   runnerId,
@@ -50,6 +58,15 @@ export function VictoryScreen({
   onHome,
 }: VictoryScreenProps) {
   const recordedRef = useRef(false);
+  const submittedRef = useRef(false);
+  useEffect(() => {
+    if (submittedRef.current || !verification || !playerName) return;
+    submittedRef.current = true;
+    const shared = { playerName, score, wpm: calculateWpm(correctChars, elapsedMs), wordsTyped, elapsedMs, floorReached: floor, runnerId: runnerId ?? undefined, verification };
+    if (verification.rankedRun.mode === 'daily') void submitDailyScore({ ...shared, date: verification.rankedRun.challengeKey });
+    else if (verification.rankedRun.mode === 'weekly') void submitWeeklyScore({ ...shared, week: verification.rankedRun.challengeKey });
+    else void submitScore(shared);
+  }, [correctChars, elapsedMs, floor, playerName, runnerId, score, verification, wordsTyped]);
   useEffect(() => {
     if (recordedRef.current) return;
     recordedRef.current = true;

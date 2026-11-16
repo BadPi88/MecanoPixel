@@ -9,8 +9,11 @@ export function useKeyboard(state: GameState, dispatch: Dispatch<GameAction>) {
   const stateRef = useRef(state);
   const dispatchRef = useRef(dispatch);
   const composingRef = useRef(false);
-  stateRef.current = state;
-  dispatchRef.current = dispatch;
+
+  useEffect(() => {
+    stateRef.current = state;
+    dispatchRef.current = dispatch;
+  }, [state, dispatch]);
 
   useEffect(() => {
     const sendChar = (rawChar: string) => {

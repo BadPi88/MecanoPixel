@@ -1,6 +1,6 @@
-import { getDifficultyTier } from '../utils/difficulty';
-import type { GlossaryId } from '../types/combat';
-import { GLOSSARY_MIX_RATIO, GLOSSARY_WORDS } from './glossaries';
+import { getDifficultyTier } from '../utils/difficulty.ts';
+import type { GlossaryId } from '../types/combat.ts';
+import { GLOSSARY_MIX_RATIO, GLOSSARY_WORDS } from './glossaries.ts';
 
 const WORDS: string[] = [
   // 3 letras

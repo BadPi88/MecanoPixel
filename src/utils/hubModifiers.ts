@@ -1,5 +1,5 @@
-import { loadMeta } from '../services/meta';
-import type { GameState } from '../types/game';
+import { loadMeta } from '../services/meta.ts';
+import type { GameState } from '../types/game.ts';
 
 export interface HubModifiers {
   extraMapOption: boolean;

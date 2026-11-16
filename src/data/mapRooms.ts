@@ -1,6 +1,6 @@
-import type { EliteModifierId } from './eliteModifiers';
-import { FLOORS_PER_BIOME } from './biomes';
-import { createSeededRandom } from '../utils/random';
+import type { EliteModifierId } from './eliteModifiers.ts';
+import { FLOORS_PER_BIOME } from './biomes.ts';
+import { createSeededRandom } from '../utils/random.ts';
 
 export type MapRoomType =
   | 'shop'

@@ -1,5 +1,5 @@
-import type { BiomeId } from '../data/biomes';
-import type { SpawnRates } from './wordSpawn';
+import type { BiomeId } from '../data/biomes.ts';
+import type { SpawnRates } from './wordSpawn.ts';
 
 export interface BiomeGameplayMod {
   anagramRateMult: number;

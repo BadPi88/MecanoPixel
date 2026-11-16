@@ -16,26 +16,33 @@ interface ScoreSubmission {
   elapsedMs: number;
   floorReached?: number;
   runnerId?: string;
-  verification?: RunVerification;
+  verification: RunVerification;
 }
 interface PendingScore { id: string; payload: ScoreSubmission }
+export interface ScoreSubmitResult { saved: boolean; rank: number | null; rejected?: boolean; queueFailed?: boolean }
+class PermanentScoreError extends Error {}
 
 function readPendingScores(): PendingScore[] {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(PENDING_SCORES_KEY) ?? '[]');
-    return Array.isArray(parsed) ? parsed as PendingScore[] : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is PendingScore =>
+      !!item && typeof item === 'object' && typeof item.id === 'string' &&
+      !!item.payload && typeof item.payload === 'object' &&
+      !!(item.payload as ScoreSubmission).verification?.rankedRun?.token,
+    ) : [];
   } catch { return []; }
 }
 
-function persistPendingScores(scores: PendingScore[]): void {
-  try { localStorage.setItem(PENDING_SCORES_KEY, JSON.stringify(scores)); }
-  catch { /* El modo privado puede bloquear el almacenamiento local. */ }
+function persistPendingScores(scores: PendingScore[]): boolean {
+  try { localStorage.setItem(PENDING_SCORES_KEY, JSON.stringify(scores)); return true; }
+  catch { return false; }
 }
 
-function enqueueScore(payload: ScoreSubmission): void {
+function enqueueScore(payload: ScoreSubmission): boolean {
   const existing = readPendingScores();
-  existing.push({ id: crypto.randomUUID(), payload });
-  persistPendingScores(existing.slice(-30));
+  const id = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.floor(Math.random() * 0xffff_ffff)}`;
+  existing.push({ id, payload });
+  return persistPendingScores(existing);
 }
 
 function scheduleRetry(): void {
@@ -50,7 +57,11 @@ function scheduleRetry(): void {
 
 async function sendScore(payload: ScoreSubmission): Promise<void> {
   const { error } = await getSupabase().functions.invoke('submit-score', { body: payload });
-  if (error) throw new Error(error.message);
+  if (error) {
+    const status = Number((error as { context?: { status?: number } }).context?.status ?? 0);
+    if (status >= 400 && status < 500 && status !== 429) throw new PermanentScoreError(error.message);
+    throw new Error(error.message);
+  }
 }
 
 export async function flushPendingScores(): Promise<void> {
@@ -59,12 +70,16 @@ export async function flushPendingScores(): Promise<void> {
   if (pending.length === 0) return;
   isFlushing = true;
   const remaining: PendingScore[] = [];
+  const originalIds = new Set(pending.map((item) => item.id));
   try {
     for (const item of pending) {
       try { await sendScore(item.payload); }
-      catch { remaining.push(item); }
+      catch (error) { if (!(error instanceof PermanentScoreError)) remaining.push(item); }
     }
-    persistPendingScores(remaining);
+    const queuedDuringFlush = readPendingScores().filter((item) => !originalIds.has(item.id));
+    const merged = [...remaining, ...queuedDuringFlush];
+    const persisted = persistPendingScores([...new Map(merged.map((item) => [item.id, item])).values()]);
+    if (!persisted && merged.length > 0) scheduleRetry();
     if (remaining.length > 0) scheduleRetry();
     else retryAttempt = 0;
   } finally {
@@ -131,15 +146,16 @@ export async function submitSupabaseScore(input: {
   floorReached?: number;
   runnerId?: string;
   playerName: string;
-  verification?: RunVerification;
-}): Promise<{ saved: boolean; rank: number | null }> {
+  verification: RunVerification;
+}): Promise<ScoreSubmitResult> {
   const payload: ScoreSubmission = input;
   try {
     if (typeof navigator !== 'undefined' && !navigator.onLine) throw new Error('offline');
     await sendScore(payload);
     return { saved: true, rank: null };
-  } catch {
-    enqueueScore(payload);
+  } catch (error) {
+    if (error instanceof PermanentScoreError) return { saved: false, rank: null, rejected: true };
+    if (!enqueueScore(payload)) return { saved: false, rank: null, queueFailed: true };
     scheduleRetry();
     return { saved: false, rank: null };
   }

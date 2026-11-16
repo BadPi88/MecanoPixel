@@ -1,9 +1,9 @@
-import type { BiomeId } from '../data/biomes';
-import type { EliteModifierId } from '../data/eliteModifiers';
-import type { ActMapGraph, MapRoomOption } from '../data/mapRooms';
-import type { EventDefinition } from '../data/events';
-import type { ActivePerk, PerkId } from './perks';
-import type { DeathCause, RunnerId, ShopItemId, WordKind } from './run';
+import type { BiomeId } from '../data/biomes.ts';
+import type { EliteModifierId } from '../data/eliteModifiers.ts';
+import type { ActMapGraph, MapRoomOption } from '../data/mapRooms.ts';
+import type { EventDefinition } from '../data/events.ts';
+import type { ActivePerk, PerkId } from './perks.ts';
+import type { DeathCause, RunnerId, ShopItemId, WordKind } from './run.ts';
 import type {
   BossAttackState,
   BossId,
@@ -13,8 +13,9 @@ import type {
   RelicId,
   WordModifier,
   WordPOS,
-} from './combat';
-import { INITIAL_FLOW_STATS } from './combat';
+} from './combat.ts';
+import { INITIAL_FLOW_STATS } from './combat.ts';
+import type { RankedRunTicket } from '../../shared/runReplay';
 
 export type GameStatus =
   | 'idle'
@@ -59,6 +60,7 @@ export interface DifficultyTier {
 export interface GameState {
   status: GameStatus;
   score: number;
+  scoreEvents: number[];
   lives: number;
   combo: number;
   correctChars: number;
@@ -67,6 +69,7 @@ export interface GameState {
   mistakesByChar: Record<string, number>;
   correctKeyPresses: number;
   defeatedAtMs: number[];
+  completedWordLengths: number[];
   words: FallingWord[];
   input: string;
   startTime: number | null;
@@ -132,6 +135,7 @@ export interface GameState {
   eliteTierBonus: number;
   /** Semilla de la run para generar rutas del mapa. */
   runSeed: number;
+  rankedRun: RankedRunTicket | null;
   /** Contador monotono para que cada spawn use una secuencia reproducible. */
   spawnCount: number;
   projectileCount: number;
@@ -204,6 +208,10 @@ export type GameAction =
         dailyRun?: boolean;
         weeklyRun?: boolean;
         ascensionLevel?: number;
+        startedAtMs?: number;
+        rankedRun?: RankedRunTicket | null;
+          rankedMode?: 'global' | 'daily' | 'weekly';
+          challengeKey?: string;
         /** Semilla opcional para reproducir una run en pruebas de balance. */
         runSeed?: number;
       };
@@ -211,7 +219,7 @@ export type GameAction =
   | { type: 'GO_HOME' }
   | { type: 'RETRY'; payload: { runSeed: number } }
   | { type: 'SELECT_RUNNER'; payload: RunnerId }
-  | { type: 'SELECT_GLOSSARY'; payload: GlossaryId }
+  | { type: 'SELECT_GLOSSARY'; payload: GlossaryId; startedAtMs?: number }
   | { type: 'TOGGLE_PAUSE' }
   | {
       type: 'TICK';
@@ -228,10 +236,10 @@ export type GameAction =
   | { type: 'BROKEN_CLOCK_SKIP' }
   | { type: 'SELECT_PERK'; payload: PerkId }
   | { type: 'SELECT_RELIC'; payload: RelicId }
-  | { type: 'SHOP_BUY'; payload: import('./run').ShopItemId }
+  | { type: 'SHOP_BUY'; payload: import('./run.ts').ShopItemId }
   | { type: 'SHOP_LEAVE' }
   | { type: 'EVENT_CHOICE'; payload: 'A' | 'B' }
-  | { type: 'BOSS_TICK'; payload: { deltaMs: number } }
+  | { type: 'BOSS_TICK'; payload: { deltaMs: number; groundHeight?: number } }
   | { type: 'BOSS_TELEGRAPH'; payload: { x: number; untilMs: number } }
   | { type: 'BOSS_FAIL' }
   | { type: 'CLEAR_POP' }
@@ -247,6 +255,7 @@ export const INITIAL_LIVES = 3;
 export const initialGameState: GameState = {
   status: 'idle',
   score: 0,
+  scoreEvents: [],
   lives: INITIAL_LIVES,
   combo: 0,
   correctChars: 0,
@@ -255,6 +264,7 @@ export const initialGameState: GameState = {
   mistakesByChar: {},
   correctKeyPresses: 0,
   defeatedAtMs: [],
+  completedWordLengths: [],
   words: [],
   input: '',
   startTime: null,
@@ -303,6 +313,7 @@ export const initialGameState: GameState = {
   mapRoomOptions: [],
   eliteTierBonus: 0,
   runSeed: 0,
+  rankedRun: null,
   spawnCount: 0,
   projectileCount: 0,
   actIndex: 0,

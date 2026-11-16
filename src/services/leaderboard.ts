@@ -1,12 +1,12 @@
 import type { LeaderboardResponse, SubmitScorePayload } from '../types/leaderboard';
-import { fetchSupabaseLeaderboard, submitSupabaseScore } from './supabaseScores';
+import { fetchSupabaseLeaderboard, submitSupabaseScore, type ScoreSubmitResult } from './supabaseScores';
 
 export function fetchLeaderboard(_playerName?: string): Promise<LeaderboardResponse> {
   void _playerName;
   return fetchSupabaseLeaderboard('global', '');
 }
 
-export function submitScore(payload: SubmitScorePayload): Promise<{ saved: boolean; rank: number | null }> {
+export function submitScore(payload: SubmitScorePayload): Promise<ScoreSubmitResult> {
   return submitSupabaseScore({ mode: 'global', challengeKey: '', ...payload });
 }
 

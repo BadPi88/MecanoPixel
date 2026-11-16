@@ -32,19 +32,44 @@
 /* --- Escala de fuente --- */
 :root[data-scale='1_25'] {
   font-size: 125%;
+  --ui-font-scale: 1.25;
 }
 
 :root[data-scale='1_5'] {
   font-size: 150%;
+  --ui-font-scale: 1.5;
 }
 
 :root[data-scale='1_25'] .falling-word {
-  font-size: 12px;
+  font-size: calc(var(--word-font-size, 14px) * 1.25);
 }
 
 :root[data-scale='1_5'] .falling-word {
-  font-size: 14px;
+  font-size: calc(var(--word-font-size, 14px) * 1.5);
 }
+
+:root[data-font='pixel'] {
+  --font-game: 'Press Start 2P', monospace;
+  --word-font-size: 14px;
+}
+
+:root[data-font='opendyslexic'] {
+  --font-game: 'OpenDyslexic', Verdana, sans-serif;
+  --word-font-size: 18px;
+}
+
+:root[data-font='system'] {
+  --font-game: system-ui, 'Segoe UI', Verdana, sans-serif;
+  --word-font-size: 18px;
+}
+
+:root[data-font='opendyslexic'] .falling-word,
+:root[data-font='system'] .falling-word {
+  font-size: calc(var(--word-font-size, 18px) * var(--word-font-scale, 1));
+}
+
+:root[data-scale='1_25'] { --word-font-scale: 1.25; }
+:root[data-scale='1_5'] { --word-font-scale: 1.5; }
 
 /* --- Alto contraste --- */
 :root[data-theme='highContrast'] {

@@ -1,7 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadMeta } from '../services/meta';
 import { applySettingsToDocument, loadSettings } from '../services/settings';
 import { createRunSeed } from '../engine/rng';
+import { startRankedRun } from '../services/rankedRuns';
+import { getUtcDateString } from '../utils/dailySeed';
+import { getUtcWeekId } from '../utils/weeklySeed';
+import type { RankedRunMode, RankedRunTicket } from '../../shared/runReplay';
 import type { PerkId } from '../types/perks';
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { RunnerId, ShopItemId } from '../types/run';
@@ -39,7 +43,7 @@ const TutorialOverlay = lazy(() => import('./TutorialOverlay').then((module) => 
 const VictoryScreen = lazy(() => import('./VictoryScreen').then((module) => ({ default: module.VictoryScreen })));
 
 export function Game() {
-  const { state, dispatch } = useGameState();
+  const { state, dispatch, getReplayEvents } = useGameState();
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const oracleDialogRef = useRef<HTMLDivElement>(null);
   useDialogFocus(oracleDialogRef, state.status === 'oraclePick');
@@ -47,10 +51,21 @@ export function Game() {
   const [showTutorial, setShowTutorial] = useState(
     () => !loadMeta().tutorialComplete,
   );
+  const [rankedNotice, setRankedNotice] = useState('');
 
   useEffect(() => applySettingsToDocument(loadSettings()), []);
 
   const [areaShake, setAreaShake] = useState(false);
+  const runVerification = useMemo(() => ({
+    runSeed: state.runSeed,
+    correctChars: state.correctChars,
+    correctKeyPresses: state.correctKeyPresses,
+    mistakes: state.mistakes,
+    defeatedAtMs: state.defeatedAtMs,
+    completedWordLengths: state.completedWordLengths,
+    relics: state.relicsHistory,
+    scoreEvents: state.scoreEvents,
+  }), [state.runSeed, state.correctChars, state.correctKeyPresses, state.mistakes, state.defeatedAtMs, state.completedWordLengths, state.relicsHistory, state.scoreEvents]);
   const prevLivesRef = useRef(state.lives);
   const previousBossRef = useRef({ status: state.status, bossId: state.bossId });
   const bossOutroTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,10 +121,15 @@ export function Game() {
 
   useEffect(() => {
     if (state.lives < prevLivesRef.current) {
-      if (loadSettings().screenShake) setAreaShake(true);
+      const frame = requestAnimationFrame(() => {
+        if (loadSettings().screenShake) setAreaShake(true);
+      });
       const timer = setTimeout(() => setAreaShake(false), 380);
       prevLivesRef.current = state.lives;
-      return () => clearTimeout(timer);
+      return () => {
+        cancelAnimationFrame(frame);
+        clearTimeout(timer);
+      };
     }
     prevLivesRef.current = state.lives;
   }, [state.lives]);
@@ -125,20 +145,43 @@ export function Game() {
 
   const [ascensionLevel, setAscensionLevel] = useState(0);
 
-  const handleStart = useCallback(() => {
+  const startRun = useCallback(async (mode: RankedRunMode, ascension = 0) => {
     savePlayerName(playerName.trim());
-    dispatch({ type: 'BEGIN_RUN', payload: { ascensionLevel, runSeed: createRunSeed() } });
-  }, [dispatch, playerName, ascensionLevel]);
-
-  const handleDailyStart = useCallback(() => {
-    savePlayerName(playerName.trim());
-    dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } });
+    const challengeKey = mode === 'daily' ? getUtcDateString() : mode === 'weekly' ? getUtcWeekId() : '';
+    let rankedRun: RankedRunTicket | null = null;
+    let startFailed = false;
+    try {
+      rankedRun = await startRankedRun(mode, challengeKey);
+    } catch {
+      startFailed = true;
+    }
+    if (rankedRun) setRankedNotice('RUN CLASIFICADA: replay firmado activo.');
+    else setRankedNotice(startFailed
+      ? 'RUN LOCAL: no se pudo iniciar la validacion online.'
+      : 'RUN LOCAL: esta partida no se enviara al ranking.');
+    dispatch({
+      type: 'BEGIN_RUN',
+      payload: {
+        ...(mode === 'daily' ? { dailyRun: true } : {}),
+        ...(mode === 'weekly' ? { weeklyRun: true } : {}),
+        ascensionLevel: mode === 'global' ? ascension : 0,
+        startedAtMs: rankedRun?.issuedAtMs ?? Date.now(),
+        runSeed: rankedRun?.runSeed ?? (mode === 'global' ? createRunSeed() : undefined),
+        rankedRun,
+        rankedMode: mode,
+        challengeKey,
+      },
+    });
   }, [dispatch, playerName]);
 
-  const handleWeeklyStart = useCallback(() => {
-    savePlayerName(playerName.trim());
-    dispatch({ type: 'BEGIN_RUN', payload: { weeklyRun: true } });
-  }, [dispatch, playerName]);
+  const handleStart = useCallback(() => { void startRun('global', ascensionLevel); }, [startRun, ascensionLevel]);
+  const handleDailyStart = useCallback(() => { void startRun('daily'); }, [startRun]);
+  const handleWeeklyStart = useCallback(() => { void startRun('weekly'); }, [startRun]);
+
+  const handleRetry = useCallback(() => {
+    const mode: RankedRunMode = state.weeklyRun ? 'weekly' : state.dailyRun ? 'daily' : 'global';
+    void startRun(mode, state.ascensionLevel);
+  }, [startRun, state.weeklyRun, state.dailyRun, state.ascensionLevel]);
 
   const handleRunnerSelect = useCallback(
     (runnerId: RunnerId) => {
@@ -149,9 +192,9 @@ export function Game() {
 
   const handleGlossarySelect = useCallback(
     (glossaryId: GlossaryId) => {
-      dispatch({ type: 'SELECT_GLOSSARY', payload: glossaryId });
+      dispatch({ type: 'SELECT_GLOSSARY', payload: glossaryId, startedAtMs: state.rankedRun?.issuedAtMs ?? Date.now() });
     },
-    [dispatch],
+    [dispatch, state.rankedRun],
   );
 
   const handlePerkSelect = useCallback(
@@ -193,6 +236,9 @@ export function Game() {
   );
 
   const relicNames = state.activeRelics.map((id) => RELIC_CATALOG[id].name);
+  const submissionVerification = state.rankedRun && (state.status === 'gameOver' || state.status === 'victory')
+    ? { ...runVerification, replayEvents: getReplayEvents(), rankedRun: state.rankedRun }
+    : null;
 
   const inGame =
     state.status === 'playing' ||
@@ -205,6 +251,9 @@ export function Game() {
   return (
     <Suspense fallback={null}>
     <div className="game">
+      {rankedNotice && (
+        <p className="game__ranked-notice" role="status">{rankedNotice}</p>
+      )}
       {bossDefeatEffect && (
         <div
           className={`boss-defeat boss-defeat--${bossDefeatEffect}`}
@@ -271,6 +320,8 @@ export function Game() {
           reachedBoss={state.reachedBoss}
           ascensionLevel={state.ascensionLevel}
           runSeed={state.runSeed}
+          playerName={playerName.trim()}
+          verification={submissionVerification}
           onContinueEndless={() => dispatch({ type: 'CONTINUE_ENDLESS' })}
           onHome={() => dispatch({ type: 'VICTORY_HOME' })}
         />
@@ -503,21 +554,8 @@ export function Game() {
           bossSkipMetaMult={state.bossSkipMetaMult}
           ascensionLevel={state.ascensionLevel}
           runSeed={state.runSeed}
-          verification={{
-            runSeed: state.runSeed,
-            correctChars: state.correctChars,
-            correctKeyPresses: state.correctKeyPresses,
-            mistakes: state.mistakes,
-            defeatedAtMs: state.defeatedAtMs,
-            relics: state.relicsHistory,
-          }}
-          onRetry={() =>
-            state.dailyRun
-              ? dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } })
-              : state.weeklyRun
-                ? dispatch({ type: 'BEGIN_RUN', payload: { weeklyRun: true } })
-              : dispatch({ type: 'RETRY', payload: { runSeed: createRunSeed() } })
-          }
+          verification={submissionVerification}
+          onRetry={handleRetry}
           onHome={() => dispatch({ type: 'GO_HOME' })}
         />
       )}

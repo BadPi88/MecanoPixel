@@ -19,14 +19,11 @@ interface Particle {
 export function ParticleCanvas({ burst }: { burst: Burst | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
-  const burstRef = useRef(burst);
-  burstRef.current = burst;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
-    const activeBurst = burstRef.current;
-    if (!canvas || !context || !activeBurst) return;
+    if (!canvas || !context || !burst) return;
 
     const bounds = canvas.getBoundingClientRect();
     const ratio = window.devicePixelRatio || 1;
@@ -38,8 +35,8 @@ export function ParticleCanvas({ burst }: { burst: Burst | null }) {
       const angle = (Math.PI * 2 * index) / 14;
       const speed = 45 + ((index * 17) % 65);
       particlesRef.current.push({
-        x: activeBurst.x,
-        y: activeBurst.y,
+        x: burst.x,
+        y: burst.y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         life: 0.45 + (index % 4) * 0.08,
@@ -68,7 +65,7 @@ export function ParticleCanvas({ burst }: { burst: Burst | null }) {
     };
     frameId = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(frameId);
-  }, [burst?.id]);
+  }, [burst]);
 
   return <canvas ref={canvasRef} className="particle-canvas" aria-hidden="true" />;
 }

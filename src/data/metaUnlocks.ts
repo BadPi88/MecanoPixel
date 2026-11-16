@@ -1,4 +1,4 @@
-import type { RelicId } from '../types/combat';
+import type { RelicId } from '../types/combat.ts';
 
 export type WordPaletteId = 'classic' | 'neon' | 'sepia' | 'ice';
 export type TrailId = 'none' | 'sparks' | 'pixels';

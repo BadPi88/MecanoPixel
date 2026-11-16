@@ -1,20 +1,20 @@
-import type { BiomeId } from '../data/biomes';
-import { getRandomWord } from '../data/dictionary';
-import { getRandomTrapWord } from '../data/traps';
-import type { GlossaryId, RelicId, WordModifier } from '../types/combat';
-import type { WordKind } from '../types/run';
-import { applyAscensionToSpawnRates } from './ascensionModifiers';
+import type { BiomeId } from '../data/biomes.ts';
+import { getRandomWord } from '../data/dictionary.ts';
+import { getRandomTrapWord } from '../data/traps.ts';
+import type { GlossaryId, RelicId, WordModifier } from '../types/combat.ts';
+import type { WordKind } from '../types/run.ts';
+import { applyAscensionToSpawnRates } from './ascensionModifiers.ts';
 import {
   applyBiomeToSpawnRates,
   getBiomeAnagramRateMult,
   getBiomeOracleRateMult,
-} from './biomeModifiers';
+} from './biomeModifiers.ts';
 import {
   getSpawnConstraints,
   reverseText,
   stripVowels,
-} from './combatModifiers';
-import { getWordPOS } from './posHeuristics';
+} from './combatModifiers.ts';
+import { getWordPOS } from './posHeuristics.ts';
 
 export const ORACLE_SPAWN_RATE = 0.03;
 

@@ -25,5 +25,5 @@ export interface SubmitDailyScorePayload {
   elapsedMs: number;
   floorReached?: number;
   runnerId?: string;
-  verification?: import('./leaderboard').RunVerification;
+  verification: import('./leaderboard').RunVerification;
 }

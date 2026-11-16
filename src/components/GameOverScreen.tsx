@@ -20,8 +20,8 @@ import {
   generateRunTitle,
   type RunSummaryInput,
 } from '../utils/runSummary';
-import { getUtcDateString } from '../utils/dailySeed';
-import { fetchLeaderboard, submitScore } from '../services/leaderboard';
+import { submitScore } from '../services/leaderboard';
+import { fetchSupabaseLeaderboard } from '../services/supabaseScores';
 import { RunnerSprite } from '../assets/runnerSprites';
 import { Leaderboard } from './Leaderboard';
 import { PixelButton } from './PixelButton';
@@ -52,7 +52,7 @@ interface GameOverScreenProps {
   bossSkipMetaMult?: number;
   ascensionLevel?: number;
   runSeed: number;
-  verification: RunVerification;
+  verification: RunVerification | null;
   onRetry: () => void;
   onHome: () => void;
 }
@@ -200,8 +200,8 @@ export function GameOverScreen({
     null,
   );
   const [submitStatus, setSubmitStatus] = useState<
-    'saving' | 'saved' | 'queued' | 'error' | 'skipped'
-  >('saving');
+    'saving' | 'saved' | 'queued' | 'error' | 'skipped' | 'unranked' | 'rejected' | 'queueFailed'
+  >(verification ? 'saving' : 'unranked');
   const [newRank, setNewRank] = useState<number | null>(null);
   const [weeklyRank, setWeeklyRank] = useState<number | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
@@ -243,29 +243,24 @@ export function GameOverScreen({
     let cancelled = false;
 
     async function saveAndLoad() {
-      if (!playerName.trim()) {
+      if (!verification || !playerName.trim()) {
         setSubmitStatus('skipped');
-        return;
-      }
+      } else {
 
       try {
-        if (weeklyRun && challengeWeek) {
-          try {
-            await submitWeeklyScore({
-              playerName: playerName.trim(), week: challengeWeek, score, wpm,
+        let result: { saved: boolean; rank: number | null; rejected?: boolean; queueFailed?: boolean };
+        if (verification.rankedRun.mode === 'weekly') {
+          result = await submitWeeklyScore({
+              playerName: playerName.trim(), week: verification.rankedRun.challengeKey, score, wpm,
               wordsTyped, elapsedMs, floorReached: floor, runnerId: runnerId ?? undefined,
               verification,
             });
-            const board = await fetchWeeklyLeaderboard(playerName.trim(), challengeWeek);
+            const board = await fetchWeeklyLeaderboard(playerName.trim(), verification.rankedRun.challengeKey);
             if (!cancelled) setWeeklyRank(board.playerRank);
-          } catch {
-            if (!cancelled) setWeeklyRank(null);
-          }
-        }
-        if (dailyRun) {
-          await submitDailyScore({
+        } else if (verification.rankedRun.mode === 'daily') {
+          result = await submitDailyScore({
             playerName: playerName.trim(),
-            date: getUtcDateString(),
+            date: verification.rankedRun.challengeKey,
             score,
             wpm,
             wordsTyped,
@@ -274,8 +269,8 @@ export function GameOverScreen({
             runnerId: runnerId ?? undefined,
             verification,
           });
-        }
-        const result = await submitScore({
+        } else {
+          result = await submitScore({
           playerName: playerName.trim(),
           score,
           wpm,
@@ -284,17 +279,20 @@ export function GameOverScreen({
           floorReached: floor,
           runnerId: runnerId ?? undefined,
           verification,
-        });
+          });
+        }
         if (cancelled) return;
         setNewRank(result.rank);
-        setSubmitStatus(result.saved ? 'saved' : 'queued');
+        setSubmitStatus(result.queueFailed ? 'queueFailed' : result.rejected ? 'rejected' : result.saved ? 'saved' : 'queued');
       } catch {
         if (cancelled) return;
         setSubmitStatus('error');
       }
 
+      }
       try {
-        const data = await fetchLeaderboard(playerName.trim());
+        if (!verification) return;
+        const data = await fetchSupabaseLeaderboard(verification.rankedRun.mode, verification.rankedRun.challengeKey);
         if (!cancelled) setLeaderboard(data);
       } catch {
         if (!cancelled) {
@@ -323,6 +321,7 @@ export function GameOverScreen({
     dailyRun,
     weeklyRun,
     challengeWeek,
+    verification,
   ]);
 
   const handleCopy = async () => {
@@ -363,6 +362,9 @@ export function GameOverScreen({
           No se pudo guardar (leaderboard no configurado en local)
         </p>
       )}
+      {submitStatus === 'rejected' && <p className="screen__status screen__status--error" role="status">El servidor rechazo esta run: el replay no supero la validacion.</p>}
+      {submitStatus === 'queueFailed' && <p className="screen__status screen__status--error" role="status">No se pudo guardar la puntuacion pendiente en este dispositivo.</p>}
+      {submitStatus === 'unranked' && <p className="screen__status" role="status">Run local: no se envio al ranking.</p>}
       {runEnd.dailyMissionReward > 0 && (
         <p className="screen__status screen__status--highlight">
           Mision diaria completada: +{runEnd.dailyMissionReward} meta coins

@@ -1,11 +1,11 @@
-import { applyBiomeForFloor } from '../data/biomes';
-import { FLOOR_CLEAR_COINS, RAMPS_PER_FLOOR } from '../data/run';
-import type { GameState } from '../types/game';
-import { getEffectiveAscensionTierOffset } from './ascensionModifiers';
-import { getEliteCoinMult, getEliteTierBonus } from './eliteModifiers';
-import { buildActMapChoices, initActMapIfNeeded } from './mapAct';
-import { getBiomeGameplayMod } from './biomeModifiers';
-import { createSeededRandom } from './random';
+import { applyBiomeForFloor } from '../data/biomes.ts';
+import { FLOOR_CLEAR_COINS, RAMPS_PER_FLOOR } from '../data/run.ts';
+import type { GameState } from '../types/game.ts';
+import { getEffectiveAscensionTierOffset } from './ascensionModifiers.ts';
+import { getEliteCoinMult, getEliteTierBonus } from './eliteModifiers.ts';
+import { buildActMapChoices, initActMapIfNeeded } from './mapAct.ts';
+import { getBiomeGameplayMod } from './biomeModifiers.ts';
+import { createSeededRandom } from './random.ts';
 
 export function getFloorTierOffset(state: GameState): number {
   return (

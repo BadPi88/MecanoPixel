@@ -1,6 +1,6 @@
-import type { BossAttackState, BossId } from '../types/combat';
-import type { FallingWord } from '../types/game';
-import { getBossWord } from '../utils/wordSpawn';
+import type { BossAttackState, BossId } from '../types/combat.ts';
+import type { FallingWord } from '../types/game.ts';
+import { getBossWord } from '../utils/wordSpawn.ts';
 
 export const BOSS_REMAP_TABLE: Record<string, string> = {
   a: 'z',

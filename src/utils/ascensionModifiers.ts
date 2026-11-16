@@ -1,5 +1,5 @@
-import type { GameState } from '../types/game';
-import type { SpawnRates } from './wordSpawn';
+import type { GameState } from '../types/game.ts';
+import type { SpawnRates } from './wordSpawn.ts';
 
 export function getAscensionTrapMult(ascensionLevel: number): number {
   if (ascensionLevel >= 1) return 1.15;
