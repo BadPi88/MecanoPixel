@@ -24,4 +24,14 @@ export interface SubmitScorePayload {
   elapsedMs: number;
   floorReached?: number;
   runnerId?: string;
+  verification?: RunVerification;
+}
+
+export interface RunVerification {
+  runSeed: number;
+  correctChars: number;
+  correctKeyPresses: number;
+  mistakes: number;
+  defeatedAtMs: number[];
+  relics: string[];
 }

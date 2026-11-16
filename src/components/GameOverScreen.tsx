@@ -5,6 +5,7 @@ import { GLOSSARY_CATALOG } from '../data/glossaries';
 import { ACHIEVEMENT_CATALOG } from '../data/achievements';
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { LeaderboardResponse } from '../types/leaderboard';
+import type { RunVerification } from '../../shared/leaderboard';
 import type { DeathCause, RunnerId } from '../types/run';
 import { recordRunEnd } from '../services/meta';
 import { syncMetaToProfile } from '../services/profile';
@@ -51,6 +52,7 @@ interface GameOverScreenProps {
   bossSkipMetaMult?: number;
   ascensionLevel?: number;
   runSeed: number;
+  verification: RunVerification;
   onRetry: () => void;
   onHome: () => void;
 }
@@ -90,6 +92,7 @@ export function GameOverScreen({
   bossSkipMetaMult = 1,
   ascensionLevel = 0,
   runSeed,
+  verification,
   onRetry,
   onHome,
 }: GameOverScreenProps) {
@@ -197,7 +200,7 @@ export function GameOverScreen({
     null,
   );
   const [submitStatus, setSubmitStatus] = useState<
-    'saving' | 'saved' | 'error' | 'skipped'
+    'saving' | 'saved' | 'queued' | 'error' | 'skipped'
   >('saving');
   const [newRank, setNewRank] = useState<number | null>(null);
   const [weeklyRank, setWeeklyRank] = useState<number | null>(null);
@@ -251,6 +254,7 @@ export function GameOverScreen({
             await submitWeeklyScore({
               playerName: playerName.trim(), week: challengeWeek, score, wpm,
               wordsTyped, elapsedMs, floorReached: floor, runnerId: runnerId ?? undefined,
+              verification,
             });
             const board = await fetchWeeklyLeaderboard(playerName.trim(), challengeWeek);
             if (!cancelled) setWeeklyRank(board.playerRank);
@@ -268,6 +272,7 @@ export function GameOverScreen({
             elapsedMs,
             floorReached: floor,
             runnerId: runnerId ?? undefined,
+            verification,
           });
         }
         const result = await submitScore({
@@ -278,10 +283,11 @@ export function GameOverScreen({
           elapsedMs,
           floorReached: floor,
           runnerId: runnerId ?? undefined,
+          verification,
         });
         if (cancelled) return;
         setNewRank(result.rank);
-        setSubmitStatus(result.saved ? 'saved' : 'saved');
+        setSubmitStatus(result.saved ? 'saved' : 'queued');
       } catch {
         if (cancelled) return;
         setSubmitStatus('error');
@@ -345,6 +351,11 @@ export function GameOverScreen({
           {leaderboard && leaderboard.totalPlayers > 0
             ? `Eres el #${newRank} de ${leaderboard.totalPlayers} jugadores`
             : `Tu posicion global: #${newRank}`}
+        </p>
+      )}
+      {submitStatus === 'queued' && (
+        <p className="screen__status" role="status">
+          Puntuacion guardada en este dispositivo; se sincronizara al volver la conexion.
         </p>
       )}
       {submitStatus === 'error' && (

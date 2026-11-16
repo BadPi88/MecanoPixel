@@ -1,10 +1,18 @@
 import { loadSettings } from './settings';
 
 let audioCtx: AudioContext | null = null;
+let masterCompressor: DynamicsCompressorNode | null = null;
 
 function getContext(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
+    masterCompressor = audioCtx.createDynamicsCompressor();
+    masterCompressor.threshold.setValueAtTime(-18, audioCtx.currentTime);
+    masterCompressor.knee.setValueAtTime(12, audioCtx.currentTime);
+    masterCompressor.ratio.setValueAtTime(8, audioCtx.currentTime);
+    masterCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+    masterCompressor.release.setValueAtTime(0.18, audioCtx.currentTime);
+    masterCompressor.connect(audioCtx.destination);
   }
   return audioCtx;
 }
@@ -49,9 +57,13 @@ function playTone({
   gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
 
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(masterCompressor ?? ctx.destination);
   osc.start(start);
   osc.stop(start + duration + 0.02);
+  osc.addEventListener('ended', () => {
+    osc.disconnect();
+    gain.disconnect();
+  }, { once: true });
 }
 
 function playSequence(tones: ToneOptions[]): void {

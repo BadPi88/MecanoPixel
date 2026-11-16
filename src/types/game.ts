@@ -66,6 +66,7 @@ export interface GameState {
   mistakes: number;
   mistakesByChar: Record<string, number>;
   correctKeyPresses: number;
+  defeatedAtMs: number[];
   words: FallingWord[];
   input: string;
   startTime: number | null;
@@ -208,7 +209,7 @@ export type GameAction =
       };
     }
   | { type: 'GO_HOME' }
-  | { type: 'RETRY' }
+  | { type: 'RETRY'; payload: { runSeed: number } }
   | { type: 'SELECT_RUNNER'; payload: RunnerId }
   | { type: 'SELECT_GLOSSARY'; payload: GlossaryId }
   | { type: 'TOGGLE_PAUSE' }
@@ -253,6 +254,7 @@ export const initialGameState: GameState = {
   mistakes: 0,
   mistakesByChar: {},
   correctKeyPresses: 0,
+  defeatedAtMs: [],
   words: [],
   input: '',
   startTime: null,

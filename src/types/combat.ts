@@ -1,3 +1,5 @@
+import { GAME_BALANCE } from '../config/gameBalance';
+
 /** Categoria gramatical de una palabra (efectos de combate al escribirla). */
 export type WordPOS = 'verb' | 'adj' | 'noun';
 
@@ -95,8 +97,9 @@ export interface BossAttackState {
 }
 
 export const MAX_ACTIVE_RELICS = 4;
-export const ULTIMATE_MAX_CHARGE = 100;
+
+export const ULTIMATE_MAX_CHARGE = GAME_BALANCE.combat.ultimateChargeCap;
 export const ULTIMATE_BACKSPACE_PENALTY = 15;
 export const ULTIMATE_CLEAN_WORD_BONUS = 5;
 export const POS_EFFECT_COOLDOWN_MS = 10_000;
-export const MAX_LETTER_PROJECTILES = 5;
+export const MAX_LETTER_PROJECTILES = GAME_BALANCE.combat.projectileCap;

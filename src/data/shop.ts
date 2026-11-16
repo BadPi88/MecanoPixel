@@ -1,5 +1,6 @@
 import type { ShopItemId } from '../types/run';
 import { createSeededRandom } from '../utils/random';
+import { GAME_BALANCE } from '../config/gameBalance';
 
 export interface ShopItem {
   id: ShopItemId;
@@ -37,7 +38,7 @@ export const SHOP_ITEMS: ShopItem[] = [
     id: 'reroll_relic',
     name: 'REROLL RELIQUIA',
     description: 'Regenera la proxima eleccion de reliquia',
-    price: 90,
+    price: GAME_BALANCE.shop.rerollBaseCost,
   },
   {
     id: 'run_shield',
@@ -76,7 +77,7 @@ export function pickShopOffers(floor: number, seed: number): ShopItemId[] {
   const rng = createSeededRandom(floor * 10_007 + seed);
   const pool = [...SHOP_ITEMS];
   const offers: ShopItemId[] = [];
-  const count = Math.min(4, pool.length);
+  const count = Math.min(GAME_BALANCE.shop.offerCount, pool.length);
 
   while (offers.length < count && pool.length > 0) {
     const idx = Math.floor(rng() * pool.length);

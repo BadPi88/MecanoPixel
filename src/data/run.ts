@@ -1,3 +1,5 @@
+import { GAME_BALANCE } from '../config/gameBalance';
+
 /** Subidas de ritmo necesarias para completar un piso. */
 export const RAMPS_PER_FLOOR = 3;
 
@@ -8,4 +10,4 @@ export const BOSS_EVERY_N_FLOORS = 3;
 export const FLOOR_CLEAR_COINS = 50;
 
 /** Bonus coins por palabra dorada. */
-export const BONUS_WORD_COINS = 15;
+export const BONUS_WORD_COINS = GAME_BALANCE.economy.bonusWordCoins;

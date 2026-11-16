@@ -125,6 +125,7 @@ export function BossScreen({
           <FallingWordView
             key={word.id}
             word={word}
+            elapsedMs={elapsedMs}
             groundHeight={groundHeight}
             isPartialMatch={index === activeBossWordIndex && isPartialMatch}
             isPopping={false}

@@ -1,5 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { loadMeta } from '../services/meta';
+import { applySettingsToDocument, loadSettings } from '../services/settings';
+import { createRunSeed } from '../engine/rng';
 import type { PerkId } from '../types/perks';
 import type { GlossaryId, RelicId } from '../types/combat';
 import type { RunnerId, ShopItemId } from '../types/run';
@@ -45,6 +47,8 @@ export function Game() {
   const [showTutorial, setShowTutorial] = useState(
     () => !loadMeta().tutorialComplete,
   );
+
+  useEffect(() => applySettingsToDocument(loadSettings()), []);
 
   const [areaShake, setAreaShake] = useState(false);
   const prevLivesRef = useRef(state.lives);
@@ -102,7 +106,7 @@ export function Game() {
 
   useEffect(() => {
     if (state.lives < prevLivesRef.current) {
-      setAreaShake(true);
+      if (loadSettings().screenShake) setAreaShake(true);
       const timer = setTimeout(() => setAreaShake(false), 380);
       prevLivesRef.current = state.lives;
       return () => clearTimeout(timer);
@@ -123,7 +127,7 @@ export function Game() {
 
   const handleStart = useCallback(() => {
     savePlayerName(playerName.trim());
-    dispatch({ type: 'BEGIN_RUN', payload: { ascensionLevel } });
+    dispatch({ type: 'BEGIN_RUN', payload: { ascensionLevel, runSeed: createRunSeed() } });
   }, [dispatch, playerName, ascensionLevel]);
 
   const handleDailyStart = useCallback(() => {
@@ -233,7 +237,7 @@ export function Game() {
       {state.status === 'glossaryPick' && (
         <GlossaryPicker
           onSelect={handleGlossarySelect}
-          onBack={() => dispatch({ type: 'BEGIN_RUN' })}
+          onBack={() => dispatch({ type: 'BEGIN_RUN', payload: { runSeed: createRunSeed() } })}
         />
       )}
 
@@ -361,6 +365,7 @@ export function Game() {
               words={state.status === 'boss' ? [] : state.words}
               projectiles={state.letterProjectiles}
               input={state.input}
+              elapsedMs={state.elapsedMs}
               poppingWordId={state.poppingWordId}
               radarTargetId={radarTargetId}
               onPopEnd={handlePopEnd}
@@ -498,12 +503,20 @@ export function Game() {
           bossSkipMetaMult={state.bossSkipMetaMult}
           ascensionLevel={state.ascensionLevel}
           runSeed={state.runSeed}
+          verification={{
+            runSeed: state.runSeed,
+            correctChars: state.correctChars,
+            correctKeyPresses: state.correctKeyPresses,
+            mistakes: state.mistakes,
+            defeatedAtMs: state.defeatedAtMs,
+            relics: state.relicsHistory,
+          }}
           onRetry={() =>
             state.dailyRun
               ? dispatch({ type: 'BEGIN_RUN', payload: { dailyRun: true } })
               : state.weeklyRun
                 ? dispatch({ type: 'BEGIN_RUN', payload: { weeklyRun: true } })
-              : dispatch({ type: 'RETRY' })
+              : dispatch({ type: 'RETRY', payload: { runSeed: createRunSeed() } })
           }
           onHome={() => dispatch({ type: 'GO_HOME' })}
         />

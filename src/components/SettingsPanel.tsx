@@ -150,6 +150,24 @@ export function SettingsPanel() {
         <button
           type="button"
           role="switch"
+          aria-checked={settings.screenShake}
+          className={`settings__option ${settings.screenShake ? 'settings__option--active' : ''}`}
+          onClick={() => update('screenShake', !settings.screenShake)}
+        >
+          TEMBLOR: {settings.screenShake ? 'SI' : 'NO'}
+        </button>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={settings.reducedFlashes}
+          className={`settings__option ${settings.reducedFlashes ? 'settings__option--active' : ''}`}
+          onClick={() => update('reducedFlashes', !settings.reducedFlashes)}
+        >
+          DESTELLOS REDUCIDOS: {settings.reducedFlashes ? 'SI' : 'NO'}
+        </button>
+        <button
+          type="button"
+          role="switch"
           aria-checked={settings.soundEnabled}
           className={`settings__option ${
             settings.soundEnabled ? 'settings__option--active' : ''

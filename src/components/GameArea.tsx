@@ -6,6 +6,7 @@ import { BiomeBackground } from '../assets/biomeBackgrounds';
 import { useElementHeight } from '../hooks/useElementHeight';
 import { FallingWord } from './FallingWord';
 import { LetterProjectileView } from './LetterProjectileView';
+import { ParticleCanvas } from './ParticleCanvas';
 
 interface GameAreaProps {
   areaRef: RefObject<HTMLDivElement | null>;
@@ -13,6 +14,7 @@ interface GameAreaProps {
   words: FallingWordType[];
   projectiles: LetterProjectile[];
   input: string;
+  elapsedMs: number;
   poppingWordId: string | null;
   radarTargetId: string | null;
   onPopEnd: () => void;
@@ -25,6 +27,7 @@ export function GameArea({
   words,
   projectiles,
   input,
+  elapsedMs,
   poppingWordId,
   radarTargetId,
   onPopEnd,
@@ -32,6 +35,10 @@ export function GameArea({
 }: GameAreaProps) {
   const groundHeight = useElementHeight(areaRef);
   const lowerInput = input.toLowerCase();
+  const poppedWord = words.find((word) => word.id === poppingWordId);
+  const burst = poppedWord && poppingWordId
+    ? { id: poppingWordId, x: poppedWord.x, y: poppedWord.y }
+    : null;
 
   return (
     <div
@@ -40,6 +47,7 @@ export function GameArea({
       ref={areaRef}
     >
       <BiomeBackground biomeId={biomeId} className="game-area__biome-bg" />
+      <ParticleCanvas burst={burst} />
       {words.map((word) => {
         const isPartialMatch =
           word.kind !== 'trap' &&
@@ -49,6 +57,7 @@ export function GameArea({
           <FallingWord
             key={word.id}
             word={word}
+            elapsedMs={elapsedMs}
             groundHeight={groundHeight}
             isPartialMatch={isPartialMatch}
             isRadarTarget={word.id === radarTargetId}

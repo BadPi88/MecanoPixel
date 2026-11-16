@@ -1,78 +1,82 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Dispatch } from 'react';
 import type { GameAction, GameState } from '../types/game';
 import { loadSettings } from '../services/settings';
 import { resolveTypedChar } from '../utils/keyboardLayout';
 import { ULTIMATE_MAX_CHARGE } from '../types/combat';
 
-export function useKeyboard(
-  state: GameState,
-  dispatch: Dispatch<GameAction>,
-) {
+export function useKeyboard(state: GameState, dispatch: Dispatch<GameAction>) {
+  const stateRef = useRef(state);
+  const dispatchRef = useRef(dispatch);
+  const composingRef = useRef(false);
+  stateRef.current = state;
+  dispatchRef.current = dispatch;
+
   useEffect(() => {
-    const layout = loadSettings().keyboardLayout;
+    const sendChar = (rawChar: string) => {
+      const current = stateRef.current;
+      if (current.showBuildOverlay || document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      if (current.status !== 'playing' && current.status !== 'boss') return;
+      const char = rawChar.toLocaleLowerCase('es-ES').normalize('NFC');
+      if (!/^[a-zñáéíóúü]$/.test(char)) return;
+      dispatchRef.current({
+        type: 'TYPE_CHAR',
+        payload: current.keyRemap?.[char] ?? char,
+      });
+    };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || composingRef.current) return;
+      const current = stateRef.current;
       const modal = document.querySelector('[role="dialog"][aria-modal="true"]');
-
       if (event.key === 'Escape') {
-        if (state.showBuildOverlay) {
+        if (current.showBuildOverlay) {
           event.preventDefault();
-          dispatch({ type: 'TOGGLE_BUILD_OVERLAY' });
+          dispatchRef.current({ type: 'TOGGLE_BUILD_OVERLAY' });
           return;
         }
         if (modal) return;
-        if (state.status === 'playing' || state.status === 'paused') {
+        if (current.status === 'playing' || current.status === 'paused') {
           event.preventDefault();
-          dispatch({ type: 'TOGGLE_PAUSE' });
+          dispatchRef.current({ type: 'TOGGLE_PAUSE' });
         }
         return;
       }
-
-      if (state.showBuildOverlay || modal) return;
-
-      if (state.status !== 'playing' && state.status !== 'boss') return;
-
-      // Ataque definitivo con TAB (la U es una letra jugable)
+      if (current.showBuildOverlay || modal) return;
+      if (current.status !== 'playing' && current.status !== 'boss') return;
       if (event.key === 'Tab') {
         event.preventDefault();
-        if (state.ultimateCharge >= ULTIMATE_MAX_CHARGE) {
-          dispatch({ type: 'ULTIMATE_FIRE' });
-        }
+        if (current.ultimateCharge >= ULTIMATE_MAX_CHARGE) dispatchRef.current({ type: 'ULTIMATE_FIRE' });
         return;
       }
-
       if (event.key === 'Backspace') {
         event.preventDefault();
-        dispatch({ type: 'BACKSPACE' });
+        dispatchRef.current({ type: 'BACKSPACE' });
         return;
       }
-
       if (event.key === ' ' || event.key === 'Enter') {
         event.preventDefault();
-        dispatch({ type: 'SUBMIT' });
+        dispatchRef.current({ type: 'SUBMIT' });
         return;
       }
-
-      let char = resolveTypedChar(event, layout);
+      const char = resolveTypedChar(event, loadSettings().keyboardLayout);
       if (char) {
-        // Ataque del jefe: teclas intercambiadas temporalmente
-        if (state.keyRemap && state.keyRemap[char]) {
-          char = state.keyRemap[char];
-        }
         event.preventDefault();
-        dispatch({ type: 'TYPE_CHAR', payload: char });
+        sendChar(char);
       }
     };
-
+    const onCompositionStart = () => { composingRef.current = true; };
+    const onCompositionEnd = (event: CompositionEvent) => {
+      composingRef.current = false;
+      for (const char of event.data) sendChar(char);
+    };
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [
-    state.status,
-    state.showBuildOverlay,
-    state.ultimateCharge,
-    state.keyRemap,
-    dispatch,
-  ]);
+    document.addEventListener('compositionstart', onCompositionStart);
+    document.addEventListener('compositionend', onCompositionEnd);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('compositionstart', onCompositionStart);
+      document.removeEventListener('compositionend', onCompositionEnd);
+    };
+  }, []);
 }

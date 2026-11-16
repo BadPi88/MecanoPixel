@@ -30,8 +30,8 @@ import {
   getBossProjectileIntervalMult,
 } from '../data/bosses';
 import { getAscensionBossAttackMult } from '../utils/ascensionModifiers';
-import { createWordId } from './useGameStateHelpers';
-import { createSeededRandom } from '../utils/random';
+import { createWordId } from '../engine/gameIds';
+import { createSeededRandom } from '../engine/rng';
 
 const WORD_HEIGHT = 36;
 const MIN_X_PADDING = 16;

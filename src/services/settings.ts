@@ -22,6 +22,8 @@ export interface GameSettings {
   theme: ThemeId;
   fontScale: FontScale;
   reducedMotion: boolean;
+  screenShake: boolean;
+  reducedFlashes: boolean;
   soundEnabled: boolean;
 }
 
@@ -33,6 +35,8 @@ export const DEFAULT_SETTINGS: GameSettings = {
   theme: 'default',
   fontScale: 1,
   reducedMotion: false,
+  screenShake: true,
+  reducedFlashes: false,
   soundEnabled: true,
 };
 
@@ -61,6 +65,12 @@ export function loadSettings(): GameSettings {
       reducedMotion: typeof parsed.reducedMotion === 'boolean'
         ? parsed.reducedMotion
         : DEFAULT_SETTINGS.reducedMotion,
+      screenShake: typeof parsed.screenShake === 'boolean'
+        ? parsed.screenShake
+        : DEFAULT_SETTINGS.screenShake,
+      reducedFlashes: typeof parsed.reducedFlashes === 'boolean'
+        ? parsed.reducedFlashes
+        : DEFAULT_SETTINGS.reducedFlashes,
       soundEnabled: typeof parsed.soundEnabled === 'boolean'
         ? parsed.soundEnabled
         : DEFAULT_SETTINGS.soundEnabled,
@@ -85,4 +95,6 @@ export function applySettingsToDocument(settings: GameSettings): void {
   root.dataset.font = settings.fontMode;
   root.dataset.scale = String(settings.fontScale).replace('.', '_');
   root.dataset.motion = settings.reducedMotion ? 'reduced' : 'full';
+  root.dataset.shake = settings.screenShake ? 'on' : 'off';
+  root.dataset.flashes = settings.reducedFlashes ? 'reduced' : 'full';
 }

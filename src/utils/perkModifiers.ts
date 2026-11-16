@@ -6,6 +6,7 @@ import { getDifficultyTier } from './difficulty';
 import { calculateWordScore } from './scoring';
 import { getRunnerModifiers } from './runnerModifiers';
 import type { RunnerId } from '../types/run';
+import { GAME_BALANCE } from '../config/gameBalance';
 
 export interface PerkModifiers {
   fallSpeedMult: number;
@@ -103,8 +104,14 @@ export function getEffectiveDifficulty(
   const mods = getModifiers(activePerks, elapsedMs, frozenUntilMs);
   const runner = getRunnerModifiers(runnerId);
 
-  let fallSpeed = tier.fallSpeed * mods.fallSpeedMult * runner.fallSpeedMult;
-  let spawnInterval = tier.spawnInterval * mods.spawnIntervalMult;
+  let fallSpeed = Math.min(
+    tier.fallSpeed * mods.fallSpeedMult * runner.fallSpeedMult,
+    GAME_BALANCE.maximumFallSpeed,
+  );
+  let spawnInterval = Math.max(
+    tier.spawnInterval * mods.spawnIntervalMult,
+    GAME_BALANCE.minimumSpawnIntervalMs,
+  );
 
   if (
     extras.tempoBuffUntilMs !== undefined &&
@@ -129,6 +136,9 @@ export function getEffectiveDifficulty(
   if (extras.eliteSpawnMult !== undefined) {
     spawnInterval *= extras.eliteSpawnMult;
   }
+
+  fallSpeed = Math.min(fallSpeed, GAME_BALANCE.maximumFallSpeed);
+  spawnInterval = Math.max(spawnInterval, GAME_BALANCE.minimumSpawnIntervalMs);
 
   return {
     ...tier,
@@ -205,7 +215,7 @@ export function calculatePerkWordScore(
     if (perk.id === 'golden_streak' && combo >= 5) scoreMult *= 1.5;
   }
 
-  return Math.round(base * scoreMult);
+  return Math.round(base * Math.min(scoreMult, GAME_BALANCE.scoreMultiplierHardCap));
 }
 
 export function findLowestWord(words: FallingWord[]): FallingWord | null {

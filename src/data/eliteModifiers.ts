@@ -1,3 +1,5 @@
+import { GAME_BALANCE } from '../config/gameBalance';
+
 export type EliteModifierId = 'fog' | 'storm' | 'cascade';
 
 export interface EliteModifierDef {
@@ -24,7 +26,7 @@ export const ELITE_MODIFIER_CATALOG: Record<EliteModifierId, EliteModifierDef> =
   },
 };
 
-export const ELITE_COIN_MULT = 1.5;
+export const ELITE_COIN_MULT = GAME_BALANCE.economy.eliteCoinMultiplier;
 
 export const ELITE_FOG_INTERVAL_MS = 8_000;
 export const ELITE_FOG_DURATION_MS = 1_500;

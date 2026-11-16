@@ -26,4 +26,5 @@ export interface SubmitWeeklyScorePayload {
   elapsedMs: number;
   floorReached?: number;
   runnerId?: string;
+  verification?: import('./leaderboard').RunVerification;
 }

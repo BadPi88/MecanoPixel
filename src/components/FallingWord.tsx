@@ -4,6 +4,7 @@ import { TooltipHint } from './TooltipHint';
 
 interface FallingWordProps {
   word: FallingWordType;
+  elapsedMs: number;
   groundHeight: number;
   isPartialMatch: boolean;
   isRadarTarget?: boolean;
@@ -48,6 +49,7 @@ const POS_HINTS: Record<string, string> = {
 
 export function FallingWord({
   word,
+  elapsedMs,
   groundHeight,
   isPartialMatch,
   isRadarTarget = false,
@@ -75,6 +77,8 @@ export function FallingWord({
   const isAnagram = word.modifiers?.includes('anagram');
   const isShifting = word.modifiers?.includes('shifting');
   const isVowelless = word.modifiers?.includes('vowelless');
+  const morphWarning = isShifting && word.morphAtMs !== undefined &&
+    word.morphAtMs - elapsedMs <= 1_000;
 
   const kindSymbol = KIND_SYMBOLS[word.kind];
   const posSymbol =
@@ -92,6 +96,7 @@ export function FallingWord({
         word.burning ? 'falling-word--burning' : '',
         isAnagram ? 'falling-word--anagram' : '',
         isShifting ? 'falling-word--shifting' : '',
+        morphWarning ? 'falling-word--morph-warning' : '',
         className,
         isVowelless ? 'falling-word--vowelless' : '',
       ]
